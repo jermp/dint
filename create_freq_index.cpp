@@ -19,6 +19,17 @@ void dump_index_specific_stats(Collection const&, std::string const&)
 {}
 
 
+void dump_index_specific_stats(ds2i::block_dint_index const& coll,
+                               std::string const& type)
+{
+    ds2i::stats_line()
+        ("type", type)
+        ("dict_entry_size", int(coll.dict_entry_width()))
+        ("dict_entries", int(coll.dict_entries()))
+        ("block_size", int(coll.block_size()))
+        ;
+}
+
 void dump_index_specific_stats(ds2i::uniform_index const& coll,
                                std::string const& type)
 {
@@ -58,6 +69,26 @@ void dump_index_specific_stats(ds2i::opt_index const& coll,
         ;
 }
 
+template <typename InputCollection,typename builder>
+void prepare_coders(InputCollection const&,builder&)
+{}
+
+template <typename InputCollection>
+void prepare_coders(InputCollection const& input,ds2i::block_dint_index::builder& builder)
+{
+    ds2i::progress_logger mplog("Building models..");
+    for (auto const& plist : input) {
+        uint64_t freqs_sum = std::accumulate(plist.freqs.begin(),
+            plist.freqs.end(), uint64_t(0));
+
+        builder.model_posting_list(plist.docs.size(), plist.docs.begin(),
+            plist.freqs.begin(), freqs_sum);
+        mplog.done_sequence(plist.docs.size());
+    }
+    builder.build_dict();
+    mplog.log();
+}
+
 template <typename InputCollection, typename CollectionType>
 void create_collection(InputCollection const& input,
                        ds2i::global_parameters const& params,
@@ -71,7 +102,13 @@ void create_collection(InputCollection const& input,
     double user_tick = get_user_time_usecs();
 
     typename CollectionType::builder builder(input.num_docs(), params);
-    progress_logger plog;
+    {
+        // TODO this might create some dicts if the type requires that
+        prepare_coders(input,builder);
+    }
+
+
+    progress_logger plog("Coding");
     for (auto const& plist: input) {
         uint64_t freqs_sum = std::accumulate(plist.freqs.begin(),
                                              plist.freqs.end(), uint64_t(0));

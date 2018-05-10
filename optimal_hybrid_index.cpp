@@ -159,7 +159,7 @@ void compute_lambdas(InputCollectionType const& input_coll,
     using namespace time_prediction;
 
     logger() << "Computing lambdas" << std::endl;
-    progress_logger plog;
+    progress_logger plog("Processing");
 
     auto predictors = load_predictors(predictors_filename);
     std::ifstream block_stats(block_stats_filename);
@@ -444,7 +444,7 @@ void optimal_hybrid_index(ds2i::global_parameters const& params,
 
     typedef typename block_mixed_index::builder builder_type;
     builder_type builder(input_coll.num_docs(), params);
-    progress_logger plog;
+    progress_logger plog("Processing");
     semiasync_queue queue(1 << 24);
     auto block_types_it = block_types.begin();
     auto block_params_it = block_params.begin();

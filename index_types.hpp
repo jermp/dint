@@ -12,6 +12,7 @@
 #include "block_freq_index.hpp"
 #include "block_codecs.hpp"
 #include "mixed_block.hpp"
+#include "dict_freq_index.hpp"
 
 namespace ds2i {
 
@@ -36,7 +37,8 @@ namespace ds2i {
     typedef block_freq_index<ds2i::interpolative_block> block_interpolative_index;
     typedef block_freq_index<ds2i::qmx_block> block_qmx_index;
     typedef block_freq_index<ds2i::mixed_block> block_mixed_index;
+    typedef dict_freq_index<ds2i::dict_builder_giulio<65536,16>,ds2i::dict_block_coder_greedy<16>> block_dint_index;
 }
 
-#define DS2I_INDEX_TYPES (ef)(single)(uniform)(opt)(block_optpfor)(block_varint)(block_interpolative)(block_mixed)(block_qmx)
+#define DS2I_INDEX_TYPES (ef)(single)(uniform)(opt)(block_optpfor)(block_varint)(block_interpolative)(block_mixed)(block_qmx)(block_dint)
 #define DS2I_BLOCK_INDEX_TYPES (block_optpfor)(block_varint)(block_interpolative)(block_qmx)(block_mixed)
