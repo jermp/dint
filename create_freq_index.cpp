@@ -18,7 +18,6 @@ template <typename Collection>
 void dump_index_specific_stats(Collection const&, std::string const&)
 {}
 
-
 void dump_index_specific_stats(ds2i::block_dint_index const& coll,
                                std::string const& type)
 {
@@ -69,24 +68,15 @@ void dump_index_specific_stats(ds2i::opt_index const& coll,
         ;
 }
 
-template <typename InputCollection,typename builder>
-void prepare_coders(InputCollection const&,builder&)
+template<typename InputCollection, typename Builder>
+void build_model(InputCollection const&, Builder&)
 {}
 
-template <typename InputCollection>
-void prepare_coders(InputCollection const& input,ds2i::block_dint_index::builder& builder)
+template<typename InputCollection>
+void build_model(InputCollection const& input,
+                 ds2i::block_dint_index::builder& builder)
 {
-    ds2i::progress_logger mplog("Building models..");
-    for (auto const& plist : input) {
-        uint64_t freqs_sum = std::accumulate(plist.freqs.begin(),
-            plist.freqs.end(), uint64_t(0));
-
-        builder.model_posting_list(plist.docs.size(), plist.docs.begin(),
-            plist.freqs.begin(), freqs_sum);
-        mplog.done_sequence(plist.docs.size());
-    }
-    builder.build_dict();
-    mplog.log();
+    builder.build_model(input);
 }
 
 template <typename InputCollection, typename CollectionType>
@@ -102,13 +92,9 @@ void create_collection(InputCollection const& input,
     double user_tick = get_user_time_usecs();
 
     typename CollectionType::builder builder(input.num_docs(), params);
-    {
-        // TODO this might create some dicts if the type requires that
-        prepare_coders(input,builder);
-    }
+    build_model(input, builder);
 
-
-    progress_logger plog("Coding");
+    progress_logger plog("Encoding...");
     for (auto const& plist: input) {
         uint64_t freqs_sum = std::accumulate(plist.freqs.begin(),
                                              plist.freqs.end(), uint64_t(0));
@@ -144,14 +130,13 @@ void create_collection(InputCollection const& input,
     }
 }
 
-
 int main(int argc, const char** argv) {
 
     using namespace ds2i;
 
     if (argc < 3) {
-        std::cerr << "Usage: " << argv[0]
-                  << " <index type> <collection basename> [<output filename>]"
+        std::cerr << "Usage:\n" << argv[0]
+                  << "\t<index type> <collection basename> [<output filename>] [--check]"
                   << std::endl;
         return 1;
     }

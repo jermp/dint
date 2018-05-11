@@ -9,11 +9,12 @@ namespace ds2i {
     struct dict_posting_list {
 
         template <typename DocsIterator, typename FreqsIterator>
-        static void write(const std::vector<uint32_t>& doc_dict,const std::vector<uint32_t>& freq_dict,
+        static void write(const std::vector<uint32_t>& doc_dict,
+                          const std::vector<uint32_t>& freq_dict,
                           std::vector<uint8_t>& out, uint32_t n,
-                          DocsIterator docs_begin, FreqsIterator freqs_begin) {
+                          DocsIterator docs_begin, FreqsIterator freqs_begin)
+        {
             TightVariableByte::encode_single(n, out);
-
             uint64_t block_size = DictBlockCoder::block_size;
             uint64_t blocks = succinct::util::ceil_div(n, block_size);
             size_t begin_block_maxs = out.size();
