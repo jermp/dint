@@ -27,10 +27,14 @@ namespace ds2i {
                 , m_table(num_entries * (entry_width + 1), 0)
             {}
 
+            bool full() {
+                return m_pos == m_table.size();
+            }
+
             // Giulio: return true if there is still space left for the entry;
             // false otherwise
             bool append(uint32_t const* entry, uint32_t entry_width) {
-                if (m_pos == m_table.size()) {
+                if (full()) {
                     return false;
                 }
                 assert(m_pos % (m_entry_width + 1) == 0);

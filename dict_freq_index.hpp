@@ -43,7 +43,7 @@ namespace ds2i {
                 std::vector<uint32_t> gaps;
                 uint64_t processed_lists = 0;
 
-                for (uint32_t block_size = 16; block_size != 1; block_size /= 2)
+                for (uint32_t block_size = 16; block_size != 0; block_size /= 2)
                 {
                     blocks_statistics docs_blocks_stats(block_size);
                     blocks_statistics freqs_blocks_stats(block_size);
@@ -82,13 +82,10 @@ namespace ds2i {
                     freqs_blocks_stats.sort_and_write();
                 }
 
-                // Giulio: aggregate stats of all blocks into a vector in memory?
-
-                logger() << "Building dictionaries..." << std::endl;
-
                 // step 2. build dictionary from statistics
-                DictBuilder::build(m_docs_dict, m_block_docs_stats);
-                DictBuilder::build(m_freqs_dict, m_block_freqs_stats);
+                logger() << "Building dictionaries..." << std::endl;
+                DictBuilder::build(m_docs_dict);
+                DictBuilder::build(m_freqs_dict);
             }
 
             bool statistics_collected() const {
@@ -138,10 +135,6 @@ namespace ds2i {
 
             dictionary m_docs_dict;
             dictionary m_freqs_dict;
-
-            // TODO
-            std::vector<uint32_t> m_block_docs_stats;
-            std::vector<uint32_t> m_block_freqs_stats;
         };
 
         dict_freq_index()
@@ -183,7 +176,7 @@ namespace ds2i {
         {
             assert(i < size());
 
-            // Giulio: loop thorugh the most frequently accessed dict entries
+            // Giulio: loop thorugh the most frequently accessed dictionary entries
             // TODO
 
             compact_elias_fano::enumerator endpoints(m_endpoints, 0,
