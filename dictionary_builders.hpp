@@ -113,14 +113,19 @@ namespace ds2i {
             //     that gives the highest reduction in used bits per integer (bpi);
             //   - we decrease the frequency of all its sub-entries (if found) and
             //     call heapify() to restore the heap condition
-            while (not builder.full() or not max_heap.empty()) {
+            while (not builder.full())
+            {
+                if (max_heap.empty()) break;
+
                 auto const& best = max_heap.top();
                 auto const& best_block = best.first;
                 uint64_t best_block_freq = blocks_frequencies[best.second];
+                covered_integers += best_block.size() * best_block_freq;
                 double cost_saving = bpi(best_block.size(), best_block_freq, total_integers);
                 final_bpi -= cost_saving;
                 logger() << "added a target of size " << best.first.size() << " to the dictionary" << std::endl;
                 logger() << "current bits x integer: " << final_bpi << std::endl;
+                logger() << "covering " << covered_integers * 100.0 / total_integers << "%" << std::endl;
 
                 logger() << "heapifing..." << std::endl;
                 for (uint32_t block_size = best_block.size() / 2; block_size != 0; block_size /= 2) {
@@ -135,6 +140,8 @@ namespace ds2i {
                         max_heap.heapify();
                     }
                 }
+
+                max_heap.pop();
             }
 
             builder.build(dict);

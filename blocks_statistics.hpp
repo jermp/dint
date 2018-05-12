@@ -77,6 +77,7 @@ namespace ds2i {
 
             std::ofstream out(output_filename.c_str());
 
+            logger() << "writing binary file..." << std::endl;
             // write header
             uint32_t num_blocks = freq_blocks.size();
             std::streamsize bytes = sizeof(uint32_t);
@@ -93,6 +94,8 @@ namespace ds2i {
                 }
             }
 
+            // free memory
+            std::unordered_map<uint64_t, value_type>().swap(m_map);
             out.close();
         }
 

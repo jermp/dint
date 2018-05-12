@@ -46,7 +46,7 @@ namespace ds2i {
                 uint64_t processed_lists = 0;
                 uint64_t total_integers = 0;
 
-                for (uint32_t block_size = 16; block_size != 0; block_size /= 2)
+                for (uint32_t block_size = 1 /*16*/; block_size != 0; block_size /= 2)
                 {
                     blocks_statistics docs_blocks_stats(block_size);
                     blocks_statistics freqs_blocks_stats(block_size);
