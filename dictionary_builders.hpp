@@ -93,6 +93,9 @@ namespace ds2i {
                     uint32_t index = blocks_frequencies.size();
                     entry_type entry(std::vector<uint32_t>(), index);
                     auto const& block = *begin;
+
+                    if (i < 10) std::cout << "block.freq() " << block.freq() << std::endl;
+
                     entry.first.reserve(block.size());
                     for (uint32_t x: block) {
                         entry.first.push_back(x);
