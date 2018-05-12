@@ -73,10 +73,12 @@ namespace ds2i {
                             assert(gaps.size() == n);
 
                             docs_blocks_stats.process(gaps.data(), n);
-                            freqs_blocks_stats.process(plist.freqs.begin(), n);
-                            gaps.clear();
+                            freqs_blocks_stats.process(plist.freqs.begin(), n); // do not take gaps
 
-                            if (processed_lists % 10000 == 0) {
+                            gaps.clear();
+                            ++processed_lists;
+
+                            if (processed_lists and processed_lists % 10000 == 0) {
                                 logger() << "processed " << processed_lists << " lists" << std::endl;
                                 logger() << "processed " << total_integers << " integers" << std::endl;
                             }

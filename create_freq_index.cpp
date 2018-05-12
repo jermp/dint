@@ -135,7 +135,7 @@ int main(int argc, const char** argv) {
     using namespace ds2i;
 
     if (argc < 3) {
-        std::cerr << "Usage:\n" << argv[0]
+        std::cerr << "Usage: " << argv[0] << ":\n"
                   << "\t<index type> <collection basename> [<output filename>] [--check]"
                   << std::endl;
         return 1;

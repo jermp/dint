@@ -55,7 +55,7 @@ namespace ds2i {
                     (*it).second.first += 1;
                 }
 
-                begin += num_bytes;
+                b += num_bytes;
             }
         }
 
