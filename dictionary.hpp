@@ -45,7 +45,7 @@ namespace ds2i {
             }
 
             void build(dictionary& dict) {
-                std::swap(m_num_entries, dict.num_entries);
+                std::swap(m_num_entries, dict.m_num_entries);
                 std::swap(m_entry_width, dict.m_entry_width);
                 dict.m_table.steal(m_table);
                 builder().swap(*this);
@@ -103,7 +103,7 @@ namespace ds2i {
         void swap(dictionary& other) {
             std::swap(m_num_entries, other.m_num_entries);
             std::swap(m_entry_width, other.m_entry_width);
-            m_table.steal(other.m_table);
+            m_table.swap(other.m_table);
         }
 
         template<typename Visitor>

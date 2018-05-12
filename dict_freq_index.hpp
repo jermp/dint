@@ -7,6 +7,7 @@
 #include "dictionary_builders.hpp"
 #include "compact_elias_fano.hpp"
 #include "dict_posting_list.hpp"
+#include "blocks_statistics.hpp"
 
 namespace ds2i {
 
@@ -18,7 +19,6 @@ namespace ds2i {
         struct builder {
             builder(uint64_t num_docs, global_parameters const& params)
                 : m_params(params)
-                , m_statistics_collected(false)
             {
                 m_num_docs = num_docs;
                 m_endpoints.push_back(0);
@@ -55,16 +55,16 @@ namespace ds2i {
 
                     for (auto const& plist: input)
                     {
+                        size_t n = plist.docs.size();
                         if (n > MIN_SIZE)
                         {
-                            size_t n = plist.docs.size();
                             total_integers += n;
                             if (!n) throw std::invalid_argument("List must be nonempty");
 
                             gaps.reserve(n);
-                            auto docs_begin = plist.docs().begin();
+                            auto docs_begin = plist.docs.begin();
                             auto docs_end = docs_begin + n;
-                            posting_type prev = 0;
+                            uint32_t prev = 0;
                             while (docs_begin != docs_end) {
                                 gaps.push_back(*docs_begin - prev);
                                 prev = *docs_begin;
@@ -73,7 +73,7 @@ namespace ds2i {
                             assert(gaps.size() == n);
 
                             docs_blocks_stats.process(gaps.data(), n);
-                            freqs_blocks_stats.process(plist.freqs().begin(), n);
+                            freqs_blocks_stats.process(plist.freqs.begin(), n);
                             gaps.clear();
 
                             if (processed_lists % 10000 == 0) {
@@ -88,10 +88,10 @@ namespace ds2i {
 
                     // write blocks statistics to the disk
                     logger() << "Writing blocks statistics to the disk..." << std::endl;
-                    std::string output_filename("./docs.blocks_stats." + std::to_string(block_size) + ".bin");
-                    std::string output_filename("./freqs.blocks_stats." + std::to_string(block_size) + ".bin");
-                    docs_blocks_stats.sort_and_write();
-                    freqs_blocks_stats.sort_and_write();
+                    std::string docs_output_filename("./docs.blocks_stats." + std::to_string(block_size) + ".bin");
+                    docs_blocks_stats.sort_and_write(docs_output_filename);
+                    std::string freqs_output_filename("./freqs.blocks_stats." + std::to_string(block_size) + ".bin");
+                    freqs_blocks_stats.sort_and_write(freqs_output_filename);
                 }
 
                 // step 2. build dictionary from statistics
@@ -134,9 +134,6 @@ namespace ds2i {
             }
 
         private:
-            bool m_statistics_collected;
-            uint32_t m_current_block_size;
-
             global_parameters m_params;
             size_t m_num_docs;
             std::vector<uint64_t> m_endpoints;

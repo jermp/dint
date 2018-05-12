@@ -9,7 +9,7 @@ namespace ds2i {
 
     namespace util {
         bool is_power_of_two(uint64_t x) {
-            return x & (x - 1) == 0;
+            return (x & (x - 1)) == 0;
         }
     }
 
@@ -20,7 +20,6 @@ namespace ds2i {
 
         blocks_statistics(uint32_t block_size)
             : m_block_size(block_size)
-            , m_bytes_per_block(block_size * sizeof(uint32_t))
         {
             logger() << "initialize blocks_statistics with block_size = " << block_size << std::endl;
             assert(util::is_power_of_two(m_block_size));
@@ -63,16 +62,16 @@ namespace ds2i {
         void sort_and_write(std::string const& output_filename)
         {
             std::vector<value_type> freq_blocks;
-            freq_blocks.reserve(occs.size());
-            for (auto& pair: occs) {
-                value_type p(pair.second.first, gaps_type());
+            freq_blocks.reserve(m_map.size());
+            for (auto& pair: m_map) {
+                value_type p(pair.second.first, std::vector<uint32_t>());
                 p.second.swap(pair.second.second);
                 freq_blocks.push_back(std::move(p));
             }
 
             logger() << "sorting by decreasing freq..." << std::endl;
             std::sort(freq_blocks.begin(), freq_blocks.end(),
-                      [](auto const& x, auto const& y) {
+                      [](value_type const& x, value_type const& y) {
                             return x.first > y.first;
                       });
 
@@ -107,7 +106,6 @@ namespace ds2i {
 
     private:
         uint32_t m_block_size;
-        uint32_t m_bytes_per_block;
         std::unordered_map<uint64_t, value_type> m_map;
     };
 

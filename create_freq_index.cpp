@@ -18,16 +18,14 @@ template <typename Collection>
 void dump_index_specific_stats(Collection const&, std::string const&)
 {}
 
-void dump_index_specific_stats(ds2i::block_dint_index const& coll,
-                               std::string const& type)
-{
-    ds2i::stats_line()
-        ("type", type)
-        ("dict_entry_size", int(coll.dict_entry_width()))
-        ("dict_entries", int(coll.dict_entries()))
-        ("block_size", int(coll.block_size()))
-        ;
-}
+// // Giulio: specialize this later
+// void dump_index_specific_stats(ds2i::block_dint_index const& coll,
+//                                std::string const& type)
+// {
+//     ds2i::stats_line()
+//         ("type", type)
+//         ;
+// }
 
 void dump_index_specific_stats(ds2i::uniform_index const& coll,
                                std::string const& type)
@@ -94,8 +92,8 @@ void create_collection(InputCollection const& input,
     typename CollectionType::builder builder(input.num_docs(), params);
     build_model(input, builder);
 
-    // GIULIO: just try the building of the models
-    break;
+    // Giulio: test the building of the models
+    return;
 
     progress_logger plog("Encoding...");
     for (auto const& plist: input) {

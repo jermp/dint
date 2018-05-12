@@ -1,7 +1,11 @@
 #pragma once
 
+#include "binary_blocks_collection.hpp"
 #include "dictionary.hpp"
 #include "heap.hpp"
+#include "hash_utils.hpp"
+
+#include <unordered_map>
 
 namespace ds2i {
 
@@ -13,7 +17,7 @@ namespace ds2i {
 
     template<uint32_t num_entries = 65536,
              uint32_t entry_width = 16>
-    struct dictionary_builder
+    struct dint_dictionary_builder
     {
         // Giulio: we can exploit the property that the distribution
         // is highly skewed to speed up the computation.
@@ -22,11 +26,36 @@ namespace ds2i {
         // if they appear a lot.
         static const uint32_t top_k = 500000;
 
-        static void build(dictionary& dict, uint64_t total_num_integers, std::string prefix_name)
+        // <block, index into the frequency array>
+        typedef std::pair<std::vector<uint32_t>, uint32_t> entry_type;
+
+        static double bpi(uint32_t block_size, uint32_t block_frequency, uint64_t total_integers) {
+            return util::cost(block_size, block_frequency) / total_integers;
+        };
+
+        struct bpi_comparator {
+            bpi_comparator()
+                : m_total_integers(0)
+                , m_frequencies(nullptr)
+            {}
+
+            bpi_comparator(std::vector<uint64_t> const* frequencies, uint64_t total_integers)
+                : m_total_integers(total_integers)
+                , m_frequencies(frequencies)
+            {}
+
+            bool operator()(entry_type const& x, entry_type const& y) {
+                return bpi(x.first.size(), m_frequencies->operator[](x.second), m_total_integers)
+                     < bpi(y.first.size(), m_frequencies->operator[](y.second), m_total_integers);
+            }
+
+        private:
+            uint64_t m_total_integers;
+            std::vector<uint64_t> const* m_frequencies;
+        };
+
+        static void build(dictionary& dict, uint64_t total_integers, std::string prefix_name)
         {
-            auto bpi = [&](uint32_t block_size, uint32_t block_frequency) {
-                return util::cost(block_size, block_frequency) / total_num_integers;
-            };
 
             dictionary::builder builder(num_entries, entry_width);
 
@@ -43,19 +72,15 @@ namespace ds2i {
             std::vector<uint64_t> blocks_frequencies;
             blocks_frequencies.reserve(top_k * 5); // top_k entries for each different block_size
 
-            // <block, index into the frequency array>
-            typedef std::pair<std::vector<uint32_t>, uint32_t> entry_type;
-
-            auto compare_bpi = [&](entry_type const& x, entry_type const& y) {
-                return bpi(x.first.size(), frequencies[x.second])
-                     < bpi(y.first.size(), frequencies[y.second]);
-            };
-
             // std::priority_queue<entry_type,
             //                     std::vector<entry_type>,
             //                     decltype(compare_bpi)> max_heap(compare_bpi);
 
-            heap<entry, decltype(compare_bpi)> max_heap(top_k * 5, compare_bpi);
+            bpi_comparator bc(&blocks_frequencies, total_integers);
+            heap<entry_type, bpi_comparator> max_heap(top_k * 5, bc);
+
+            // <hash of block, index into frequency array>
+            std::unordered_map<uint64_t, uint32_t> map;
 
             for (uint32_t block_size = 16; block_size != 0; block_size /= 2)
             {
@@ -65,7 +90,7 @@ namespace ds2i {
                 auto begin = input.begin();
                 for (uint32_t i = 0; i < top_k; ++i, ++begin)
                 {
-                    uint32_t index = frequencies.size();
+                    uint32_t index = blocks_frequencies.size();
                     entry_type entry(std::vector<uint32_t>(), index);
                     auto const& block = *begin;
                     entry.first.reserve(block.size());
@@ -74,7 +99,7 @@ namespace ds2i {
                     }
 
                     max_heap.push(std::move(entry));
-                    frequencies.push_back(block.freq());
+                    blocks_frequencies.push_back(block.freq());
 
                     uint8_t const* b = reinterpret_cast<uint8_t const*>(entry.first.data());
                     uint8_t const* e = b + block.size() * sizeof(uint32_t);
@@ -91,28 +116,29 @@ namespace ds2i {
             while (not builder.full() or not max_heap.empty()) {
                 auto const& best = max_heap.top();
                 auto const& best_block = best.first;
-                uint64_t best_block_freq = frequencies[best.second];
-                double cost_saving = bpi(best_block.size(), best_block_freq);
-                bpi -= cost_saving;
+                uint64_t best_block_freq = blocks_frequencies[best.second];
+                double cost_saving = bpi(best_block.size(), best_block_freq, total_integers);
+                final_bpi -= cost_saving;
                 logger() << "added a target of size " << best.first.size() << " to the dictionary" << std::endl;
-                logger() << "current bits x integer: " << bpi << std::endl;
+                logger() << "current bits x integer: " << final_bpi << std::endl;
 
                 logger() << "heapifing..." << std::endl;
                 for (uint32_t block_size = best_block.size() / 2; block_size != 0; block_size /= 2) {
-                    for (uint32_t begin = 0; begin != end; begin += block_size) {
+                    for (uint32_t begin = 0; begin != best_block.size(); begin += block_size) {
+                        uint32_t end = begin + block_size;
                         uint8_t const* b = reinterpret_cast<uint8_t const*>(&best_block[begin]);
                         uint8_t const* e = reinterpret_cast<uint8_t const*>(&best_block[end]);
                         uint64_t hash = hash_bytes64(byte_range(b, e));
                         uint32_t index = map[hash];
-                        frequencies[index] -= best_block_freq;
-                        assert(frequencies[index] >= 0);
-                        heap.heapify();
+                        blocks_frequencies[index] -= best_block_freq;
+                        assert(blocks_frequencies[index] >= 0);
+                        max_heap.heapify();
                     }
                 }
             }
 
             builder.build(dict);
-            logger() << "using " << bpi << " bits x integer" << std::endl;
+            logger() << "using " << final_bpi << " bits x integer" << std::endl;
         }
 
     };

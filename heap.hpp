@@ -10,7 +10,9 @@ namespace ds2i {
         heap()
         {}
 
-        heap(uint64_t size, C const& comparator) {
+        heap(uint64_t size, C const& comparator)
+            : heap()
+        {
             init(size, comparator);
         }
 
