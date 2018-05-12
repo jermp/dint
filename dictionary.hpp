@@ -1,5 +1,6 @@
 #pragma once
 
+#include <succinct/mappable_vector.hpp>
 #include <fstream>
 
 #include "util.hpp"
