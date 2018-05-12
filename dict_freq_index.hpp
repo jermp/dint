@@ -13,6 +13,8 @@ namespace ds2i {
     template<typename DictBuilder, typename DictBlock>
     struct dict_freq_index {
 
+        static const uint64_t MIN_SIZE = 4096;
+
         struct builder {
             builder(uint64_t num_docs, global_parameters const& params)
                 : m_params(params)
@@ -28,7 +30,7 @@ namespace ds2i {
                                   uint64_t /* occurrences */)
             {
                 if (!n) throw std::invalid_argument("List must be nonempty");
-                dict_posting_list<DictBlock>::write(m_docs_dict, m_freqs_dict,
+                dict_posting_list<DictBlock>::write(&m_docs_dict, &m_freqs_dict,
                                                     m_lists, n,
                                                     docs_begin, freqs_begin);
                 m_endpoints.push_back(m_lists.size());
@@ -42,37 +44,47 @@ namespace ds2i {
                 // step 1. collect statistics
                 std::vector<uint32_t> gaps;
                 uint64_t processed_lists = 0;
+                uint64_t total_integers = 0;
 
                 for (uint32_t block_size = 16; block_size != 0; block_size /= 2)
                 {
                     blocks_statistics docs_blocks_stats(block_size);
                     blocks_statistics freqs_blocks_stats(block_size);
+                    total_integers = 0;
+                    processed_lists = 0;
 
                     for (auto const& plist: input)
                     {
-                        size_t n = plist.docs.size();
-                        if (!n) throw std::invalid_argument("List must be nonempty");
-                        gaps.reserve(n);
-                        auto docs_begin = plist.docs().begin();
-                        auto docs_end = docs_begin + n;
-                        posting_type prev = 0;
-                        while (docs_begin != docs_end) {
-                            gaps.push_back(*docs_begin - prev);
-                            prev = *docs_begin;
-                            ++docs_begin;
-                        }
-                        assert(gaps.size() == n);
+                        if (n > MIN_SIZE)
+                        {
+                            size_t n = plist.docs.size();
+                            total_integers += n;
+                            if (!n) throw std::invalid_argument("List must be nonempty");
 
-                        docs_blocks_stats.process(gaps.data(), n);
-                        freqs_blocks_stats.process(plist.freqs().begin(), n);
-                        gaps.clear();
+                            gaps.reserve(n);
+                            auto docs_begin = plist.docs().begin();
+                            auto docs_end = docs_begin + n;
+                            posting_type prev = 0;
+                            while (docs_begin != docs_end) {
+                                gaps.push_back(*docs_begin - prev);
+                                prev = *docs_begin;
+                                ++docs_begin;
+                            }
+                            assert(gaps.size() == n);
 
-                        if (processed_lists % 10000 == 0) {
-                            logger() << "processed " << processed_lists << " lists" << std::endl;
+                            docs_blocks_stats.process(gaps.data(), n);
+                            freqs_blocks_stats.process(plist.freqs().begin(), n);
+                            gaps.clear();
+
+                            if (processed_lists % 10000 == 0) {
+                                logger() << "processed " << processed_lists << " lists" << std::endl;
+                                logger() << "processed " << total_integers << " integers" << std::endl;
+                            }
                         }
                     }
 
-                    processed_lists = 0;
+                    logger() << "processed " << processed_lists << " lists" << std::endl;
+                    logger() << "processed " << total_integers << " integers" << std::endl;
 
                     // write blocks statistics to the disk
                     logger() << "Writing blocks statistics to the disk..." << std::endl;
@@ -83,13 +95,10 @@ namespace ds2i {
                 }
 
                 // step 2. build dictionary from statistics
-                logger() << "Building dictionaries..." << std::endl;
-                DictBuilder::build(m_docs_dict);
-                DictBuilder::build(m_freqs_dict);
-            }
-
-            bool statistics_collected() const {
-                return m_statistics_collected;
+                logger() << "Building dictionary for docs..." << std::endl;
+                DictBuilder::build(m_docs_dict, total_integers, "docs");
+                logger() << "Building dictionary for freqs..." << std::endl;
+                DictBuilder::build(m_freqs_dict, total_integers, "freqs");
             }
 
             // template<typename BlockDataRange>
@@ -169,7 +178,9 @@ namespace ds2i {
                                                      m_params);
 
             auto endpoint = endpoints.move(i).second;
-            return document_enumerator(m_doc_dict.data(),m_freq_dict.data(),m_lists.data() + endpoint, num_docs(), i);
+            return document_enumerator(&m_docs_dict, &m_freqs_dict,
+                                       m_lists.data() + endpoint,
+                                       num_docs(), i);
         }
 
         void warmup(size_t i) const

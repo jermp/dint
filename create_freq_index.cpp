@@ -9,7 +9,7 @@
 #include "configuration.hpp"
 #include "index_types.hpp"
 #include "util.hpp"
-#include "verify_collection.hpp" // XXX move to index_build_utils
+#include "verify_collection.hpp"
 #include "index_build_utils.hpp"
 
 using ds2i::logger;
@@ -94,11 +94,13 @@ void create_collection(InputCollection const& input,
     typename CollectionType::builder builder(input.num_docs(), params);
     build_model(input, builder);
 
+    // GIULIO: just try the building of the models
+    break;
+
     progress_logger plog("Encoding...");
     for (auto const& plist: input) {
         uint64_t freqs_sum = std::accumulate(plist.freqs.begin(),
                                              plist.freqs.end(), uint64_t(0));
-
         builder.add_posting_list(plist.docs.size(), plist.docs.begin(),
                                  plist.freqs.begin(), freqs_sum);
         plog.done_sequence(plist.docs.size());
