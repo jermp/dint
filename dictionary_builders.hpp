@@ -124,6 +124,12 @@ namespace ds2i {
 
                 auto const& best = max_heap.top();
                 auto const& best_block = best.first;
+
+                for (auto x: best_block) {
+                    std::cout << x << " ";
+                }
+                std::cout << std::endl;
+
                 uint64_t best_block_freq = blocks_frequencies[best.second];
                 covered_integers += best_block.size() * best_block_freq;
                 double cost_saving = bpi(best_block.size(), best_block_freq, total_integers);
@@ -132,12 +138,12 @@ namespace ds2i {
                 logger() << "current bits x integer: " << final_bpi << std::endl;
                 logger() << "covering " << covered_integers * 100.0 / total_integers << "%" << std::endl;
 
-                logger() << "heapifing..." << std::endl;
+                // logger() << "heapifing..." << std::endl;
                 for (uint32_t block_size = best_block.size() / 2; block_size != 0; block_size /= 2) {
                     for (uint32_t begin = 0; begin != best_block.size(); begin += block_size) {
                         uint32_t end = begin + block_size;
                         uint8_t const* b = reinterpret_cast<uint8_t const*>(&best_block[begin]);
-                        uint8_t const* e = reinterpret_cast<uint8_t const*>(&best_block[end]);
+                        uint8_t const* e = b + block_size * sizeof(uint32_t);
                         uint64_t hash = hash_bytes64(byte_range(b, e));
                         uint32_t index = map[hash];
                         blocks_frequencies[index] -= best_block_freq;
