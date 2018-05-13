@@ -43,4 +43,7 @@ BOOST_AUTO_TEST_CASE(block_codecs)
     test_block_codec<ds2i::varint_G8IU_block>();
     test_block_codec<ds2i::interpolative_block>();
     test_block_codec<ds2i::qmx_block>();
+    test_block_codec<ds2i::vbyte_block>();
+    test_block_codec<ds2i::u32_block>();
+    test_block_codec<ds2i::simple16_block>();
 }
