@@ -168,8 +168,8 @@ namespace ds2i {
                     for (uint32_t block_size = best_block.size() / 2, j = i + 1; block_size != 0; block_size /= 2, ++j) {
                         // std::cout << "decreasing freqs of sub-blocks of size " << block_size << std::endl;
                         for (uint32_t begin = 0; begin != best_block.size(); begin += block_size) {
-                            uint32_t end = begin + block_size;
 
+                            // uint32_t end = begin + block_size;
                             // std::cout << "block[" << begin << ", " << end << ") = ";
                             // for (uint32_t kk = begin; kk != end; ++kk) {
                             //     std::cout << best_block[kk] << " ";

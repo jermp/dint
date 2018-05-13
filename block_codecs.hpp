@@ -362,19 +362,20 @@ namespace ds2i {
                            uint32_t sum_of_values, size_t n,
                            std::vector<uint8_t>& out)
         {
-            uint8_t const* begin = in;
-            uint8_t const* end = begin + n * sizeof(uint32_t);
-            while (begin != end)
+            uint32_t const* begin = in;
+            uint32_t const* end = begin + n;
+            while (begin >= end)
             {
                 // first, try runs of sizes 256, 128, 64 and 32
                 uint32_t longest_run_size = 0;
                 uint32_t run_size = 256;
                 uint32_t table_index = 0;
 
-                uint32_t const* b = begin;
-                uint32_t const* e = b + std::min<uint64_t>(run_size, (end - begin) * sizeof(uint32_t));
-                for (; b != e; ++b) {
-                    if (*b == 1) {
+                for (uint32_t const* ptr  = begin;
+                                     ptr != begin + std::min<uint64_t>(run_size, end - begin);
+                                   ++ptr)
+                {
+                    if (*ptr == 1) {
                         ++longest_run_size;
                     } else {
                         break;
@@ -388,16 +389,14 @@ namespace ds2i {
 
                 if (table_index < 5) {
                     out.push_back(table_index);
-                    num_encoded_ints += run_size;
-                    num_encoded_ints_by_runs += run_size;
-                    begin += std::min<uint64_t>(run_size * sizeof(uint32_t), end - begin);
+                    begin += std::min<uint64_t>(run_size, end - begin);
                 } else {
                     for (uint32_t block_size = 8; block_size != 1; block_size /= 2) {
                         table_index = dict->lookup(begin, block_size)
                         if (table_index != dictionary::invalid_index) {
                             out.push_back(table_index &  MASK);
                             out.push_back(table_index & ~MASK);
-                            begin += block_size;
+                            begin += block_size; // can be >= end
                             break;
                         }
                     }
@@ -409,7 +408,7 @@ namespace ds2i {
                         uint32_t exception = *begin;
                         for (int i = 0; i < 4; ++i) {
                             out.push_back(exception & MASK);
-                            exception >> 8;
+                            exception >>= 8;
                         }
 
                         begin += 1;

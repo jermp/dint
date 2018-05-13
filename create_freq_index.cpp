@@ -12,35 +12,36 @@
 #include "verify_collection.hpp"
 #include "index_build_utils.hpp"
 
+using namespace ds2i;
 using ds2i::logger;
 
-template <typename Collection>
+template<typename Collection>
 void dump_index_specific_stats(Collection const&, std::string const&)
 {}
 
 // // Giulio: specialize this later
-// void dump_index_specific_stats(ds2i::block_dint_index const& coll,
+// void dump_index_specific_stats(block_dint_index const& coll,
 //                                std::string const& type)
 // {
-//     ds2i::stats_line()
+//     stats_line()
 //         ("type", type)
 //         ;
 // }
 
-void dump_index_specific_stats(ds2i::uniform_index const& coll,
+void dump_index_specific_stats(uniform_index const& coll,
                                std::string const& type)
 {
-    ds2i::stats_line()
+    stats_line()
         ("type", type)
         ("log_partition_size", int(coll.params().log_partition_size))
         ;
 }
 
 
-void dump_index_specific_stats(ds2i::opt_index const& coll,
+void dump_index_specific_stats(opt_index const& coll,
                                std::string const& type)
 {
-    auto const& conf = ds2i::configuration::get();
+    auto const& conf = configuration::get();
 
     double long_postings = 0;
     double docs_partitions = 0;
@@ -55,7 +56,7 @@ void dump_index_specific_stats(ds2i::opt_index const& coll,
         }
     }
 
-    ds2i::stats_line()
+    stats_line()
         ("type", type)
         ("eps1", conf.eps1)
         ("eps2", conf.eps2)
@@ -71,19 +72,17 @@ void build_model(InputCollection const&, Builder&)
 
 template<typename InputCollection>
 void build_model(InputCollection const& input,
-                 ds2i::block_dint_index::builder& builder)
+                 block_dint_index::builder& builder)
 {
     builder.build_model(input);
 }
 
 template <typename InputCollection, typename CollectionType>
 void create_collection(InputCollection const& input,
-                       ds2i::global_parameters const& params,
+                       global_parameters const& params,
                        const char* output_filename, bool check,
                        std::string const& seq_type)
 {
-    using namespace ds2i;
-
     logger() << "Processing " << input.num_docs() << " documents" << std::endl;
     double tick = get_time_usecs();
     double user_tick = get_user_time_usecs();
@@ -132,8 +131,6 @@ void create_collection(InputCollection const& input,
 }
 
 int main(int argc, const char** argv) {
-
-    using namespace ds2i;
 
     if (argc < 3) {
         std::cerr << "Usage: " << argv[0] << ":\n"

@@ -3,16 +3,18 @@
 #include <succinct/mappable_vector.hpp>
 #include <fstream>
 
+#include "hash_utils.hpp"
 #include "util.hpp"
 
 namespace ds2i {
 
     struct dictionary {
 
+        static const uint32_t invalid_index = uint32_t(-1);
+
         struct builder {
 
             static const uint32_t reserved_entries = 4;
-            static const uint32_t invalid_index = uint32_t(-1);
 
             builder()
                 : m_pos(0)
