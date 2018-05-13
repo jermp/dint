@@ -13,6 +13,10 @@
 
 namespace ds2i {
 
+    namespace constants {
+      constexpr uint32_t block_size = 256;
+    }
+
     // workaround: VariableByte::decodeArray needs the buffer size, while we
     // only know the number of values. It also pads to 32 bits. We need to
     // rewrite
@@ -101,7 +105,7 @@ namespace ds2i {
     };
 
     struct interpolative_block {
-      static const uint64_t block_size = 128;
+      static const uint64_t block_size = constants::block_size;
       static const uint64_t overflow = 0;
 
       static void encode(uint32_t const *in, uint32_t sum_of_values, size_t n,
@@ -229,7 +233,7 @@ namespace ds2i {
     };
 
     struct varint_G8IU_block {
-      static const uint64_t block_size = 128;
+      static const uint64_t block_size = constants::block_size;
       static const uint64_t overflow = 0;
 
       struct codec_type : FastPFor::VarIntG8IU {
@@ -317,7 +321,7 @@ namespace ds2i {
     };
 
     struct qmx_block {
-      static const uint64_t block_size = 128;
+      static const uint64_t block_size = constants::block_size;
       static const uint64_t overflow = 512; // qmx can potentially overshoot...
       static void encode(uint32_t const *in, uint32_t sum_of_values, size_t n,
                          std::vector<uint8_t> &out) {
@@ -351,8 +355,86 @@ namespace ds2i {
       }
     };
 
+    struct vbyte_block {
+        static const uint64_t block_size = constants::block_size;
+        static const uint64_t overflow = 0;
+
+        static void encode(uint32_t const* in, uint32_t /* sum_of_values */,
+            size_t n, std::vector<uint8_t>& out)
+        {
+            std::vector<uint8_t> buf(2 * 4 * block_size);
+            size_t out_len = buf.size();
+            TightVariableByte::encode(in, n, buf.data(), out_len);
+            out.insert(out.end(), buf.data(), buf.data() + out_len);
+        }
+
+        static uint8_t const* decode(uint8_t const* in, uint32_t* out,
+            uint32_t /* sum_of_values */, size_t n)
+        {
+            return TightVariableByte::decode(in, out, n);
+        }
+    };
+
+    struct u32_block {
+        static const uint64_t block_size = constants::block_size;
+        static const uint64_t overflow = 0;
+
+        static void encode(uint32_t const* in, uint32_t /* sum_of_values */,
+            size_t n, std::vector<uint8_t>& out)
+        {
+            assert(n <= block_size);
+            size_t srclen = n * sizeof(uint32_t);
+            const uint8_t* src = (const uint8_t*)in;
+            out.insert(out.end(), src, src + srclen);
+        }
+
+        static uint8_t const* decode(uint8_t const* in, uint32_t* out,
+            uint32_t /* sum_of_values */, size_t n)
+        {
+            assert(n <= block_size);
+            const uint8_t* src = (const uint8_t*)in;
+            uint8_t* dst = (uint8_t*)out;
+            size_t n4 = n * 4;
+            for (size_t i = 0; i < n4; i++) {
+                *dst++ = *src++;
+            }
+            return src;
+        }
+    };
+
+    struct simple16_block {
+        static const uint64_t block_size = constants::block_size;
+        static const uint64_t overflow = 512;
+        using codec_type = FastPFor::Simple16<false>;
+
+        static void encode(uint32_t const* in, uint32_t /* sum_of_values */,
+            size_t n, std::vector<uint8_t>& out)
+        {
+            thread_local codec_type simple16_codec;
+            assert(n <= block_size);
+            // XXX this could be threadlocal static
+            std::vector<uint8_t> buf(2 * 8 * block_size);
+            size_t out_len = buf.size();
+            simple16_codec.encodeArray(in, n, reinterpret_cast<uint32_t*>(buf.data()), out_len);
+            out_len *= 4;
+            out.insert(out.end(), buf.data(), buf.data() + out_len);
+        }
+
+        static uint8_t const* decode(uint8_t const* in, uint32_t* out,
+            uint32_t /* sum_of_values */, size_t n)
+        {
+            assert(n <= block_size);
+            uint8_t const* ret;
+            thread_local codec_type simple16_codec;
+            ret = reinterpret_cast<uint8_t const*>(simple16_codec.decodeArray(reinterpret_cast<uint32_t const*>(in), 1,
+                out, n));
+            return ret;
+        }
+    };
+
+
     struct dint_block {
-        static const uint64_t block_size = 256;
+        static const uint64_t block_size = constants::block_size;
         static const uint64_t overflow = 512; // DINT coder can potentially overshoot...
 
         const static uint32_t MASK = (uint32_t(1) << 8) - 1; // select 1 byte

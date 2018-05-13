@@ -104,6 +104,10 @@ namespace ds2i {
         logger() << "Frequencies: " << freqs_size << " bytes, "
                  << bits_per_freq << " bits per element" << std::endl;
 
+        logger() << "Index Size [GiB]: "
+                 << double(docs_size + freqs_size) / double(1ULL<<30)
+                 << std::endl;
+
         stats_line()
             ("type", type)
             ("size", docs_size + freqs_size)
