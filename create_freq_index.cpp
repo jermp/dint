@@ -42,14 +42,13 @@ void dump_index_specific_stats(ds2i::opt_index const& coll,
 {
     auto const& conf = ds2i::configuration::get();
 
-    uint64_t length_threshold = 4096;
     double long_postings = 0;
     double docs_partitions = 0;
     double freqs_partitions = 0;
 
     for (size_t s = 0; s < coll.size(); ++s) {
         auto const& list = coll[s];
-        if (list.size() >= length_threshold) {
+        if (list.size() > MIN_SIZE) {
             long_postings += list.size();
             docs_partitions += list.docs_enum().num_partitions();
             freqs_partitions += list.freqs_enum().base().num_partitions();
@@ -97,11 +96,13 @@ void create_collection(InputCollection const& input,
 
     progress_logger plog("Encoding...");
     for (auto const& plist: input) {
-        uint64_t freqs_sum = std::accumulate(plist.freqs.begin(),
-                                             plist.freqs.end(), uint64_t(0));
-        builder.add_posting_list(plist.docs.size(), plist.docs.begin(),
-                                 plist.freqs.begin(), freqs_sum);
-        plog.done_sequence(plist.docs.size());
+        if (plist.docs.size() > MIN_SIZE) {
+            uint64_t freqs_sum = std::accumulate(plist.freqs.begin(),
+                                                 plist.freqs.end(), uint64_t(0));
+            builder.add_posting_list(plist.docs.size(), plist.docs.begin(),
+                                     plist.freqs.begin(), freqs_sum);
+            plog.done_sequence(plist.docs.size());
+        }
     }
 
     plog.log();

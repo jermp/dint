@@ -3,6 +3,7 @@
 #include <succinct/mappable_vector.hpp>
 #include <succinct/bit_vector.hpp>
 
+#include "util.hpp"
 #include "dictionary.hpp"
 #include "dictionary_builders.hpp"
 #include "compact_elias_fano.hpp"
@@ -103,6 +104,10 @@ namespace ds2i {
                 DictBuilder::build(m_docs_dict, total_integers, "docs");
                 logger() << "Building dictionary for freqs..." << std::endl;
                 DictBuilder::build(m_freqs_dict, total_integers, "freqs");
+
+                // prepare for encoding
+                m_docs_dict.build_mapping();
+                m_freqs_dict.build_mapping();
             }
 
             // template<typename BlockDataRange>

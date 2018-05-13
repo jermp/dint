@@ -21,8 +21,12 @@ namespace ds2i {
             m_comparator = comparator;
         }
 
-        void push(T const& x) {
+        void push_back(T const& x) {
             m_q.push_back(x);
+        }
+
+        void push(T const& x) {
+            push_back(x);
             std::push_heap(m_q.begin(), m_q.end(), m_comparator);
         }
 
@@ -35,9 +39,13 @@ namespace ds2i {
             m_q.pop_back();
         }
 
-        void heapify() {
-            sink(0);
+        void make() {
+            std::make_heap(m_q.begin(), m_q.end(), m_comparator);
         }
+
+        // void heapify() {
+        //     sink(0);
+        // }
 
         void clear() {
             m_q.clear();

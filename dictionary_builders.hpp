@@ -24,7 +24,7 @@ namespace ds2i {
         // Instead of selecting top_k entries from EACH statistics file,
         // we can use an adaptive distribution, i.e., select more entries
         // if they appear a lot.
-        static const uint32_t top_k = 500000;
+        static const uint32_t top_k = 50000;
 
         // <block, index into the frequency array>
         typedef std::pair<std::vector<uint32_t>, uint32_t> entry_type;
@@ -62,7 +62,7 @@ namespace ds2i {
             // assume that everything NOT covered by the dictionary is left uncompressed
             double final_bpi = 32.0;
 
-            // 1. select the top-1M entries from each statistics file
+            // 1. select the top-k entries from each statistics file
             // and put:
             //   - the blocks into a max heap;
             //   - the frequencies into a vector;
@@ -70,38 +70,36 @@ namespace ds2i {
             // (in order to access efficiently the frequencies)
 
             std::vector<uint64_t> blocks_frequencies;
-            blocks_frequencies.reserve(top_k * 5); // top_k entries for each different block_size
-
-            // std::priority_queue<entry_type,
-            //                     std::vector<entry_type>,
-            //                     decltype(compare_bpi)> max_heap(compare_bpi);
+            blocks_frequencies.reserve(top_k * 5); // top-k entries for each different block_size
 
             bpi_comparator bc(&blocks_frequencies, total_integers);
-            heap<entry_type, bpi_comparator> max_heap(top_k * 5, bc);
+
+            typedef heap<entry_type, bpi_comparator> max_heap_type;
+            std::vector<max_heap_type> max_heaps(5, max_heap_type(top_k, bc));
 
             // <hash of block, index into frequency array>
             std::unordered_map<uint64_t, uint32_t> map;
 
-            for (uint32_t block_size = 16; block_size != 0; block_size /= 2)
+            for (uint32_t block_size = 16, i = 0; block_size != 0; block_size /= 2, ++i)
             {
-                logger() << "loading " << top_k << " most frequent blocks of size " << block_size << "..." << std::endl;
+                // logger() << "loading " << top_k << " most frequent blocks of size " << block_size << "..." << std::endl;
                 std::string collection_name("./" + prefix_name + ".blocks_stats." + std::to_string(block_size) + ".bin");
                 binary_blocks_collection input(collection_name.c_str());
                 auto begin = input.begin();
-                for (uint32_t i = 0; i < top_k; ++i, ++begin)
+                for (uint32_t k = 0; k < top_k; ++k, ++begin)
                 {
                     uint32_t index = blocks_frequencies.size();
                     entry_type entry(std::vector<uint32_t>(), index);
                     auto const& block = *begin;
 
-                    if (i < 10) std::cout << "block.freq() " << block.freq() << std::endl;
+                    // if (k < 10) std::cout << "block.freq() = " << block.freq() << std::endl;
 
                     entry.first.reserve(block.size());
                     for (uint32_t x: block) {
                         entry.first.push_back(x);
                     }
 
-                    max_heap.push(std::move(entry));
+                    max_heaps[i].push_back(std::move(entry));
                     blocks_frequencies.push_back(block.freq());
 
                     uint8_t const* b = reinterpret_cast<uint8_t const*>(entry.first.data());
@@ -109,7 +107,17 @@ namespace ds2i {
                     uint64_t hash = hash_bytes64(byte_range(b, e));
                     map[hash] = index;
                 }
+                max_heaps[i].make();
             }
+
+
+            // for (int i = 0; i < 10; ++i) {
+            //     auto const& best = max_heap.top();
+            //     auto const& best_block = best.first;
+            //     std::cout << "block.size() " << best_block.size() << std::endl;
+            //     std::cout << "block.freq() " << blocks_frequencies[best.second] << std::endl;
+            //     max_heap.pop();
+            // }
 
             // 3. keep adding entries to the dictionary until it fills up:
             //   - at each step we remove the entry from the heap (in O(1))
@@ -118,45 +126,142 @@ namespace ds2i {
             //     call heapify() to restore the heap condition
             uint64_t covered_integers = 0;
 
-            while (not builder.full())
-            {
-                if (max_heap.empty()) break;
+            double percentages[5] = {40, 15, 20, 20, 5};
+            // double percentages[5] = {40, 20, 15, 10, 10};
+            double total_coverage = 0.0;
+            uint32_t added_entries = 0;
 
-                auto const& best = max_heap.top();
-                auto const& best_block = best.first;
+            for (int i = 0; i < 5 and not builder.full(); ++i) {
+                double p = 0.0;
+                while (p < percentages[i] and not max_heaps[i].empty())
+                {
+                    auto const& best = max_heaps[i].top();
+                    auto const& best_block = best.first;
 
-                for (auto x: best_block) {
-                    std::cout << x << " ";
-                }
-                std::cout << std::endl;
-
-                uint64_t best_block_freq = blocks_frequencies[best.second];
-                covered_integers += best_block.size() * best_block_freq;
-                double cost_saving = bpi(best_block.size(), best_block_freq, total_integers);
-                final_bpi -= cost_saving;
-                logger() << "added a target of size " << best.first.size() << " to the dictionary" << std::endl;
-                logger() << "current bits x integer: " << final_bpi << std::endl;
-                logger() << "covering " << covered_integers * 100.0 / total_integers << "%" << std::endl;
-
-                // logger() << "heapifing..." << std::endl;
-                for (uint32_t block_size = best_block.size() / 2; block_size != 0; block_size /= 2) {
-                    for (uint32_t begin = 0; begin != best_block.size(); begin += block_size) {
-                        uint32_t end = begin + block_size;
-                        uint8_t const* b = reinterpret_cast<uint8_t const*>(&best_block[begin]);
-                        uint8_t const* e = b + block_size * sizeof(uint32_t);
-                        uint64_t hash = hash_bytes64(byte_range(b, e));
-                        uint32_t index = map[hash];
-                        blocks_frequencies[index] -= best_block_freq;
-                        assert(blocks_frequencies[index] >= 0);
-                        max_heap.heapify();
+                    if (not builder.append(best_block.data(), best_block.size())) {
+                        break;
                     }
+
+                    ++added_entries;
+                    uint64_t best_block_freq = blocks_frequencies[best.second];
+                    p += best_block_freq * best_block.size() * 100.0 / total_integers;
+                    double cost_saving = bpi(best_block.size(), best_block_freq, total_integers);
+                    final_bpi -= cost_saving;
+
+                    if (added_entries % 100 == 0) {
+                        std::cout << "added_entries " << added_entries << "/65536" << std::endl;
+                        std::cout << "p = " << p << "/" << percentages[i] << std::endl;
+                        std::cout << "saving " << cost_saving << " bits x int" << std::endl;
+
+                        // std::cout << "adding a target of size " << best.first.size() << " to the dictionary" << std::endl;
+
+                        // for (auto x: best_block) {
+                        //     std::cout << x << " ";
+                        // }
+                        // std::cout << std::endl;
+
+                        std::cout << "current bits x integer: " << final_bpi << std::endl;
+                        std::cout << "covering " << total_coverage + p << "% of integers" << std::endl;
+                    }
+
+                    // logger() << "decreasing freq. of sub-blocks..." << std::endl;
+                    for (uint32_t block_size = best_block.size() / 2, j = i + 1; block_size != 0; block_size /= 2, ++j) {
+                        // std::cout << "decreasing freqs of sub-blocks of size " << block_size << std::endl;
+                        for (uint32_t begin = 0; begin != best_block.size(); begin += block_size) {
+                            uint32_t end = begin + block_size;
+
+                            // std::cout << "block[" << begin << ", " << end << ") = ";
+                            // for (uint32_t kk = begin; kk != end; ++kk) {
+                            //     std::cout << best_block[kk] << " ";
+                            // }
+                            // std::cout << std::endl;
+
+                            uint8_t const* b = reinterpret_cast<uint8_t const*>(&best_block[begin]);
+                            uint8_t const* e = b + block_size * sizeof(uint32_t);
+                            uint64_t hash = hash_bytes64(byte_range(b, e));
+                            uint32_t index = map[hash];
+
+                            // std::cout << "decreasing " << blocks_frequencies[index] << " by " << best_block_freq << std::endl;
+                            blocks_frequencies[index] -= best_block_freq;
+                            assert(blocks_frequencies[index] >= 0);
+                        }
+                        // Giulio: if we keep the positions of the elements in the heap,
+                        // we can use sink(position): O(log n) vs O(n)
+                        max_heaps[j].make();
+                    }
+
+                    max_heaps[i].pop();
                 }
 
-                max_heap.pop();
+                total_coverage += p;
             }
+
+            // while (not builder.full())
+            // {
+            //     // calculate best saving
+            //     double best_saving = 0.0;
+            //     for (int i = k; i < 5; ++i) {
+            //         if (not max_heaps[i].empty()) {
+            //             auto const& best = max_heaps[i].top();
+            //             auto const& best_block = best.first;
+            //             uint64_t best_block_freq = blocks_frequencies[best.second];
+            //             double cost_saving = bpi(best_block.size(), best_block_freq, total_integers);
+            //             if (cost_saving > best_saving) {
+            //                 best_saving = cost_saving;
+            //                 k = i;
+            //             }
+            //         }
+            //     }
+
+            //     auto const& best = max_heaps[k].top();
+            //     auto const& best_block = best.first;
+            //     uint64_t best_block_freq = blocks_frequencies[best.second];
+            //     covered_integers += best_block.size() * best_block_freq;
+
+            //     for (auto x: best_block) {
+            //         std::cout << x << " ";
+            //     }
+            //     std::cout << std::endl;
+
+            //     logger() << "saving " << best_saving << " bits x int" << std::endl;
+
+            //     final_bpi -= best_saving;
+            //     logger() << "added a target of size " << best.first.size() << " to the dictionary" << std::endl;
+            //     logger() << "current bits x integer: " << final_bpi << std::endl;
+            //     logger() << "covering " << covered_integers * 100.0 / total_integers << "%" << std::endl;
+
+            //     logger() << "heapifing..." << std::endl;
+            //     for (uint32_t block_size = best_block.size() / 2, j = k + 1; block_size != 0; block_size /= 2, ++j) {
+            //         std::cout << "decreasing freqs of sub-blocks of size " << block_size << std::endl;
+            //         for (uint32_t begin = 0; begin != best_block.size(); begin += block_size) {
+            //             uint32_t end = begin + block_size;
+
+            //             std::cout << "block[" << begin << ", " << end << ") = ";
+            //             for (uint32_t kk = begin; kk != end; ++kk) {
+            //                 std::cout << best_block[kk] << " ";
+            //             }
+            //             std::cout << std::endl;
+
+            //             uint8_t const* b = reinterpret_cast<uint8_t const*>(&best_block[begin]);
+            //             uint8_t const* e = b + block_size * sizeof(uint32_t);
+            //             uint64_t hash = hash_bytes64(byte_range(b, e));
+            //             uint32_t index = map[hash];
+
+            //             std::cout << "decreasing " << blocks_frequencies[index] << " by " << best_block_freq << std::endl;
+            //             blocks_frequencies[index] -= best_block_freq;
+            //             assert(blocks_frequencies[index] >= 0);
+            //         }
+            //         // Giulio: if we keep the positions of the elements in the heap,
+            //         // we can use sink(position): O(log n) vs O(n)
+            //         max_heaps[j].make();
+            //     }
+
+            //     max_heaps[k].pop();
+            // }
 
             builder.build(dict);
             logger() << "using " << final_bpi << " bits x integer" << std::endl;
+            logger() << "covering " << total_coverage << "% of integers" << std::endl;
         }
 
     };

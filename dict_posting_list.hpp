@@ -26,20 +26,32 @@ namespace ds2i {
             FreqsIterator freqs_it(freqs_begin);
             std::vector<uint32_t> docs_buf(block_size);
             std::vector<uint32_t> freqs_buf(block_size);
-            uint32_t last_doc(-1);
+
+            // uint32_t last_doc(-1);
+            uint32_t last_doc(0);
             uint32_t block_base = 0;
+
             for (size_t b = 0; b < blocks; ++b) {
                 uint32_t cur_block_size =
                     ((b + 1) * block_size <= n)
                     ? block_size : (n % block_size);
 
+                // substract 1 from everything
+                // for (size_t i = 0; i < cur_block_size; ++i) {
+                //     uint32_t doc(*docs_it++);
+                //     docs_buf[i] = doc - last_doc - 1;
+                //     last_doc = doc;
+                //     freqs_buf[i] = *freqs_it++ - 1;
+                // }
+
+                // do not subtract 1 from everything
                 for (size_t i = 0; i < cur_block_size; ++i) {
                     uint32_t doc(*docs_it++);
-                    docs_buf[i] = doc - last_doc - 1;
+                    docs_buf[i] = doc - last_doc;
                     last_doc = doc;
-
-                    freqs_buf[i] = *freqs_it++ - 1;
+                    freqs_buf[i] = *freqs_it++;
                 }
+
                 *((uint32_t*)&out[begin_block_maxs + 4 * b]) = last_doc;
 
                 DictBlockCoder::encode(docs_dict, docs_buf.data(), last_doc - block_base - (cur_block_size - 1),
