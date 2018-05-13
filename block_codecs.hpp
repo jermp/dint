@@ -392,7 +392,7 @@ namespace ds2i {
                     begin += std::min<uint64_t>(run_size, end - begin);
                 } else {
                     for (uint32_t block_size = 8; block_size != 1; block_size /= 2) {
-                        table_index = dict->lookup(begin, block_size)
+                        table_index = dict->lookup(begin, block_size);
                         if (table_index != dictionary::invalid_index) {
                             out.push_back(table_index &  MASK);
                             out.push_back(table_index & ~MASK);
