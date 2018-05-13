@@ -54,7 +54,8 @@ namespace ds2i {
             std::vector<uint64_t> const* m_frequencies;
         };
 
-        static void build(dictionary& dict, uint64_t total_integers, std::string prefix_name)
+        static void build(dictionary& dict, double const* percentages,
+                          uint64_t total_integers, std::string prefix_name)
         {
 
             dictionary::builder builder(num_entries, entry_width);
@@ -126,15 +127,14 @@ namespace ds2i {
             //     call heapify() to restore the heap condition
             // uint64_t covered_integers = 0;
 
-            double percentages[5] = {40, 15, 20, 20, 5};
-            // double percentages[5] = {40, 20, 15, 10, 10};
             double total_coverage = 0.0;
             uint32_t added_entries = 0;
 
             for (int i = 0; i < 5 and not builder.full(); ++i) {
                 double p = 0.0;
-                while (p < percentages[i] and not max_heaps[i].empty())
+                while (p < percentages[i])
                 {
+                    if (max_heaps[i].empty()) break;
                     auto const& best = max_heaps[i].top();
                     auto const& best_block = best.first;
 
@@ -148,10 +148,10 @@ namespace ds2i {
                     double cost_saving = bpi(best_block.size(), best_block_freq, total_integers);
                     final_bpi -= cost_saving;
 
-                    if (added_entries % 100 == 0) {
+                    if (added_entries % 200 == 0) {
                         std::cout << "added_entries " << added_entries << "/65536" << std::endl;
                         std::cout << "p = " << p << "/" << percentages[i] << std::endl;
-                        std::cout << "saving " << cost_saving << " bits x int" << std::endl;
+                        // std::cout << "saving " << cost_saving << " bits x int" << std::endl;
 
                         // std::cout << "adding a target of size " << best.first.size() << " to the dictionary" << std::endl;
 
@@ -167,9 +167,9 @@ namespace ds2i {
                     // logger() << "decreasing freq. of sub-blocks..." << std::endl;
                     for (uint32_t block_size = best_block.size() / 2, j = i + 1; block_size != 0; block_size /= 2, ++j) {
                         // std::cout << "decreasing freqs of sub-blocks of size " << block_size << std::endl;
-                        for (uint32_t begin = 0; begin != best_block.size(); begin += block_size) {
+                        for (uint32_t begin = 0; begin < best_block.size(); begin += block_size) {
 
-                            // uint32_t end = begin + block_size;
+                            // uint32_t end = std::min<uint32_t>(begin + block_size, best_block.size());
                             // std::cout << "block[" << begin << ", " << end << ") = ";
                             // for (uint32_t kk = begin; kk != end; ++kk) {
                             //     std::cout << best_block[kk] << " ";
@@ -177,7 +177,7 @@ namespace ds2i {
                             // std::cout << std::endl;
 
                             uint8_t const* b = reinterpret_cast<uint8_t const*>(&best_block[begin]);
-                            uint8_t const* e = b + block_size * sizeof(uint32_t);
+                            uint8_t const* e = b + std::min<uint64_t>(block_size, best_block.size() - begin) * sizeof(uint32_t);
                             uint64_t hash = hash_bytes64(byte_range(b, e));
                             uint32_t index = map[hash];
 

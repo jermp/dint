@@ -11,8 +11,7 @@ namespace ds2i {
             : msg(msg_type)
             , sequences(0)
             , postings(0)
-        {
-        }
+        {}
 
         void log()
         {

@@ -90,7 +90,7 @@ void create_collection(InputCollection const& input,
     typename CollectionType::builder builder(input.num_docs(), params);
     build_model(input, builder);
 
-    progress_logger plog("Encoding...");
+    logger() << "Encoding..." << std::endl;
     for (auto const& plist: input) {
         if (plist.docs.size() > MIN_SIZE) {
             uint64_t freqs_sum = std::accumulate(plist.freqs.begin(),
