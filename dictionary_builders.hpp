@@ -124,7 +124,7 @@ namespace ds2i {
             //     that gives the highest reduction in used bits per integer (bpi);
             //   - we decrease the frequency of all its sub-entries (if found) and
             //     call heapify() to restore the heap condition
-            uint64_t covered_integers = 0;
+            // uint64_t covered_integers = 0;
 
             double percentages[5] = {40, 15, 20, 20, 5};
             // double percentages[5] = {40, 20, 15, 10, 10};

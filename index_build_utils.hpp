@@ -24,7 +24,7 @@ namespace ds2i {
         {
             sequences += 1;
             postings += n;
-            if (sequences % 1000000 == 0) {
+            if (sequences % 500 == 0) { // 1000000
                 log();
             }
         }

@@ -364,7 +364,7 @@ namespace ds2i {
         {
             uint32_t const* begin = in;
             uint32_t const* end = begin + n;
-            while (begin >= end)
+            while (begin < end)
             {
                 // first, try runs of sizes 256, 128, 64 and 32
                 uint32_t longest_run_size = 0;
@@ -390,13 +390,15 @@ namespace ds2i {
                 if (table_index < 5) {
                     out.push_back(table_index);
                     begin += std::min<uint64_t>(run_size, end - begin);
+                    // std::cout << "using a run of size " << run_size << std::endl;
                 } else {
-                    for (uint32_t block_size = 8; block_size != 1; block_size /= 2) {
-                        table_index = dict->lookup(begin, block_size);
+                    for (uint32_t sub_block_size = 8; sub_block_size != 0; sub_block_size /= 2) {
+                        table_index = dict->lookup(begin, sub_block_size);
                         if (table_index != dictionary::invalid_index) {
                             out.push_back(table_index &  MASK);
                             out.push_back(table_index & ~MASK);
-                            begin += block_size; // can be >= end
+                            begin += sub_block_size; // can be >= end
+                            // std::cout << "using a block of size " << sub_block_size << std::endl;
                             break;
                         }
                     }

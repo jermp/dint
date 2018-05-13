@@ -90,9 +90,6 @@ void create_collection(InputCollection const& input,
     typename CollectionType::builder builder(input.num_docs(), params);
     build_model(input, builder);
 
-    // Giulio: test the building of the models
-    return;
-
     progress_logger plog("Encoding...");
     for (auto const& plist: input) {
         if (plist.docs.size() > MIN_SIZE) {
