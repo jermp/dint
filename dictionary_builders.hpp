@@ -54,11 +54,10 @@ namespace ds2i {
             std::vector<uint64_t> const* m_frequencies;
         };
 
-        static void build(dictionary& dict, double const* percentages,
+        static void build(dictionary::builder& builder, double const* percentages,
                           uint64_t total_integers, std::string prefix_name)
         {
-
-            dictionary::builder builder(num_entries, entry_width);
+            builder.init(num_entries, entry_width);
 
             // assume that everything NOT covered by the dictionary is left uncompressed
             double final_bpi = 32.0;
@@ -259,7 +258,6 @@ namespace ds2i {
             //     max_heaps[k].pop();
             // }
 
-            builder.build(dict);
             logger() << "using " << final_bpi << " bits x integer" << std::endl;
             logger() << "covering " << total_coverage << "% of integers" << std::endl;
         }

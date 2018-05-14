@@ -9,8 +9,8 @@ namespace ds2i {
     struct dict_posting_list {
 
         template <typename DocsIterator, typename FreqsIterator>
-        static void write(dictionary const* docs_dict,
-                          dictionary const* freqs_dict,
+        static void write(dictionary::builder const* docs_dict_builder,
+                          dictionary::builder const* freqs_dict_builder,
                           std::vector<uint8_t>& out, uint32_t n,
                           DocsIterator docs_begin, FreqsIterator freqs_begin)
         {
@@ -54,9 +54,12 @@ namespace ds2i {
 
                 *((uint32_t*)&out[begin_block_maxs + 4 * b]) = last_doc;
 
-                DictBlockCoder::encode(docs_dict, docs_buf.data(), last_doc - block_base - (cur_block_size - 1),
+                DictBlockCoder::encode(docs_dict_builder, docs_buf.data(),
+                                       last_doc - block_base - (cur_block_size - 1),
                                        cur_block_size, out);
-                DictBlockCoder::encode(freqs_dict, freqs_buf.data(), uint32_t(-1), cur_block_size, out);
+                DictBlockCoder::encode(freqs_dict_builder, freqs_buf.data(),
+                                       uint32_t(-1),
+                                       cur_block_size, out);
 
                 if (b != blocks - 1) {
                     *((uint32_t*)&out[begin_block_endpoints + 4 * b]) = out.size() - begin_blocks;
@@ -117,13 +120,11 @@ namespace ds2i {
                 reset();
             }
 
-            void reset()
-            {
+            void reset() {
                 decode_docs_block(0);
             }
 
-            void DS2I_ALWAYSINLINE next()
-            {
+            void DS2I_ALWAYSINLINE next() {
                 ++m_pos_in_block;
                 if (DS2I_UNLIKELY(m_pos_in_block == m_cur_block_size)) {
                     if (m_cur_block + 1 == m_blocks) {
@@ -133,6 +134,9 @@ namespace ds2i {
                     decode_docs_block(m_cur_block + 1);
                 } else {
                     m_cur_docid += m_docs_buf[m_pos_in_block] + 1;
+
+                    // XXX: do not do the prefix sums
+                    // m_cur_docid = m_docs_buf[m_pos_in_block] + 1;
                 }
             }
 
@@ -172,31 +176,26 @@ namespace ds2i {
                 }
             }
 
-            uint64_t docid() const
-            {
+            uint64_t docid() const {
                 return m_cur_docid;
             }
 
-            uint64_t DS2I_ALWAYSINLINE freq()
-            {
+            uint64_t DS2I_ALWAYSINLINE freq() {
                 if (!m_freqs_decoded) {
                     decode_freqs_block();
                 }
                 return m_freqs_buf[m_pos_in_block] + 1;
             }
 
-            uint64_t position() const
-            {
+            uint64_t position() const {
                 return m_cur_block * DictBlockCoder::block_size + m_pos_in_block;
             }
 
-            uint64_t size() const
-            {
+            uint64_t size() const {
                 return m_n;
             }
 
-            uint64_t num_blocks() const
-            {
+            uint64_t num_blocks() const {
                 return m_blocks;
             }
 
@@ -214,11 +213,13 @@ namespace ds2i {
 
                     uint32_t cur_base = (b ? block_max(b - 1) : uint32_t(-1)) + 1;
                     uint8_t const* freq_ptr =
-                        DictBlockCoder::decode(m_docs_dict,ptr, buf.data(),
-                                           block_max(b) - cur_base - (cur_block_size - 1),
-                                           cur_block_size);
-                    ptr = DictBlockCoder::decode(m_freqs_dict,freq_ptr, buf.data(),
-                                             uint32_t(-1), cur_block_size);
+                        DictBlockCoder::decode(m_docs_dict, ptr, buf.data(),
+                                               block_max(b) - cur_base - (cur_block_size - 1),
+                                               cur_block_size);
+                    ptr =
+                        DictBlockCoder::decode(m_freqs_dict, freq_ptr, buf.data(),
+                                               uint32_t(-1),
+                                               cur_block_size);
                     bytes += ptr - freq_ptr;
                 }
 
@@ -231,26 +232,43 @@ namespace ds2i {
                 uint32_t size;
                 uint32_t doc_gaps_universe;
 
-                void append_docs_block(std::vector<uint8_t>& out) const
-                {
+                // constexpr static uint32_t run[256] = {
+                //     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                //     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                //     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                //     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                //     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                //     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                //     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                //     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                //     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                //     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                //     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                //     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                //     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                //     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                //     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                //     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+                // };
+
+                void append_docs_block(std::vector<uint8_t>& out) const {
                     out.insert(out.end(), docs_begin, freqs_begin);
                 }
 
-                void append_freqs_block(std::vector<uint8_t>& out) const
-                {
+                void append_freqs_block(std::vector<uint8_t>& out) const {
                     out.insert(out.end(), freqs_begin, end);
                 }
 
-                void decode_doc_gaps(std::vector<uint32_t>& out) const
-                {
-                    out.resize(size);
+                void decode_doc_gaps(std::vector<uint32_t>& out) const {
+                    out.resize(size, 0);
+                    // std::copy(run, run + 256, out.data());
                     DictBlockCoder::decode(docs_dict, docs_begin, out.data(),
                                            doc_gaps_universe, size);
                 }
 
-                void decode_freqs(std::vector<uint32_t>& out) const
-                {
-                    out.resize(size);
+                void decode_freqs(std::vector<uint32_t>& out) const {
+                    out.resize(size, 0);
+                    // std::copy(run, run + 256, out.data());
                     DictBlockCoder::decode(freqs_dict,freqs_begin, out.data(),
                                            uint32_t(-1), size);
                 }
@@ -302,8 +320,8 @@ namespace ds2i {
             }
 
         private:
-            uint32_t block_max(uint32_t block) const
-            {
+
+            uint32_t block_max(uint32_t block) const {
                 return ((uint32_t const*)m_block_maxs)[block];
             }
 

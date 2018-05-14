@@ -9,6 +9,7 @@
 #include <cassert>
 #include <cstdlib>
 #include <cstring>
+#include <chrono>
 #include <sys/time.h>
 #include <sys/resource.h>
 
@@ -26,6 +27,8 @@
 #endif
 
 namespace ds2i {
+
+    typedef std::chrono::high_resolution_clock clock_type;
 
     const static uint64_t MIN_SIZE = 4096;
 

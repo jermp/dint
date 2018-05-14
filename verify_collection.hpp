@@ -5,7 +5,6 @@
 
 using ds2i::logger;
 
-
 template <typename InputCollection, typename Collection>
 void verify_collection(InputCollection const& input, const char* filename)
 {

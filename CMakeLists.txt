@@ -86,5 +86,17 @@ target_link_libraries(profile_decoding
   FastPFor_lib
   )
 
+add_executable(check_index check_index.cpp)
+target_link_libraries(check_index
+  ${Boost_LIBRARIES}
+  FastPFor_lib
+  )
+
+add_executable(decoding_speed_perf_test decoding_speed_perf_test.cpp)
+target_link_libraries(decoding_speed_perf_test
+  ${Boost_LIBRARIES}
+  FastPFor_lib
+  )
+
 enable_testing()
 add_subdirectory(test)

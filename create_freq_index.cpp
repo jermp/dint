@@ -90,6 +90,7 @@ void create_collection(InputCollection const& input,
     typename CollectionType::builder builder(input.num_docs(), params);
     build_model(input, builder);
 
+    progress_logger plog("Encoded");
     logger() << "Encoding..." << std::endl;
     for (auto const& plist: input) {
         if (plist.docs.size() > MIN_SIZE) {

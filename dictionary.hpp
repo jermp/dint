@@ -11,36 +11,35 @@ namespace ds2i {
     struct dictionary {
 
         static const uint32_t invalid_index = uint32_t(-1);
+        static const uint32_t reserved = 5; // 1 for exceptions
+                                            // 4 for runs
 
         struct builder {
 
-            static const uint32_t reserved_entries = 4;
-
             builder()
                 : m_pos(0)
-                , m_size(reserved_entries)
+                , m_size(reserved)
                 , m_capacity(0)
                 , m_entry_size(0)
                 , m_table(0, 0)
             {}
 
-            builder(uint32_t capacity, uint32_t entry_size)
-                // Giulio: take into account reserved entries for runs
-                : m_pos(reserved_entries * (entry_size + 1))
-                , m_size(reserved_entries)
-                , m_capacity(capacity)
-                , m_entry_size(entry_size)
-                , m_table(capacity * (entry_size + 1), 0)
-            {
-                std::cout << "m_capacity = " << m_capacity << std::endl;
+            void init(uint32_t capacity, uint32_t entry_size) {
+                m_pos = reserved * (entry_size + 1);
+                m_size = reserved;
+                m_capacity = capacity;
+                m_entry_size = entry_size;
+                m_table.resize(capacity * (entry_size + 1), 0);
+            }
+
+            builder(uint32_t capacity, uint32_t entry_size) {
+                init(capacity, entry_size);
             }
 
             bool full() {
                 return m_size == m_capacity;
             }
 
-            // Giulio: return true if there is still space left for the entry;
-            // false otherwise
             bool append(uint32_t const* entry, uint32_t entry_size) {
                 if (full()) {
                     return false;
@@ -51,6 +50,46 @@ namespace ds2i {
                 m_table[m_pos - 1] = entry_size;
                 ++m_size;
                 return true;
+            }
+
+            void prepare_for_encoding() {
+                logger() << "building mapping for encoding " << std::endl;
+                std::vector<uint32_t> run(256, 1);
+                uint8_t const* ptr = reinterpret_cast<uint8_t const*>(run.data());
+                uint32_t i = 0;
+                for (uint32_t n = 256; n != 16; n /= 2, ++i) {
+                    uint64_t hash = hash_bytes64(byte_range(ptr, ptr + n * sizeof(uint32_t)));
+                    m_map[hash] = i;
+                }
+                for (; i < capacity(); ++i) {
+                    uint8_t const* ptr = reinterpret_cast<uint8_t const*>(get(i));
+                    uint32_t entry_size = size(i);
+                    uint64_t hash = hash_bytes64(byte_range(ptr, ptr + entry_size * sizeof(uint32_t)));
+                    m_map[hash] = i;
+                }
+            }
+
+            // Giulio: return the index of the pattern if found in the table,
+            // otherwise return the invalid_index value
+            uint32_t lookup(uint32_t const* begin, uint32_t entry_size) const
+            {
+                uint8_t const* b = reinterpret_cast<uint8_t const*>(begin);
+                uint8_t const* e = b + entry_size * sizeof(uint32_t);
+                uint64_t hash = hash_bytes64(byte_range(b, e));
+                auto it = m_map.find(hash);
+                if (it != m_map.end()) {
+                    assert((*it).second <= capacity());
+                    return (*it).second;
+                }
+                return invalid_index;
+            }
+
+            size_t capacity() const {
+                return m_capacity;
+            }
+
+            size_t entry_size() const {
+                return m_entry_size;
             }
 
             void build(dictionary& dict) {
@@ -66,6 +105,7 @@ namespace ds2i {
                 std::swap(m_capacity, other.m_capacity);
                 std::swap(m_entry_size, other.m_entry_size);
                 m_table.swap(other.m_table);
+                m_map.swap(other.m_map);
             }
 
         private:
@@ -74,6 +114,20 @@ namespace ds2i {
             uint32_t m_capacity;
             uint32_t m_entry_size;
             std::vector<uint32_t> m_table;
+
+            // map from hash codes to table indexes, used during encoding
+            std::unordered_map<uint64_t, uint32_t> m_map;
+
+            uint32_t const* get(uint32_t i) const {
+                uint32_t begin = i * (m_entry_size + 1);
+                return &m_table[begin];
+            }
+
+            uint32_t size(uint32_t i) const {
+                uint32_t begin = i * (m_entry_size + 1);
+                uint32_t end = begin + m_entry_size;
+                return m_table[end];
+            }
         };
 
         dictionary()
@@ -81,58 +135,31 @@ namespace ds2i {
             , m_entry_size(0)
         {}
 
-        void build_mapping() {
-            logger() << "building mapping for encoding " << std::endl;
-            std::vector<uint32_t> run(256, 1);
-            uint8_t const* ptr = reinterpret_cast<uint8_t const*>(run.data());
-            uint32_t i = 0;
-            for (uint32_t n = 256; n != 16; n /= 2, ++i) {
-                uint64_t hash = hash_bytes64(byte_range(ptr, ptr + n * sizeof(uint32_t)));
-                m_map[hash] = i;
-            }
-            for (; i < capacity(); ++i) {
-                uint8_t const* ptr = reinterpret_cast<uint8_t const*>(get(i));
-                uint32_t entry_size = size(i);
-                uint64_t hash = hash_bytes64(byte_range(ptr, ptr + entry_size * sizeof(uint32_t)));
-                m_map[hash] = i;
+        void optimize() {
+            m_T.resize(65536, std::vector<uint32_t>(17, 0));
+            int sum = 0;
+            for (int i = 0; i < 65536; ++i) {
+                for (int j = 0; j < 17; ++j) {
+                    m_T[i][j] = m_table[sum + j];
+                }
+                sum += 17;
             }
         }
 
-        // Giulio: return a pointer to the beginning of the i-th entry
-        uint32_t const* get(uint32_t i) const {
-            uint32_t begin = i * (m_entry_size + 1);
-            return &m_table[begin];
-        }
+        uint32_t copy(uint32_t i, uint32_t* out) const {
 
-        // Giulio: return the index of the pattern if found in the dictionary,
-        // invalid_index otherwise
-        uint32_t lookup(uint32_t const* begin, uint32_t entry_size) const
-        {
-            uint8_t const* b = reinterpret_cast<uint8_t const*>(begin);
-            uint8_t const* e = b + entry_size * sizeof(uint32_t);
-            uint64_t hash = hash_bytes64(byte_range(b, e));
-            auto it = m_map.find(hash);
-            if (it != m_map.end()) {
-                assert((*it).second <= capacity());
-                return (*it).second;
-            }
-            return invalid_index;
-        }
+            assert(i < 65536);
 
-        // Giulio: return the size of the i-th entry
-        uint32_t size(uint32_t i) const {
-            uint32_t begin = i * (m_entry_size + 1);
-            uint32_t end = begin + m_entry_size;
-            return m_table[end];
-        }
+            // uint32_t begin = i * (m_entry_size + 1);
+            // uint32_t end = begin + m_entry_size;
+            // uint32_t size = m_table[end];
+            // uint32_t const* ptr = &m_table[begin];
+            // // std::copy(ptr, ptr + size, out);
+            // std::copy(ptr, &m_table[end], out);
+            // return size;
 
-        // Giulio: copy i-th entry to the output stream
-        // and return the entry size as back-pointer
-        uint32_t copy(uint32_t i, uint32_t* out) {
-            uint32_t begin = i * (m_entry_size + 1);
-            uint32_t end = begin + m_entry_size;
-            std::copy(&m_table[begin], &m_table[end - 1], out);
-            return m_table[end];
+            std::copy(&m_T[i][0], &m_T[i][16], out);
+            return m_T[i][16];
         }
 
         size_t capacity() const {
@@ -147,7 +174,6 @@ namespace ds2i {
             std::swap(m_capacity, other.m_capacity);
             std::swap(m_entry_size, other.m_entry_size);
             m_table.swap(other.m_table);
-            m_map.swap(other.m_map);
         }
 
         template<typename Visitor>
@@ -163,14 +189,9 @@ namespace ds2i {
     private:
         uint32_t m_capacity;
         uint32_t m_entry_size;
-
-        // Giulio: this table should be on the stack, that is
-        // uint32_t m_table[65635][16 + 1]
-        // make this so later
         succinct::mapper::mappable_vector<uint32_t> m_table;
 
-        // map from hash codes to table indexes, used during encoding
-        std::unordered_map<uint64_t, uint32_t> m_map;
+        std::vector<std::vector<uint32_t>> m_T;
     };
 
 }

@@ -31,7 +31,8 @@ namespace ds2i {
                                   uint64_t /* occurrences */)
             {
                 if (!n) throw std::invalid_argument("List must be nonempty");
-                dict_posting_list<DictBlock>::write(&m_docs_dict, &m_freqs_dict,
+                dict_posting_list<DictBlock>::write(&m_docs_dict_builder,
+                                                    &m_freqs_dict_builder,
                                                     m_lists, n,
                                                     docs_begin, freqs_begin);
                 m_endpoints.push_back(m_lists.size());
@@ -102,16 +103,15 @@ namespace ds2i {
                 // step 2. build dictionary from statistics
                 logger() << "Building dictionary for docs..." << std::endl;
                 double docs_percentages[5] = {40, 15, 20, 20, 5};
-                DictBuilder::build(m_docs_dict, docs_percentages, total_integers, "docs");
+                DictBuilder::build(m_docs_dict_builder, docs_percentages, total_integers, "docs");
 
                 logger() << "Building dictionary for freqs..." << std::endl;
                 // double freqs_percentages[5] = {40, 25, 20, 10, 5};
                 double freqs_percentages[5] = {50, 20, 20, 5, 5};
-                DictBuilder::build(m_freqs_dict, freqs_percentages, total_integers, "freqs");
+                DictBuilder::build(m_freqs_dict_builder, freqs_percentages, total_integers, "freqs");
 
-                // prepare for encoding
-                m_docs_dict.build_mapping();
-                m_freqs_dict.build_mapping();
+                m_docs_dict_builder.prepare_for_encoding();
+                m_freqs_dict_builder.prepare_for_encoding();
             }
 
             // template<typename BlockDataRange>
@@ -136,8 +136,8 @@ namespace ds2i {
                 dfi.m_num_docs = m_num_docs;
                 dfi.m_lists.steal(m_lists);
 
-                dfi.m_docs_dict.swap(m_docs_dict);
-                dfi.m_freqs_dict.swap(m_freqs_dict);
+                m_docs_dict_builder.build(dfi.m_docs_dict);
+                m_freqs_dict_builder.build(dfi.m_freqs_dict);
 
                 succinct::bit_vector_builder bvb;
                 compact_elias_fano::write(bvb, m_endpoints.begin(),
@@ -152,8 +152,8 @@ namespace ds2i {
             std::vector<uint64_t> m_endpoints;
             std::vector<uint8_t> m_lists;
 
-            dictionary m_docs_dict;
-            dictionary m_freqs_dict;
+            dictionary::builder m_docs_dict_builder;
+            dictionary::builder m_freqs_dict_builder;
         };
 
         dict_freq_index()
@@ -193,12 +193,14 @@ namespace ds2i {
                                        num_docs(), i);
         }
 
-        void warmup(size_t i) const
+        void warmup() {
+            m_docs_dict.optimize();
+            m_freqs_dict.optimize();
+        }
+
+        void warmup(size_t i)
         {
             assert(i < size());
-
-            // Giulio: loop thorugh the most frequently accessed dictionary entries
-            // TODO
 
             compact_elias_fano::enumerator endpoints(m_endpoints, 0,
                                                      m_lists.size(), m_size,
