@@ -135,31 +135,31 @@ namespace ds2i {
             , m_entry_size(0)
         {}
 
-        void optimize() {
-            m_T.resize(65536, std::vector<uint32_t>(17, 0));
-            int sum = 0;
-            for (int i = 0; i < 65536; ++i) {
-                for (int j = 0; j < 17; ++j) {
-                    m_T[i][j] = m_table[sum + j];
-                }
-                sum += 17;
-            }
-        }
+        // void optimize() {
+        //     m_T.resize(65536, std::vector<uint32_t>(17, 0));
+        //     int sum = 0;
+        //     for (int i = 0; i < 65536; ++i) {
+        //         for (int j = 0; j < 17; ++j) {
+        //             m_T[i][j] = m_table[sum + j];
+        //         }
+        //         sum += 17;
+        //     }
+        // }
 
         uint32_t copy(uint32_t i, uint32_t* out) const {
 
             assert(i < 65536);
 
-            // uint32_t begin = i * (m_entry_size + 1);
-            // uint32_t end = begin + m_entry_size;
-            // uint32_t size = m_table[end];
-            // uint32_t const* ptr = &m_table[begin];
-            // // std::copy(ptr, ptr + size, out);
-            // std::copy(ptr, &m_table[end], out);
-            // return size;
+            uint32_t begin = i * (m_entry_size + 1);
+            uint32_t end = begin + m_entry_size;
+            uint32_t size = m_table[end];
+            uint32_t const* ptr = &m_table[begin];
+            // std::copy(ptr, ptr + size, out);
+            std::copy(ptr, &m_table[end], out);
+            return size;
 
-            std::copy(&m_T[i][0], &m_T[i][16], out);
-            return m_T[i][16];
+            // std::copy(&m_T[i][0], &m_T[i][16], out);
+            // return m_T[i][16];
         }
 
         size_t capacity() const {
@@ -191,7 +191,7 @@ namespace ds2i {
         uint32_t m_entry_size;
         succinct::mapper::mappable_vector<uint32_t> m_table;
 
-        std::vector<std::vector<uint32_t>> m_T;
+        // std::vector<std::vector<uint32_t>> m_T;
     };
 
 }

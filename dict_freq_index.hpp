@@ -194,8 +194,8 @@ namespace ds2i {
         }
 
         void warmup() {
-            m_docs_dict.optimize();
-            m_freqs_dict.optimize();
+            // m_docs_dict.optimize();
+            // m_freqs_dict.optimize();
         }
 
         void warmup(size_t i)

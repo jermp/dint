@@ -14,7 +14,7 @@
 namespace ds2i {
 
     namespace constants {
-      constexpr uint32_t block_size = 256;
+        constexpr uint32_t block_size = 1024; // 256
     }
 
     // workaround: VariableByte::decodeArray needs the buffer size, while we
