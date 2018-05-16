@@ -235,7 +235,7 @@ namespace ds2i {
             thread_local std::vector<uint32_t> buf(max_entry_width);
             size_t n = list.docs.size();
             size_t full_strides = n / max_entry_width;
-            logger() << "Procces list of size " << n << " full_strides " << full_strides;
+            logger() << "Procces list of size " << n << " full_strides " << full_strides << "\n";
 
             auto lst_itr = list.docs.begin();
             if(type != dict_type::docs) lst_itr = list.freqs.begin();
@@ -251,8 +251,7 @@ namespace ds2i {
                     ++lst_itr;
                 }
 
-                for()
-                logger() << "buf = " << bufstr << "]";
+                logger() << "buf = " << bufstr << "]" << "\n";
                 // compute hashes (modified from murmur! hopefully still good...)
                 const uint32_t m = 0x5bd1e995;
                 const int r = 24;
@@ -266,7 +265,7 @@ namespace ds2i {
                     hash *= m;
                     hash ^= key;
                     if(j == cur_len) {
-                        logger() << "hash("<<j<<") = " << hash;
+                        logger() << "hash("<<j<<") = " << hash << "\n";
                         auto itr = block_map.find(hash);
                         if(itr != block_map.end()) {
                             auto block_idx = itr->second;
