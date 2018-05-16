@@ -232,25 +232,6 @@ namespace ds2i {
                 uint32_t size;
                 uint32_t doc_gaps_universe;
 
-                // constexpr static uint32_t run[256] = {
-                //     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                //     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                //     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                //     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                //     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                //     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                //     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                //     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                //     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                //     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                //     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                //     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                //     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                //     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                //     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                //     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
-                // };
-
                 void append_docs_block(std::vector<uint8_t>& out) const {
                     out.insert(out.end(), docs_begin, freqs_begin);
                 }
@@ -260,15 +241,13 @@ namespace ds2i {
                 }
 
                 void decode_doc_gaps(std::vector<uint32_t>& out) const {
-                    out.resize(size, 0);
-                    // std::copy(run, run + 256, out.data());
+                    out.resize(size, 1);
                     DictBlockCoder::decode(docs_dict, docs_begin, out.data(),
                                            doc_gaps_universe, size);
                 }
 
                 void decode_freqs(std::vector<uint32_t>& out) const {
-                    out.resize(size, 0);
-                    // std::copy(run, run + 256, out.data());
+                    out.resize(size, 1);
                     DictBlockCoder::decode(freqs_dict,freqs_begin, out.data(),
                                            uint32_t(-1), size);
                 }

@@ -11,8 +11,8 @@ namespace ds2i {
     struct dictionary {
 
         static const uint32_t invalid_index = uint32_t(-1);
-        static const uint32_t reserved = 5; // 1 for exceptions
-                                            // 4 for runs
+        static const uint32_t reserved = 6; // 1 for exceptions
+                                            // 5 for runs
 
         struct builder {
 
@@ -57,7 +57,7 @@ namespace ds2i {
                 std::vector<uint32_t> run(256, 1);
                 uint8_t const* ptr = reinterpret_cast<uint8_t const*>(run.data());
                 uint32_t i = 0;
-                for (uint32_t n = 256; n != 16; n /= 2, ++i) {
+                for (uint32_t n = 256; n != 8; n /= 2, ++i) {
                     uint64_t hash = hash_bytes64(byte_range(ptr, ptr + n * sizeof(uint32_t)));
                     m_map[hash] = i;
                 }
@@ -150,16 +150,40 @@ namespace ds2i {
 
             assert(i < 65536);
 
-            uint32_t begin = i * (m_entry_size + 1);
-            uint32_t end = begin + m_entry_size;
+            // uint32_t begin = i * (m_entry_size + 1);
+            // uint32_t end = begin + m_entry_size;
+            // uint32_t size = m_table[end];
+            // uint32_t const* ptr = &m_table[begin];
+            // // std::copy(ptr, ptr + size, out);
+            // std::copy(ptr, &m_table[end], out);
+            // return size;
+
+            // // std::copy(&m_T[i][0], &m_T[i][16], out);
+            // // return m_T[i][16];
+
+
+            // 1.78 ns x int
+            uint32_t begin = i * 17;
+            uint32_t end = begin + 16;
             uint32_t size = m_table[end];
             uint32_t const* ptr = &m_table[begin];
-            // std::copy(ptr, ptr + size, out);
-            std::copy(ptr, &m_table[end], out);
-            return size;
+            memcpy(out, ptr, 64);
 
-            // std::copy(&m_T[i][0], &m_T[i][16], out);
-            // return m_T[i][16];
+            // // 1.83 ns x int
+            // uint32_t begin = i * (m_entry_size + 1); // i * 17
+            // uint32_t end = begin + m_entry_size; // begin + 16
+            // uint32_t size = m_table[end];
+            // uint32_t const* ptr = &m_table[begin];
+            // memcpy(out, ptr, 64);
+
+            // // 1.95 ns x int
+            // uint32_t begin = i * (m_entry_size + 1); // i * 17
+            // uint32_t end = begin + m_entry_size; // begin + 16
+            // uint32_t size = m_table[end];
+            // uint32_t const* ptr = &m_table[begin];
+            // std::copy(ptr, ptr + 16, out);
+
+            return size;
         }
 
         size_t capacity() const {

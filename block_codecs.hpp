@@ -14,7 +14,7 @@
 namespace ds2i {
 
     namespace constants {
-        constexpr uint32_t block_size = 1024; // 256
+        constexpr uint32_t block_size = 256; // 256
     }
 
     // workaround: VariableByte::decodeArray needs the buffer size, while we
@@ -449,7 +449,7 @@ namespace ds2i {
             uint32_t const* end = begin + n;
             while (begin < end) // can overshoot
             {
-                // first, try runs of sizes 256, 128, 64 and 32
+                // first, try runs of sizes 256, 128, 64, 32 and 16
                 uint32_t longest_run_size = 0;
                 uint32_t run_size = 256;
                 uint32_t table_index = 1;
@@ -505,36 +505,42 @@ namespace ds2i {
                                      uint32_t *out,
                                      uint32_t sum_of_values, size_t n)
         {
-            // std::cout << "n = " << n << std::endl;
             (void) sum_of_values;
-            size_t i = 0;
             uint16_t const* ptr = reinterpret_cast<uint16_t const*>(in);
 
-            while (i < n) // can overshoot
+            for (size_t i = 0; i < n; ++ptr)
             {
                 uint16_t table_index = *ptr;
-                uint32_t decoded_ints = 1; // exception
+                uint32_t decoded_ints = 1;
 
-                if (DS2I_UNLIKELY(table_index == 0)) { // decode exception
-                    ++ptr;
-                    std::copy(ptr, ptr + 2, reinterpret_cast<uint16_t*>(out));
-                    ++ptr;
-                    // std::cout << "decoding exception" << std::endl;
-                } else {
-                    if (DS2I_LIKELY(table_index < dictionary::reserved)) {
-                        decoded_ints = 256 >> (table_index - 1);
-                        // std::cout << "decoded " << decoded_ints << " integers (run)" << std::endl;
+                // if (DS2I_UNLIKELY(table_index == 0)) {
+                //     ++ptr;
+                //     std::copy(ptr, ptr + 2, reinterpret_cast<uint16_t*>(out));
+                //     ++ptr;
+                // } else {
+                //     if (DS2I_LIKELY(table_index < dictionary::reserved)) {
+                //         decoded_ints = 256 >> (table_index - 1);
+                //     } else {
+                //         decoded_ints = dict->copy(table_index, out);
+                //     }
+                // }
+
+                if (DS2I_LIKELY(table_index != 0)) {
+                    if (DS2I_LIKELY(table_index < /*dictionary::reserved*/ 6)) {
+                        decoded_ints = 256 >> (table_index - 1); // runs of 256, 128, 64, 32 or 16 ints
                     } else {
                         decoded_ints = dict->copy(table_index, out);
-                        // std::cout << "decoded " << decoded_ints << " integers" << std::endl;
                     }
+                } else {
+                    ++ptr;
+                    memcpy(out, ptr, 4);
+                    ++ptr;
                 }
 
                 // std::cout << decoded_ints << "\n";
 
                 out += decoded_ints;
                 i += decoded_ints;
-                ++ptr;
             }
 
             // std::cout << "num of decoded bytes " << (reinterpret_cast<uint8_t const*>(ptr) - in) << std::endl;

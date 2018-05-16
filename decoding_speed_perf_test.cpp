@@ -49,9 +49,9 @@ void perftest(IndexType& index, std::string const& type)
             for (size_t i = 0; i < size; ++i) {
                 reader.next();
                 do_not_optimize_away(reader.docid());
-                if (with_freqs) {
-                    do_not_optimize_away(reader.freq());
-                }
+                // if (with_freqs) {
+                //     do_not_optimize_away(reader.freq());
+                // }
             }
             postings += size;
         }
@@ -122,10 +122,10 @@ void perftest(const char* index_filename, std::string const& type)
     IndexType index;
     boost::iostreams::mapped_file_source m(index_filename);
     succinct::mapper::map(index, m, succinct::mapper::map_flags::warmup);
-    index.warmup();
+    // index.warmup();
 
     perftest<IndexType, false>(index, type);
-    perftest<IndexType, true>(index, type);
+    // perftest<IndexType, true>(index, type);
 }
 
 int main(int argc, const char** argv) {
@@ -140,20 +140,20 @@ int main(int argc, const char** argv) {
     std::string index_type = argv[1];
     const char* index_filename = argv[2];
 
-    perftest<block_dint_index>(index_filename, index_type);
+    // perftest<block_dint_index>(index_filename, index_type);
 
-//     if (false) {
-// #define LOOP_BODY(R, DATA, T)                               \
-//         } else if (index_type == BOOST_PP_STRINGIZE(T)) {   \
-//             perftest<BOOST_PP_CAT(T, _index)>               \
-//                 (index_filename, index_type);               \
+    if (false) {
+#define LOOP_BODY(R, DATA, T)                               \
+        } else if (index_type == BOOST_PP_STRINGIZE(T)) {   \
+            perftest<BOOST_PP_CAT(T, _index)>               \
+                (index_filename, index_type);               \
 
-//         BOOST_PP_SEQ_FOR_EACH(LOOP_BODY, _, DS2I_INDEX_TYPES);
-// #undef LOOP_BODY
-//     } else {
-//         logger() << "ERROR: Unknown index type '" << index_type << "'." << std::endl;
-//         return 1;
-//     }
+        BOOST_PP_SEQ_FOR_EACH(LOOP_BODY, _, DS2I_INDEX_TYPES);
+#undef LOOP_BODY
+    } else {
+        logger() << "ERROR: Unknown index type '" << index_type << "'." << std::endl;
+        return 1;
+    }
 
     return 0;
 }
