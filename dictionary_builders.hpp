@@ -1,5 +1,7 @@
 #pragma once
 
+#include <boost/progress.hpp>
+
 #include "binary_blocks_collection.hpp"
 #include "dictionary.hpp"
 #include "heap.hpp"
@@ -235,7 +237,6 @@ namespace ds2i {
             thread_local std::vector<uint32_t> buf(max_entry_width);
             size_t n = list.docs.size();
             size_t full_strides = n / max_entry_width;
-            logger() << "Procces list of size " << n << " full_strides " << full_strides << "\n";
 
             auto lst_itr = list.docs.begin();
             if(type != dict_type::docs) lst_itr = list.freqs.begin();
@@ -243,15 +244,12 @@ namespace ds2i {
             uint32_t prev = 0;
             for(size_t i=0;i<full_strides;i++) {
                 // fill buf
-                std::string bufstr = "[";
                 for(size_t j=0;j<max_entry_width;j++) {
                     buf[j] = *lst_itr - prev;
-                    bufstr += "," + std::to_string(buf[j]);
                     if(type == dict_type::docs) prev = *lst_itr;
                     ++lst_itr;
                 }
 
-                logger() << "buf = " << bufstr << "]" << "\n";
                 // compute hashes (modified from murmur! hopefully still good...)
                 const uint32_t m = 0x5bd1e995;
                 const int r = 24;
@@ -265,7 +263,6 @@ namespace ds2i {
                     hash *= m;
                     hash ^= key;
                     if(j == cur_len) {
-                        logger() << "hash("<<j<<") = " << hash << "\n";
                         auto itr = block_map.find(hash);
                         if(itr != block_map.end()) {
                             auto block_idx = itr->second;
@@ -310,10 +307,14 @@ namespace ds2i {
         {
             // (1) create statistics
             block_stats_type stats;
-            for (auto const& plist: input) {
-                size_t n = plist.docs.size();
-                if (n < MIN_SIZE_THRES) continue;
-                stats.process_list(plist,type);
+            {
+                boost::progress_display progress(input.num_u32());
+                for (auto const& plist: input) {
+                    size_t n = plist.docs.size();
+                    progress += n+1;
+                    if (n < MIN_SIZE_THRES) continue;
+                    stats.process_list(plist,type);
+                }
             }
 
             // (2) init dictionary
@@ -323,13 +324,17 @@ namespace ds2i {
             using btype = typename block_stats_type::block_type;
             auto coverage_cmp = [](const btype& left,const btype& right) { return left.coverage < right.coverage;};
             std::priority_queue<btype,std::vector<btype>,decltype(coverage_cmp)> pq(coverage_cmp);
-            for(const auto& block : stats.blocks) {
-                if(pq.size() < num_entries-1) {
-                    pq.push(block);
-                } else {
-                    if( pq.top().coverage < block.coverage ) {
-                        pq.pop();
+            {
+                boost::progress_display progress(stats.blocks.size());
+                for(const auto& block : stats.blocks) {
+                    ++progress;
+                    if(pq.size() < num_entries-1) {
                         pq.push(block);
+                    } else {
+                        if( pq.top().coverage < block.coverage ) {
+                            pq.pop();
+                            pq.push(block);
+                        }
                     }
                 }
             }

@@ -40,6 +40,11 @@ namespace ds2i {
             return m_num_docs;
         }
 
+        uint64_t num_u32() const
+        {
+            return m_freqs.data_size();
+        }
+
         struct sequence {
             binary_collection::sequence docs;
             binary_collection::sequence freqs;

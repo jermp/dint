@@ -39,6 +39,10 @@ namespace ds2i {
             return iterator(this, m_data_size);
         }
 
+        size_t data_size() const {
+            return m_data_size;
+        }
+
         class sequence {
         public:
             sequence()
