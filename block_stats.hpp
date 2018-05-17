@@ -44,6 +44,7 @@ namespace ds2i {
         }
 
         block_stats_full_stride_geom(std::string file_name) {
+            logger() << "reading block stats" << std::endl;
             std::ifstream in(file_name.c_str());
             uint64_t num_blocks;
             in.read(reinterpret_cast<char*>(&num_blocks), sizeof(uint64_t));
@@ -105,6 +106,7 @@ namespace ds2i {
         }
 
         void try_to_store(std::string file_name) {
+            logger() << "writing block stats" << std::endl;
             std::ofstream out(file_name.c_str());
             if(out) {
                 uint64_t num_blocks = blocks.size();
