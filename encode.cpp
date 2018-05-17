@@ -14,8 +14,6 @@
 #include "binary_collection.hpp"
 #include "dictionary.hpp"
 
-#define GB 1073741824;
-
 using namespace ds2i;
 
 template<typename Encoder>
@@ -48,6 +46,7 @@ void encode(char const* collection_name,
     }
 
     std::vector<uint8_t> output;
+    const static uint64_t GB = 1073741824;
     uint64_t bytes = 5 * GB;
     output.reserve(bytes);
 
