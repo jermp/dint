@@ -224,10 +224,12 @@ namespace ds2i {
         template<class block_stat_type>
         static std::vector<typename block_stats_type::block_type> build(dictionary::builder& builder,block_stat_type& block_stats)
         {
-            // (2) init dictionary
+            // (1) init dictionary
+            logger() << "(1) init dictionary" << std::endl;
             builder.init(num_entries, entry_width);
 
-            // (3) find the top-K most covering blocks
+            // (2) find the top-K most covering blocks
+            logger() << "(2) find the top-K most covering blocks" << std::endl;
             using btype = typename block_stats_type::block_type;
             auto coverage_cmp = [](const btype& left,const btype& right) { return left.coverage < right.coverage;};
             std::priority_queue<btype,std::vector<btype>,decltype(coverage_cmp)> pq(coverage_cmp);
@@ -247,6 +249,7 @@ namespace ds2i {
                 }
             }
 
+            logger() << "(3) add blocks to dict" << std::endl;
             std::vector<btype> final_blocks;
             while(!pq.empty()) {
                 auto block = pq.top();
