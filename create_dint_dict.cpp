@@ -73,6 +73,7 @@ struct block_enc_stats {
         block_size.push_back(input_size);
         codes_per_block.push_back(num_codes);
         for(size_t i=0;i<num_codes;i++) {
+            std::cout << "code[" << i << "] = " << codes[i] << std::endl;
             dict_usage[codes[i]]++;
             if(codes[i] < dict.special_cases()) {
                 switch(codes[i]) {
