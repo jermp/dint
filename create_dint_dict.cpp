@@ -59,7 +59,7 @@ struct block_enc_stats {
         dict_entry_lens.resize(capacity);
         dict_usage_lens.resize(256+1);
         dict_entry_lens[0] = 0;
-        dict_entries.push_back("[except]");
+        dict_entries.push_back("[exception code]");
         dict_entry_lens[1] = 256;
         dict_entries.push_back("[1]*256");
         dict_entry_lens[2] = 128;
@@ -68,9 +68,7 @@ struct block_enc_stats {
         dict_entries.push_back("[1]*64");
         dict_entry_lens[4] = 32;
         dict_entries.push_back("[1]*32");
-        dict_entry_lens[5] = 16;
-        dict_entries.push_back("[1]*16");
-        for(size_t i=6;i<capacity;i++) {
+        for(size_t i=5;i<capacity;i++) {
             dict_entry_lens[i] = dict.size(i);
             dict_entries.push_back(dict.entry_string(i));
         }
@@ -269,6 +267,16 @@ int main(int argc, const char** argv) {
         auto dict = build_dict<block_stat_type,dict_constructor_type>(block_stats);
 
         auto enc_stats = encode_lists(dict,input_basename,dict_type::docs,encoding_block_size);
+
+        std::cout << enc_stats << std::endl;
+    }
+    // second freqs
+    {
+        auto block_stats = create_block_stats<block_stat_type>(input_basename,dict_type::freqs);
+
+        auto dict = build_dict<block_stat_type,dict_constructor_type>(block_stats);
+
+        auto enc_stats = encode_lists(dict,input_basename,dict_type::freqs,encoding_block_size);
 
         std::cout << enc_stats << std::endl;
     }

@@ -13,8 +13,8 @@ namespace ds2i {
     struct dictionary {
 
         static const uint32_t invalid_index = uint32_t(-1);
-        static const uint32_t reserved = 6; // 1 for exceptions
-                                            // 5 for runs
+        static const uint32_t reserved = 5; // 1 for exceptions
+                                            // 4 for runs
 
         struct builder {
 
