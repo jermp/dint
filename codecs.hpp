@@ -107,10 +107,10 @@ namespace ds2i {
         static void encode(uint32_t const* in,
                            uint32_t universe, size_t n,
                            std::vector<uint8_t>& out,
-                           dictionary::builder const* /*builder*/)
+                           dictionary::builder const* builder = nullptr)
         {
-            assert(n <= block_size);
-            thread_local std::vector<uint32_t> inbuf(block_size);
+            (void) builder;
+            thread_local std::vector<uint32_t> inbuf(n);
             thread_local std::vector<uint32_t> outbuf;
             inbuf[0] = *in;
             for (size_t i = 1; i < n; ++i) {
@@ -132,9 +132,9 @@ namespace ds2i {
         static uint8_t const* DS2I_NOINLINE decode(uint8_t const* in,
                                                    uint32_t* out,
                                                    uint32_t universe, size_t n,
-                                                   dictionary const* /*dict*/)
+                                                   dictionary const* dict = nullptr)
         {
-            assert(n <= block_size);
+            (void) dict;
             uint8_t const* inbuf = in;
             if (universe == uint32_t(-1)) {
                 inbuf = TightVariableByte::decode(inbuf, &universe, 1);
@@ -198,16 +198,8 @@ namespace ds2i {
                            uint8_t const* b = nullptr) // if non-null forces b
         {
             thread_local codec_type optpfor_codec;
-            thread_local std::vector<uint8_t> buf(2 * 4 * block_size);
-            assert(n <= block_size);
-
-            if (n < block_size) {
-                interpolative_block::encode(in, sum_of_values, n, out);
-                return;
-            }
-
+            thread_local std::vector<uint8_t> buf(2 * 4 * n);
             size_t out_len = buf.size();
-
             optpfor_codec.force_b = b;
             optpfor_codec.encodeBlock(in, reinterpret_cast<uint32_t *>(buf.data()), out_len);
             out_len *= 4;
@@ -220,13 +212,7 @@ namespace ds2i {
                                                    dictionary const* /*dict*/)
         {
             thread_local codec_type optpfor_codec; // pfor decoding is *not* thread-safe
-            assert(n <= block_size);
-
-            if (DS2I_UNLIKELY(n < block_size)) {
-                return interpolative_block::decode(in, out, sum_of_values, n);
-            }
-
-            size_t out_len = block_size;
+            size_t out_len = n;
             uint8_t const *ret;
 
             ret = reinterpret_cast<uint8_t const *>(optpfor_codec.decodeBlock(
@@ -239,7 +225,7 @@ namespace ds2i {
 
     struct varintg8iu {
 
-        struct codec_type : FastPFor::VarIntG8IU {
+        struct codec_type : VarIntG8IU {
 
             // rewritten version of decodeBlock optimized for when the output
             // size is known rather than the input
@@ -274,16 +260,8 @@ namespace ds2i {
                            dictionary::builder const* /*builder*/)
         {
             thread_local codec_type varint_codec;
-            thread_local std::vector<uint8_t> buf(2 * 4 * block_size);
-            assert(n <= block_size);
-
-            if (n < block_size) {
-                interpolative_block::encode(in, sum_of_values, n, out);
-                return;
-            }
-
+            thread_local std::vector<uint8_t> buf(2 * 4 * n);
             size_t out_len = buf.size();
-
             const uint32_t *src = in;
             unsigned char *dst = buf.data();
             size_t srclen = n * 4;
@@ -303,11 +281,6 @@ namespace ds2i {
                                      dictionary const* /*dict*/)
         {
             static codec_type varint_codec; // decodeBlock is thread-safe
-            assert(n <= block_size);
-
-            if (DS2I_UNLIKELY(n < block_size)) {
-                return interpolative_block::decode(in, out, sum_of_values, n);
-            }
 
             size_t out_len = 0;
             uint8_t const *src = in;
@@ -332,36 +305,57 @@ namespace ds2i {
 
     struct qmx {
 
+        static const uint32_t block_size = 128;
+        static const uint64_t overflow = 512;
+
         static void encode(uint32_t const* in,
-                           uint32_t /*universe*/, size_t n,
+                           uint32_t universe, size_t n,
                            std::vector<uint8_t>& out,
                            dictionary::builder const* /*builder*/)
         {
-            assert(n <= block_size);
-            if (n < block_size) {
-                interpolative_block::encode(in, sum_of_values, n, out);
-                return;
+            uint64_t blocks = succinct::util::ceil_div(n, block_size) - 1;
+            for (size_t b = 0; b < blocks; ++b) {
+                encode_block(in, out);
+                in += block_size;
             }
+
+            uint64_t mod = n % block_size;
+            if (mod) {
+                interpolative::encode(in, universe, mod, out);
+            }
+        }
+
+        static uint8_t const* decode(uint8_t const* in,
+                                     uint32_t* out,
+                                     uint32_t universe, size_t n,
+                                     dictionary const* /*dict*/)
+        {
+            uint64_t blocks = succinct::util::ceil_div(n, block_size) - 1;
+            for (size_t b = 0; b < blocks; ++b) {
+                in = decode_block(in, out);
+            }
+
+            uint64_t mod = n % block_size;
+            if (mod) {
+                return interpolative::decode(in, out, universe, mod);
+            }
+            return in;
+        }
+
+    private:
+        static void encode_block(uint32_t const* in, std::vector<uint8_t>& out)
+        {
             thread_local QMX::codec<block_size> qmx_codec;
-            thread_local std::vector<uint8_t> buf( (overflow*4) + 2 * 4 * block_size);
+            thread_local std::vector<uint8_t> buf( (overflow * 4) + 2 * 4 * block_size);
             size_t out_len = buf.size();
             out_len = qmx_codec.encode(buf.data(),in);
             TightVariableByte::encode_single(out_len, out);
             out.insert(out.end(), buf.data(), buf.data() + out_len);
         }
 
-        static uint8_t const* decode(uint8_t const* in,
-                                     uint32_t* out,
-                                     uint32_t /*universe*/, size_t n,
-                                     dictionary const* /*dict*/)
+        static uint8_t const* decode_block(uint8_t const* in, uint32_t* out)
         {
-            static QMX::codec<block_size> qmx_codec; // decodeBlock is thread-safe
-            assert(n <= block_size);
-
-            if (DS2I_UNLIKELY(n < block_size)) {
-                return interpolative_block::decode(in, out, sum_of_values, n);
-            }
-
+            static QMX::codec<block_size> qmx_codec;
             uint32_t enc_len = 0;
             in = TightVariableByte::decode(in, &enc_len, 1);
             qmx_codec.decode(out,in, enc_len);
@@ -376,7 +370,7 @@ namespace ds2i {
                            std::vector<uint8_t>& out,
                            dictionary::builder const* /*builder*/)
         {
-            std::vector<uint8_t> buf(2 * 4 * block_size);
+            std::vector<uint8_t> buf(2 * 4 * n);
             size_t out_len = buf.size();
             TightVariableByte::encode(in, n, buf.data(), out_len);
             out.insert(out.end(), buf.data(), buf.data() + out_len);
@@ -398,7 +392,6 @@ namespace ds2i {
                            std::vector<uint8_t>& out,
                            dictionary::builder const* /*builder*/)
         {
-            assert(n <= block_size);
             size_t srclen = n * sizeof(uint32_t);
             const uint8_t* src = (const uint8_t*)in;
             out.insert(out.end(), src, src + srclen);
@@ -409,7 +402,6 @@ namespace ds2i {
                                      uint32_t /*universe*/, size_t n,
                                      dictionary const* /*dict*/)
         {
-            assert(n <= block_size);
             const uint8_t* src = (const uint8_t*)in;
             uint8_t* dst = (uint8_t*)out;
             size_t n4 = n * 4;
@@ -430,9 +422,7 @@ namespace ds2i {
                            dictionary::builder const* /*builder*/)
         {
             thread_local codec_type simple16_codec;
-            assert(n <= block_size);
-            // XXX this could be threadlocal static
-            std::vector<uint8_t> buf(2 * 8 * block_size);
+            std::vector<uint8_t> buf(2 * 8 * n);
             size_t out_len = buf.size();
             simple16_codec.encodeArray(in, n, reinterpret_cast<uint32_t*>(buf.data()), out_len);
             out_len *= 4;
@@ -444,7 +434,6 @@ namespace ds2i {
                                      uint32_t /*universe*/, size_t n,
                                      dictionary const* /*dict*/)
         {
-            assert(n <= block_size);
             uint8_t const* ret;
             thread_local codec_type simple16_codec;
             ret = reinterpret_cast<uint8_t const*>(simple16_codec.decodeArray(reinterpret_cast<uint32_t const*>(in), 1,
@@ -460,13 +449,8 @@ namespace ds2i {
                            std::vector<uint8_t>& out,
                            dictionary::builder const* /*builder*/)
         {
-            assert(n <= block_size);
-            if (n < block_size) {
-                interpolative_block::encode(in, sum_of_values, n, out);
-                return;
-            }
             uint32_t *src = const_cast<uint32_t *>(in);
-            /*thread_local*/ std::vector<uint8_t> buf(streamvbyte_max_compressedbytes(block_size));
+            std::vector<uint8_t> buf(streamvbyte_max_compressedbytes(n));
             size_t out_len = streamvbyte_encode(src, n, buf.data());
             out.insert(out.end(), buf.data(), buf.data() + out_len);
         }
@@ -488,46 +472,10 @@ namespace ds2i {
                            std::vector<uint8_t>& out,
                            dictionary::builder const* /*builder*/)
         {
-            // std::cout << "sum of values: " << sum_of_values << std::endl;
-            // auto it = in;
-            // std::cout << "printing " << n << " elements" << std::endl;
-            // for (size_t i = 0; i < n; ++i) {
-            //     std::cout << *it << std::endl;
-            //     ++it;
-            // }
-
-
-            // size_t partitions = succinct::util::ceil_div(n, block_size);
-
-            // for (size_t i = 0; i < partitions; ++i) {
-
-            //     size_t begin = i * block_size;
-            //     size_t end = begin + block_size;
-            //     if (end > n) {
-            //         end = n;
-            //     }
-            //     size_t size = end - begin;
-            //     assert(size <= block_size);
-            //     if (size < block_size) {
-            //         interpolative_block::encode(in, sum_of_values, size, out);
-            //         return;
-            //     }
-
-                size_t size = n;
-
-                // if (size < block_size) {
-                //     interpolative_block::encode(in, sum_of_values, size, out);
-                //     return;
-                // }
-
-                uint32_t *src = const_cast<uint32_t *>(in);
-                std::vector<uint8_t> buf(2 * size * sizeof(uint32_t));
-                size_t out_len = vbyte_encode(src, size, buf.data());
-
-                // std::cout << "vbyte encode DONE: out_len = " << out_len << std::endl;
-                out.insert(out.end(), buf.data(), buf.data() + out_len);
-                // std::cout << "insert into out buffer DONE" << std::endl;
-            // }
+            uint32_t* src = const_cast<uint32_t *>(in);
+            std::vector<uint8_t> buf(2 * n * sizeof(uint32_t));
+            size_t out_len = vbyte_encode(src, n, buf.data());
+            out.insert(out.end(), buf.data(), buf.data() + out_len);
         }
 
         static uint8_t const* decode(uint8_t const* in,
@@ -548,11 +496,6 @@ namespace ds2i {
                            dictionary::builder const* /*builder*/)
         {
             thread_local VarIntGB<false> varintgb_codec;
-            assert(n <= block_size);
-            if (n < block_size) {
-                interpolative_block::encode(in, sum_of_values, n, out);
-                return;
-            }
             thread_local std::vector<uint8_t> buf(2 * n * sizeof(uint32_t));
             size_t out_len = varintgb_codec.encodeArray(in, n, buf.data());
             out.insert(out.end(), buf.data(), buf.data() + out_len);
@@ -564,10 +507,6 @@ namespace ds2i {
                                      dictionary const* /*dict*/)
         {
             thread_local VarIntGB<false> varintgb_codec;
-            assert(n <= block_size);
-             if (DS2I_UNLIKELY(n < block_size)) {
-                return interpolative_block::decode(in, out, sum_of_values, n);
-            }
             auto read = varintgb_codec.decodeArray(in, n, out);
             return read + in;
         }

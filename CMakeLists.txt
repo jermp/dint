@@ -72,7 +72,7 @@ target_link_libraries(create_freq_index
 add_executable(encode encode.cpp)
 target_link_libraries(encode
   ${Boost_LIBRARIES}
-  FastPFor
+  FastPFor_lib
   streamvbyte
   MaskedVByte
   )

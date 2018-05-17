@@ -3,6 +3,9 @@
 #include <fstream>
 #include <unordered_map>
 
+#include <boost/preprocessor/seq/for_each.hpp>
+#include <boost/preprocessor/stringize.hpp>
+#include <boost/preprocessor/cat.hpp>
 #include <boost/filesystem.hpp>
 
 #include "codecs.hpp"
@@ -11,11 +14,13 @@
 #include "binary_collection.hpp"
 #include "dictionary.hpp"
 
-#define uint64_t(1) << 30 GB;
+#define GB 1073741824;
+
+using namespace ds2i;
 
 template<typename Encoder>
 void encode(char const* collection_name,
-            char const* output_filename
+            char const* output_filename,
             char const* dictionary_filename)
 {
     binary_collection input(collection_name);
@@ -56,11 +61,10 @@ void encode(char const* collection_name,
         if (n > MIN_SIZE)
         {
             buf.reserve(n);
-            auto end = begin + n;
             uint32_t prev = 0;
             uint64_t universe = 0;
 
-            for (auto begin = list.begin(); begin != end; ++begin) {
+            for (auto begin = list.begin(); begin != list.end(); ++begin) {
                 buf.push_back(*begin - prev);
                 if (take_gaps) {
                     prev = *begin;
@@ -69,7 +73,7 @@ void encode(char const* collection_name,
                 ++begin;
             }
 
-            Encoder::encode(buf.data(), universe, n, out, &builder);
+            Encoder::encode(buf.data(), universe, n, output, &builder);
             buf.clear();
 
             ++num_processed_lists;
@@ -77,7 +81,7 @@ void encode(char const* collection_name,
 
             if (num_processed_lists % 1000 == 0) {
                 logger() << "processed " << num_processed_lists << " lists" << std::endl;
-                logger() << "encoded " << num_encoded_ints << " integers" << std::endl;
+                logger() << "encoded " << num_total_ints << " integers" << std::endl;
             }
         }
     }
@@ -85,7 +89,7 @@ void encode(char const* collection_name,
     logger() << "processed " << num_processed_lists << " lists" << std::endl;
     logger() << "processed " << num_total_ints << " integers" << std::endl;
     logger() << "bits x integer: "
-             << output.size() * sizeof(output[0]) * 8.0 / num_encoded_ints << std::endl;
+             << output.size() * sizeof(output[0]) * 8.0 / num_total_ints << std::endl;
 
     if (output_filename) {
         logger() << "writing encoded data..." << std::endl;
@@ -106,7 +110,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    using namespace frc;
+    using namespace ds2i;
     std::string type = argv[1];
     char const* collection_name = argv[2];
     char const* dictionary_filename = argv[3];
@@ -125,11 +129,11 @@ int main(int argc, char** argv) {
     }
 
     if (false) {
-#define LOOP_BODY(R, DATA, T)                                   \
-        } else if (type == BOOST_PP_STRINGIZE(T)) {             \
-            encode<BOOST_PP_CAT(T)>(collection_name,            \
-                                    output_filename,            \
-                                    dictionary_filename);       \
+#define LOOP_BODY(R, DATA, T)                                               \
+        } else if (type == BOOST_PP_STRINGIZE(T)) {                         \
+            encode<BOOST_PP_CAT(T, )>                                         \
+                (collection_name, output_filename, dictionary_filename);    \
+            /**/
 
         BOOST_PP_SEQ_FOR_EACH(LOOP_BODY, _, CODECS);
 #undef LOOP_BODY
