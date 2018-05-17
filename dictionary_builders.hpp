@@ -259,7 +259,7 @@ namespace ds2i {
                 const int r = 24;
                 uint32_t hash = 0xDEADBEEF;
                 size_t cur_len = 1;
-                size_t cur_step = log2(max_entry_width);
+                size_t cur_step = 0;
                 for(size_t j=1;j<=max_entry_width;j++) {
                     uint32_t key = buf[j-1];
                     key *= m;
@@ -286,7 +286,7 @@ namespace ds2i {
                             blocks.emplace_back(std::move(new_block));
                         }
                         cur_len *= 2;
-                        cur_step--;
+                        cur_step++;
                     }
                 }
             }
