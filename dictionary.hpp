@@ -121,6 +121,23 @@ namespace ds2i {
                 return m_reserved;
             }
 
+            uint32_t const* get(uint32_t i) const {
+                uint32_t begin = i * (m_entry_size + 1);
+                return &m_table[begin];
+            }
+
+            std::string entry_string(uint32_t i) const {
+                uint32_t begin = i * (m_entry_size + 1);
+                uint32_t end = begin + m_entry_size;
+                uint32_t const* entry = &m_table[begin];
+                auto esize =  m_table[end];
+                std::string estr = "[";
+                for(size_t i=0;i<esize-1;i++) {
+                    estr += std::to_string(entry[i]) + ",";
+                }
+                return estr + std::to_string(entry[esize-1]) + "]";
+            }
+
         private:
             uint32_t m_pos;
             uint32_t m_size;
@@ -132,10 +149,6 @@ namespace ds2i {
             // map from hash codes to table indexes, used during encoding
             std::unordered_map<uint64_t, uint32_t> m_map;
 
-            uint32_t const* get(uint32_t i) const {
-                uint32_t begin = i * (m_entry_size + 1);
-                return &m_table[begin];
-            }
 
         };
 
