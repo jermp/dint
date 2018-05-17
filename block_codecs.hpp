@@ -469,6 +469,7 @@ namespace ds2i {
 
                 if (table_index < dictionary::reserved) {
                     out[written_codes++] = table_index;
+                    std::cout << "R encode[" << written_codes-1 << "] = " << table_index << std::endl;
                     begin += std::min<uint64_t>(run_size, end - begin);
                 } else {
                     for (uint32_t sub_block_size  = builder.entry_size();
@@ -478,6 +479,7 @@ namespace ds2i {
                         table_index = builder.lookup(begin, sub_block_size);
                         if (table_index != dictionary::invalid_index) {
                             out[written_codes++] = table_index;
+                            std::cout << "P encode[" << written_codes-1 << "] = " << table_index << std::endl;
                             begin += sub_block_size; // can be >= end
                             break;
                         }
@@ -487,6 +489,7 @@ namespace ds2i {
                         // pattern was not found, thus we have an exception
                         // and leave it uncompressed
                         out[written_codes++] = table_index;
+                        std::cout << "E encode[" << written_codes-1 << "] = " << table_index << std::endl;
                         begin += 1;
                     }
                 }
