@@ -115,6 +115,7 @@ namespace ds2i {
                 , m_docs_dict(docs_dict)
                 , m_freqs_dict(freqs_dict)
             {
+                (void) term_id;
                 m_docs_buf.resize(DictBlockCoder::block_size + DictBlockCoder::overflow);
                 m_freqs_buf.resize(DictBlockCoder::block_size + DictBlockCoder::overflow);
                 reset();

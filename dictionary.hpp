@@ -39,13 +39,13 @@ namespace ds2i {
                 init(capacity, entry_size);
             }
 
-            void write(std::ofstream& dictionary_file) {
+            void write(std::ofstream& dictionary_file) const {
                 dictionary_file.write(reinterpret_cast<char const*>(&m_capacity), sizeof(uint32_t));
                 dictionary_file.write(reinterpret_cast<char const*>(&m_entry_size), sizeof(uint32_t));
                 dictionary_file.write(reinterpret_cast<char const*>(m_table.data()), m_table.size() * sizeof(uint32_t));
             }
 
-            void load(std::ifstream const& dictionary_file) {
+            void load(std::ifstream& dictionary_file) {
                 uint32_t capacity, entry_size;
                 dictionary_file.read(reinterpret_cast<char*>(&capacity), sizeof(uint32_t));
                 dictionary_file.read(reinterpret_cast<char*>(&entry_size), sizeof(uint32_t));

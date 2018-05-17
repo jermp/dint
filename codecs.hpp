@@ -1,14 +1,16 @@
 #pragma once
 
-#include "FastPFor/headers/VarIntG8IU.h"
 #include "FastPFor/headers/optpfor.h"
 #include "FastPFor/headers/variablebyte.h"
-
+#include "streamvbyte/include/streamvbyte.h"
+#include "MaskedVByte/include/varintencode.h"
+#include "MaskedVByte/include/varintdecode.h"
+#include "VarIntG8IU.h"
+#include "varintgb.h"
 #include "interpolative_coding.hpp"
 #include "qmx_codec.hpp"
 #include "succinct/util.hpp"
 #include "util.hpp"
-
 #include "dictionary.hpp"
 
 namespace ds2i {
