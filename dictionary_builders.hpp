@@ -259,6 +259,7 @@ namespace ds2i {
                 const int r = 24;
                 uint32_t hash = 0xDEADBEEF;
                 size_t cur_len = 1;
+                size_t cur_step = log2(max_entry_width);
                 for(size_t j=1;j<=max_entry_width;j++) {
                     uint32_t key = buf[j-1];
                     key *= m;
@@ -270,12 +271,12 @@ namespace ds2i {
                         auto itr = block_map.find(hash);
                         if(itr != block_map.end()) {
                             auto block_idx = itr->second;
-                            blocks[block_idx].freq += (max_entry_width >> (j-1));
+                            blocks[block_idx].freq += (max_entry_width >> cur_step);
                             blocks[block_idx].coverage = blocks[block_idx].freq * j;
                         } else {
                             // create a new block
                             block_type new_block;
-                            new_block.freq = (max_entry_width >> (j-1));
+                            new_block.freq = (max_entry_width >> cur_step);
                             new_block.coverage = new_block.freq * j;
                             new_block.entry_len = j;
                             for(size_t k=0;k<j;k++) {
@@ -285,6 +286,7 @@ namespace ds2i {
                             blocks.emplace_back(std::move(new_block));
                         }
                         cur_len *= 2;
+                        cur_step--;
                     }
                 }
             }
@@ -346,10 +348,23 @@ namespace ds2i {
             }
 
             // (4) add them to the dict builder
+            size_t picked_blocks = 0;
             while(!pq.empty()) {
                 auto block = pq.top();
+
+                std::cout << "PICKING BLOCK " << picked_blocks 
+                         <<" FREQ = " << block.freq
+                         << " COV = " << block.coverage
+                         << " ELEN = " << block.entry_len
+                         << " ENTRY = [";
+                for(size_t i=0;i<block.entry_len-1;i++) {
+                    std::cout << block.entry[i] << ",";
+                }
+                std::cout << block.entry[block.entry_len-1] << "]" << std::endl;
+
                 builder.append(block.entry,block.entry_len);
                 pq.pop();
+                picked_blocks++;
             }
         }
 
