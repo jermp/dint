@@ -97,6 +97,7 @@ struct block_enc_stats {
                 }
             } else {
                 dict_usage_lens[dict.size(codes[i])]++;
+                dict_entry_lens[codes[i]] = dict.size(codes[i]);
             }
 
         }
@@ -110,8 +111,8 @@ std::ostream &operator<<(std::ostream &os, block_enc_stats const &stats) {
             size_t encoded_nums = i;
             if(i == 0) encoded_nums = 1;
             os  << "\tlen = " << i
-                << "\tnum_codes = " << stats.dict_usage_lens[i]
-                << "\tnum_postings = " << stats.dict_usage_lens[i] * encoded_nums
+                << "\t\tnum_codes = " << stats.dict_usage_lens[i]
+                << "\t\tnum_postings = " << stats.dict_usage_lens[i] * encoded_nums
                 << "\tpercent of codes = " << double(stats.dict_usage_lens[i]) / double(stats.total_codes) * 100
                 << "\tpercent of postings = " << double(stats.dict_usage_lens[i]*encoded_nums) / double(stats.postings_encoded) * 100 << "\n";
         }
@@ -135,7 +136,7 @@ std::ostream &operator<<(std::ostream &os, block_enc_stats const &stats) {
     size_t freq = 1;
     for(size_t i=1;i<codes_per_block.size();i++) {
         if(codes_per_block[i] != cur) {
-            os  << "\tnum_codes_in_block = " << cur
+            os  << "\t\tnum_codes_in_block = " << cur
                 << "\tbpi = " << double(cur*16) / double(stats.block_size[0])
                 << "\tfreq = " << freq
                 << "\tpercent of blocks = " << double(freq) / double(stats.num_blocks) * 100 << "\n";
