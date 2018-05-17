@@ -349,8 +349,25 @@ namespace ds2i {
 
             // (4) add them to the dict builder
             size_t picked_blocks = 0;
+
+            std::vector<uint64_t> entry_len_dist(max_entry_width+1);
+            std::vector<uint64_t> entry_cover_dist(max_entry_width+1);
+            std::vector<uint64_t> entry_freq_dist(max_entry_width+1);
+
+            size_t total_added = 0;
+            size_t total_freq = 0;
+            size_t total_coverage = 0;
+            std::vector<btype> final_blocks;
             while(!pq.empty()) {
                 auto block = pq.top();
+
+                total_added++;
+                total_freq += block.freq;
+                total_coverage += block.coverage;
+
+                entry_len_dist[block.entry_len]++;
+                entry_freq_dist[block.entry_len] += block.freq;
+                entry_cover_dist[block.entry_len] += block.coverage;
 
                 std::cout << "PICKING BLOCK " << picked_blocks 
                          <<" FREQ = " << block.freq
@@ -363,8 +380,44 @@ namespace ds2i {
                 std::cout << block.entry[block.entry_len-1] << "]" << std::endl;
 
                 builder.append(block.entry,block.entry_len);
+                final_blocks.push_back(block);
                 pq.pop();
                 picked_blocks++;
+            }
+
+            for(size_t i=0;i<=max_entry_width;i++) {
+                if(entry_len_dist[i] != 0) {
+                    std::cout << "len_dist," << i << "," << entry_len_dist[i] << "," 
+                        << double(entry_len_dist[i])/double(total_added);
+                }
+            }
+
+            for(size_t i=0;i<=max_entry_width;i++) {
+                if(entry_len_dist[i] != 0) {
+                    std::cout << "freq_dist," << i << "," << entry_freq_dist[i] << "," 
+                        << double(entry_freq_dist[i])/double(total_freq);
+                }
+            }
+
+            for(size_t i=0;i<=max_entry_width;i++) {
+                if(entry_len_dist[i] != 0) {
+                    std::cout << "cover_dist," << i << "," << entry_cover_dist[i] << "," 
+                        << double(entry_cover_dist[i])/double(total_coverage);
+                }
+            }
+
+            for(size_t i=0;i<20;i++) {
+                std::cout << "block,"<<i<<"," << final_blocks[i].entry_len << ","
+                    << final_blocks[i].entry_len << ","
+                    << final_blocks[i].freq << ","
+                    << double(final_blocks[i].freq)/double(total_freq) << ","
+                    << final_blocks[i].coverage << ","
+                    << double(final_blocks[i].freq)/double(total_coverage) << ",[";
+                for(size_t j=0;j<final_blocks[i].entry_len-1;j++) {
+                    std::cout << final_blocks[i].entry[j] << ",";
+                }
+                std::cout << final_blocks[i].entry[final_blocks[i].entry_len-1] 
+                        << "]" << std::endl;
             }
         }
 
