@@ -199,7 +199,6 @@ encoding_stats encode_lists(ds2i::dictionary::builder& dict,std::string input_ba
                     ++itr;
             }
             auto written_codes = dint_block::encode(dict,buf.data(),n,output.data());
-            std::cout << "S written_codes = " << written_codes << std::endl;
             stats.small_lists.update(dict,n,output,written_codes);
         } else {
             size_t full_blocks = n / block_size;
@@ -211,7 +210,6 @@ encoding_stats encode_lists(ds2i::dictionary::builder& dict,std::string input_ba
                     ++itr;
                 }
                 auto written_codes = dint_block::encode(dict,buf.data(),block_size,output.data());
-                std::cout << "F written_codes = " << written_codes << std::endl;
                 stats.full_blocks.update(dict,block_size,output,written_codes);
             }
 
@@ -223,7 +221,6 @@ encoding_stats encode_lists(ds2i::dictionary::builder& dict,std::string input_ba
                     ++itr;
                 }
                 auto written_codes = dint_block::encode(dict,buf.data(),block_size,output.data());
-                std::cout << "E written_codes = " << written_codes << std::endl;
                 stats.nonfull_blocks.update(dict,block_size,output,written_codes);
             }
         }
