@@ -125,8 +125,8 @@ std::ostream &operator<<(std::ostream &os, block_enc_stats const &stats) {
             os  << "\tlen = " << std::setw(3) << i
                 << "\tnum_codes = "  << std::setw(10) << stats.dict_usage_lens[i]
                 << "\tnum_postings = " << std::setw(10) << stats.dict_usage_lens[i] * encoded_nums
-                << "\tpercent of codes = " << std::fixed <<  std::setprecision(2) << double(stats.dict_usage_lens[i]) / double(stats.total_codes) * 100
-                << "\tpercent of postings = " << std::fixed <<  std::setprecision(2) << double(stats.dict_usage_lens[i]*encoded_nums) / double(stats.postings_encoded) * 100 << "\n";
+                << "\tpercent of codes = " << std::setw(6) << std::fixed <<  std::setprecision(2) << double(stats.dict_usage_lens[i]) / double(stats.total_codes) * 100
+                << "\tpercent of postings = " << std::setw(6) << std::fixed <<  std::setprecision(2) << double(stats.dict_usage_lens[i]*encoded_nums) / double(stats.postings_encoded) * 100 << "\n";
         }
     }
     os << "CODE WORD USAGE:\n";
@@ -136,8 +136,8 @@ std::ostream &operator<<(std::ostream &os, block_enc_stats const &stats) {
         os  << "\tcode = " << std::setw(5) << i
             << "\tcode_len = " << std::setw(3) << stats.dict_entry_lens[i]
             << "\tfreq = " << std::setw(10) << stats.dict_usage[i]
-            << "\tpercent of codes = " << std::fixed << std::setprecision(2) << double(stats.dict_usage[i]) / double(stats.total_codes) * 100
-            << "\tpercent of postings = " << std::fixed <<  std::setprecision(2) << double(stats.dict_usage[i]*encoded_nums) / double(stats.postings_encoded) * 100
+            << "\tpercent of codes = " << std::setw(6) << std::fixed << std::setprecision(2) << double(stats.dict_usage[i]) / double(stats.total_codes) * 100
+            << "\tpercent of postings = " << std::setw(6) << std::fixed <<  std::setprecision(2) << double(stats.dict_usage[i]*encoded_nums) / double(stats.postings_encoded) * 100
             << "\t" << stats.dict_entries[i] << "\n";
     }
 
@@ -150,9 +150,9 @@ std::ostream &operator<<(std::ostream &os, block_enc_stats const &stats) {
     for(size_t i=1;i<codes_per_block.size();i++) {
         if(codes_per_block[i] != cur) {
             os  << "\t\tnum_codes_in_block = " << std::setw(10) << cur
-                << "\tbpi = " << std::fixed <<  std::setprecision(3) << double(cur*16) / double(stats.block_size[0])
+                << "\tbpi = " << std::setw(6) << std::fixed <<  std::setprecision(3) << double(cur*16) / double(stats.block_size[0])
                 << "\tfreq = " << std::setw(10) << freq
-                << "\tpercent of blocks = " << std::fixed <<  std::setprecision(2) << double(freq) / double(stats.num_blocks) * 100 << "\n";
+                << "\tpercent of blocks = " << std::setw(6) << std::fixed <<  std::setprecision(2) << double(freq) / double(stats.num_blocks) * 100 << "\n";
             freq = 1;
         } else {
             freq++;
