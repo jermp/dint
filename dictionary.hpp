@@ -25,6 +25,9 @@ namespace ds2i {
             {}
 
             void init(uint32_t capacity, uint32_t entry_size) {
+                if (!is_power_of_two(entry_size)) {
+                    throw std::runtime_error("entry size must be a power of 2");
+                }
                 m_pos = reserved * (entry_size + 1);
                 m_size = reserved;
                 m_capacity = capacity;
@@ -35,6 +38,69 @@ namespace ds2i {
             builder(uint32_t capacity, uint32_t entry_size) {
                 init(capacity, entry_size);
             }
+
+            void write(std::ofstream& dictionary_file) {
+                dictionary_file.write(reinterpret_cast<char const*>(&m_capacity), sizeof(uint32_t));
+                dictionary_file.write(reinterpret_cast<char const*>(&m_entry_size), sizeof(uint32_t));
+                dictionary_file.write(reinterpret_cast<char const*>(m_table.data()), m_table.size() * sizeof(uint32_t));
+            }
+
+            void load(std::ifstream const& dictionary_file) {
+                uint32_t capacity, entry_size;
+                dictionary_file.read(reinterpret_cast<char*>(&capacity), sizeof(uint32_t));
+                dictionary_file.read(reinterpret_cast<char*>(&entry_size), sizeof(uint32_t));
+                init(capacity, entry_size);
+                dictionary_file.read(reinterpret_cast<char*>(m_table.data()), m_table.size() * sizeof(uint32_t));
+                m_size = m_capacity;
+            }
+
+            // void load_from_file(std::ifstream const& dictionary_file) {
+
+            //     uint32_t capacity, entry_size;
+            //     dictionary_file.read(reinterpret_cast<char*>(&capacity), sizeof(uint32_t));
+            //     dictionary_file.read(reinterpret_cast<char*>(&entry_size), sizeof(uint32_t));
+            //     init(capacity, entry_size);
+
+            //     // 0: --- exception case
+            //     // 1: 256
+            //     // 2: 128
+            //     // 3:  64
+            //     // 4:  32
+            //     // 5:  16
+
+            //     uint32_t size = 0;
+            //     while (dictionary_file.read(reinterpret_cast<char*>(&size), sizeof(uint32_t))) {
+
+            //         if (full()) {
+            //             break;
+            //         }
+
+            //         if (!size) {
+            //             throw std::runtime_error("dictionary entry must not be empty");
+            //         }
+
+            //         if (size > entry_size()) {
+            //             std::cerr << "found an entry whose size is larger than  the maximum allowed" << std::endl;
+            //             throw std::runtime_error("aborting");
+            //         }
+
+            //         // logger() << i << "-entry size " << size << std::endl;
+
+            //         uint32_t begin = m_pos;
+            //         uint32_t end = begin + entry_size();
+            //         m_table[end] = size;
+            //         for (uint32_t i = 0; i < size; ++i) {
+            //             uint32_t x;
+            //             dictionary_file.read(reinterpret_cast<char*>(&x), sizeof(uint32_t));
+            //             m_table[begin + i] = x;
+            //         }
+
+            //         m_pos += entry_size() + 1;
+            //         ++m_size;
+            //     }
+
+            //     assert(m_size <= capacity);
+            // }
 
             bool full() {
                 return m_size == m_capacity;
@@ -163,11 +229,11 @@ namespace ds2i {
 
 
             // 1.78 ns x int
-            uint32_t begin = i * 17;
-            uint32_t end = begin + 16;
-            uint32_t size = m_table[end];
-            uint32_t const* ptr = &m_table[begin];
-            memcpy(out, ptr, 64);
+            // uint32_t begin = i * 17;
+            // uint32_t end = begin + 16;
+            // uint32_t size = m_table[end];
+            // uint32_t const* ptr = &m_table[begin];
+            // memcpy(out, ptr, 64);
 
             // // 1.83 ns x int
             // uint32_t begin = i * (m_entry_size + 1); // i * 17
@@ -182,6 +248,12 @@ namespace ds2i {
             // uint32_t size = m_table[end];
             // uint32_t const* ptr = &m_table[begin];
             // std::copy(ptr, ptr + 16, out);
+
+            uint32_t begin = i * 9;
+            uint32_t end = begin + 8;
+            uint32_t size = m_table[end];
+            uint32_t const* ptr = &m_table[begin];
+            memcpy(out, ptr, 32);
 
             return size;
         }

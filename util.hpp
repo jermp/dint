@@ -32,6 +32,10 @@ namespace ds2i {
 
     const static uint64_t MIN_SIZE = 4096;
 
+    bool is_power_of_two(uint64_t x) {
+        return (x & (x - 1)) == 0;
+    }
+
     inline uint64_t ceil_log2(const uint64_t x) {
         assert(x > 0);
         return (x > 1) ? succinct::broadword::msb(x - 1) + 1 : 0;

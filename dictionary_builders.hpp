@@ -15,8 +15,7 @@ namespace ds2i {
         }
     }
 
-    template<uint32_t num_entries = 65536,
-             uint32_t entry_width = 16>
+    template<uint32_t num_entries, uint32_t entry_width>
     struct dint_dictionary_builder
     {
         // Giulio: we can exploit the property that the distribution
@@ -147,7 +146,7 @@ namespace ds2i {
                     double cost_saving = bpi(best_block.size(), best_block_freq, total_integers);
                     final_bpi -= cost_saving;
 
-                    if (added_entries % 200 == 0) {
+                    if (added_entries % 500 == 0) {
                         std::cout << "added_entries " << added_entries << "/65536" << std::endl;
                         std::cout << "p = " << p << "/" << percentages[i] << std::endl;
                         // std::cout << "saving " << cost_saving << " bits x int" << std::endl;

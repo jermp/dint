@@ -7,12 +7,6 @@
 
 namespace ds2i {
 
-    namespace util {
-        bool is_power_of_two(uint64_t x) {
-            return (x & (x - 1)) == 0;
-        }
-    }
-
     struct blocks_statistics {
 
         // <frequency of block, block>

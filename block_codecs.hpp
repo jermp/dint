@@ -480,8 +480,8 @@ namespace ds2i {
                     {
                         table_index = builder->lookup(begin, sub_block_size);
                         if (table_index != dictionary::invalid_index) {
-                            out.insert(out.end(), table_index &  MASK);
-                            out.insert(out.end(), table_index & ~MASK);
+                            out.insert(out.end(),  table_index &  MASK);
+                            out.insert(out.end(), (table_index & ~MASK) >> 8);
                             begin += sub_block_size; // can be >= end
                             break;
                         }
@@ -510,7 +510,7 @@ namespace ds2i {
 
             for (size_t i = 0; i < n; ++ptr)
             {
-                uint16_t table_index = *ptr;
+                uint32_t table_index = *ptr;
                 uint32_t decoded_ints = 1;
 
                 // if (DS2I_UNLIKELY(table_index == 0)) {
@@ -525,17 +525,49 @@ namespace ds2i {
                 //     }
                 // }
 
-                if (DS2I_LIKELY(table_index != 0)) {
-                    if (DS2I_LIKELY(table_index < /*dictionary::reserved*/ 6)) {
-                        decoded_ints = 256 >> (table_index - 1); // runs of 256, 128, 64, 32 or 16 ints
-                    } else {
-                        decoded_ints = dict->copy(table_index, out);
-                    }
+                // if (DS2I_LIKELY(table_index != 0)) {
+                //     if (DS2I_LIKELY(table_index < /*dictionary::reserved*/ 6)) {
+                //         static const uint32_t run_lengths[6] = {0, // unused
+                //                                                 256, 128, 64, 32, 16};
+                //         decoded_ints = run_lengths[table_index]; // runs of 256, 128, 64, 32 or 16 ints
+                //     } else {
+                //         decoded_ints = dict->copy(table_index, out);
+                //     }
+                // } else {
+                //     ++ptr;
+                //     *out = *(reinterpret_cast<uint32_t const*>(ptr));
+                //     // memcpy(out, ptr, 4);
+                //     ++ptr;
+                // }
+
+                if (DS2I_LIKELY(table_index > 5)) {
+                    // std::cout << "0" << "\n";
+                    decoded_ints = dict->copy(table_index, out);
                 } else {
-                    ++ptr;
-                    memcpy(out, ptr, 4);
-                    ++ptr;
+                    // std::cout << "1" << "\n";
+                    static const uint32_t run_lengths[6] = {0, // unused
+                                                            256, 128, 64, 32, 16};
+                    decoded_ints = run_lengths[table_index]; // runs of 256, 128, 64, 32 or 16 ints
+                    if (DS2I_UNLIKELY(decoded_ints == 0)) {
+                        ++ptr;
+                        *out = *(reinterpret_cast<uint32_t const*>(ptr));
+                        ++ptr;
+                    }
                 }
+
+                // if (DS2I_LIKELY(table_index != 0)) {
+                //     if (DS2I_LIKELY(table_index < /*dictionary::reserved*/ 6)) {
+                //         static const uint32_t run_lengths[6] = {0, // unused
+                //                                                 256, 128, 64, 32, 16};
+                //         decoded_ints = run_lengths[table_index]; // runs of 256, 128, 64, 32 or 16 ints
+                //     } else {
+                //         decoded_ints = dict->copy(table_index, out);
+                //     }
+                // } else {
+                //     ++ptr;
+                //     *out = *(reinterpret_cast<uint32_t const*>(ptr));
+                //     ++ptr;
+                // }
 
                 // std::cout << decoded_ints << "\n";
 

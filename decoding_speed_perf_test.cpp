@@ -13,8 +13,8 @@ void perftest(IndexType& index, std::string const& type)
 {
     std::string freqs_log = with_freqs ? "+freq()" : "";
     {
-        size_t min_length =  500000;
-        size_t max_length = 5000000;
+        size_t min_length =   200000;
+        size_t max_length = 26000000;
         size_t max_number_of_lists = 5000;
         // size_t min_length =  4096;
         // size_t max_length = 10000;

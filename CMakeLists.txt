@@ -50,10 +50,30 @@ include_directories(${DS2I_SOURCE_DIR})
 add_subdirectory(succinct EXCLUDE_FROM_ALL)
 add_subdirectory(FastPFor EXCLUDE_FROM_ALL)
 
+# Add streamvbyte
+include_directories(streamvbyte/include)
+add_library(streamvbyte STATIC streamvbyte/src/streamvbyte.c
+                               streamvbyte/src/streamvbytedelta.c
+)
+
+# Add maskedvbyte
+include_directories(MaskedVByte/include)
+add_library(MaskedVByte STATIC MaskedVByte/src/varintdecode.c
+                               MaskedVByte/src/varintencode.c
+)
+
 add_executable(create_freq_index create_freq_index.cpp)
 target_link_libraries(create_freq_index
   ${Boost_LIBRARIES}
   FastPFor_lib
+  )
+
+add_executable(encode encode.cpp)
+target_link_libraries(encode
+  ${Boost_LIBRARIES}
+  FastPFor
+  streamvbyte
+  MaskedVByte
   )
 
 add_executable(optimal_hybrid_index optimal_hybrid_index.cpp)
