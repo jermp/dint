@@ -350,9 +350,9 @@ namespace ds2i {
             // (4) add them to the dict builder
             size_t picked_blocks = 0;
 
-            std::vector<uint64_t> entry_len_dist(max_entry_width+1);
-            std::vector<uint64_t> entry_cover_dist(max_entry_width+1);
-            std::vector<uint64_t> entry_freq_dist(max_entry_width+1);
+            std::vector<uint64_t> entry_len_dist(entry_width+1);
+            std::vector<uint64_t> entry_cover_dist(entry_width+1);
+            std::vector<uint64_t> entry_freq_dist(entry_width+1);
 
             size_t total_added = 0;
             size_t total_freq = 0;
@@ -385,21 +385,21 @@ namespace ds2i {
                 picked_blocks++;
             }
 
-            for(size_t i=0;i<=max_entry_width;i++) {
+            for(size_t i=0;i<=entry_width;i++) {
                 if(entry_len_dist[i] != 0) {
                     std::cout << "len_dist," << i << "," << entry_len_dist[i] << "," 
                         << double(entry_len_dist[i])/double(total_added);
                 }
             }
 
-            for(size_t i=0;i<=max_entry_width;i++) {
+            for(size_t i=0;i<=entry_width;i++) {
                 if(entry_len_dist[i] != 0) {
                     std::cout << "freq_dist," << i << "," << entry_freq_dist[i] << "," 
                         << double(entry_freq_dist[i])/double(total_freq);
                 }
             }
 
-            for(size_t i=0;i<=max_entry_width;i++) {
+            for(size_t i=0;i<=entry_width;i++) {
                 if(entry_len_dist[i] != 0) {
                     std::cout << "cover_dist," << i << "," << entry_cover_dist[i] << "," 
                         << double(entry_cover_dist[i])/double(total_coverage);
