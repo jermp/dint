@@ -73,7 +73,6 @@ struct block_enc_stats {
         block_size.push_back(input_size);
         codes_per_block.push_back(num_codes);
         for(size_t i=0;i<num_codes;i++) {
-            std::cout << "code[" << i << "] = " << codes[i] << std::endl;
             dict_usage[codes[i]]++;
             if(codes[i] < dict.special_cases()) {
                 switch(codes[i]) {
@@ -114,7 +113,7 @@ std::ostream &operator<<(std::ostream &os, block_enc_stats const &stats) {
                 << "\tnum_codes = " << stats.dict_usage_lens[i]
                 << "\tnum_postings = " << stats.dict_usage_lens[i] * encoded_nums
                 << "\tpercent of codes = " << double(stats.dict_usage_lens[i]) / double(stats.total_codes) * 100
-                << "\tpercent of postings = " << double(stats.dict_usage_lens[i]*encoded_nums) / double(stats.postings_encoded) * 100;
+                << "\tpercent of postings = " << double(stats.dict_usage_lens[i]*encoded_nums) / double(stats.postings_encoded) * 100 << "\n";
         }
     }
     os << "CODE WORD USAGE:\n";
@@ -125,7 +124,7 @@ std::ostream &operator<<(std::ostream &os, block_enc_stats const &stats) {
             << "\tcode_len = " << stats.dict_entry_lens[i]
             << "\tfreq = " << stats.dict_usage[i]
             << "\tpercent of codes = " << double(stats.dict_usage[i]) / double(stats.total_codes) * 100
-            << "\tpercent of postings = " << double(stats.dict_usage[i]*encoded_nums) / double(stats.postings_encoded) * 100;
+            << "\tpercent of postings = " << double(stats.dict_usage[i]*encoded_nums) / double(stats.postings_encoded) * 100 << "\n";
     }
 
     auto codes_per_block = stats.codes_per_block;
@@ -139,7 +138,7 @@ std::ostream &operator<<(std::ostream &os, block_enc_stats const &stats) {
             os  << "\tnum_codes_in_block = " << cur
                 << "\tbpi = " << double(cur*16) / double(stats.block_size[0])
                 << "\tfreq = " << freq
-                << "\tpercent of blocks = " << double(freq) / double(stats.num_blocks) * 100;
+                << "\tpercent of blocks = " << double(freq) / double(stats.num_blocks) * 100 << "\n";
             freq = 1;
         } else {
             freq++;
