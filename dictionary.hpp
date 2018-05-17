@@ -1,5 +1,7 @@
 #pragma once
 
+#include <unordered_map>
+
 #include <succinct/mappable_vector.hpp>
 #include <fstream>
 
@@ -19,6 +21,7 @@ namespace ds2i {
             builder()
                 : m_pos(0)
                 , m_size(reserved)
+                , m_reserved(reserved)
                 , m_capacity(0)
                 , m_entry_size(0)
                 , m_table(0, 0)
@@ -108,9 +111,20 @@ namespace ds2i {
                 m_map.swap(other.m_map);
             }
 
+            uint32_t size(uint32_t i) const {
+                uint32_t begin = i * (m_entry_size + 1);
+                uint32_t end = begin + m_entry_size;
+                return m_table[end];
+            }
+
+            uint32_t special_cases() const {
+                return m_reserved;
+            }
+
         private:
             uint32_t m_pos;
             uint32_t m_size;
+            uint32_t m_reserved;
             uint32_t m_capacity;
             uint32_t m_entry_size;
             std::vector<uint32_t> m_table;
@@ -123,11 +137,6 @@ namespace ds2i {
                 return &m_table[begin];
             }
 
-            uint32_t size(uint32_t i) const {
-                uint32_t begin = i * (m_entry_size + 1);
-                uint32_t end = begin + m_entry_size;
-                return m_table[end];
-            }
         };
 
         dictionary()

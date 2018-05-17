@@ -437,13 +437,10 @@ namespace ds2i {
         static const uint64_t block_size = constants::block_size;
         static const uint64_t overflow = 512;
 
-        static void encode(dictionary::builder const* builder,
-                           uint32_t const *in,
-                           uint32_t sum_of_values, size_t n,
-                           std::vector<uint8_t>& out)
+        static size_t encode(dictionary::builder& builder,
+                           uint32_t const *in,size_t n,uint32_t* out)
         {
-            (void) sum_of_values;
-            const static uint32_t MASK = (uint32_t(1) << 8) - 1; // select 1 byte
+            size_t written_codes = 0;
 
             uint32_t const* begin = in;
             uint32_t const* end = begin + n;
@@ -471,17 +468,16 @@ namespace ds2i {
                 }
 
                 if (table_index < dictionary::reserved) {
-                    out.insert(out.end(), table_index);
+                    out[written_codes++] = table_index;
                     begin += std::min<uint64_t>(run_size, end - begin);
                 } else {
-                    for (uint32_t sub_block_size  = builder->entry_size();
+                    for (uint32_t sub_block_size  = builder.entry_size();
                                   sub_block_size != 0;
                                   sub_block_size /= 2)
                     {
-                        table_index = builder->lookup(begin, sub_block_size);
+                        table_index = builder.lookup(begin, sub_block_size);
                         if (table_index != dictionary::invalid_index) {
-                            out.insert(out.end(), table_index &  MASK);
-                            out.insert(out.end(), table_index & ~MASK);
+                            out[written_codes++] = table_index;
                             begin += sub_block_size; // can be >= end
                             break;
                         }
@@ -490,14 +486,12 @@ namespace ds2i {
                     if (table_index == dictionary::invalid_index) {
                         // pattern was not found, thus we have an exception
                         // and leave it uncompressed
-                        out.insert(out.end(), 0); // special value
-                        uint32_t exception = *begin;
-                        auto ptr = reinterpret_cast<uint8_t const*>(&exception);
-                        out.insert(out.end(), ptr, ptr + 4);
+                        out[written_codes++] = table_index;
                         begin += 1;
                     }
                 }
             }
+            return written_codes;
         }
 
         static uint8_t const* decode(dictionary const* dict,

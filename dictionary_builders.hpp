@@ -8,18 +8,12 @@
 #include "hash_utils.hpp"
 
 #include <unordered_map>
+#include <queue>
 
 enum class dict_type: char
 {
      docs='d',
      freqs='f',
-};
-
-enum class target_len_seq : char
-{
-     geometric='g',
-     linear='l',
-     fibonacci='f',
 };
 
 // namespace ds2i {
@@ -219,87 +213,6 @@ enum class target_len_seq : char
 
 namespace ds2i {
 
-    template<uint32_t max_entry_width>
-    struct block_stats_full_stride_geom {
-
-        template<uint32_t width>
-        struct block_info {
-            size_t freq;
-            size_t coverage;
-            size_t entry_len;
-            uint32_t entry[width];
-        };
-
-        block_stats_full_stride_geom() {
-            block_map.max_load_factor(0.1);
-        }
-
-        using block_type = block_info<max_entry_width>;
-
-        template<class t_list>
-        void process_list(t_list& list,dict_type type) {
-            thread_local std::vector<uint32_t> buf(max_entry_width);
-            size_t n = list.docs.size();
-            size_t full_strides = n / max_entry_width;
-
-            auto lst_itr = list.docs.begin();
-            if(type != dict_type::docs) lst_itr = list.freqs.begin();
-
-            uint32_t prev = 0;
-            for(size_t i=0;i<full_strides;i++) {
-                // fill buf
-                for(size_t j=0;j<max_entry_width;j++) {
-                    buf[j] = *lst_itr - prev;
-                    if(type == dict_type::docs) prev = *lst_itr;
-                    ++lst_itr;
-                }
-
-                // compute hashes (modified from murmur! hopefully still good...)
-                const uint32_t m = 0x5bd1e995;
-                const int r = 24;
-                uint32_t hash = 0xDEADBEEF;
-                size_t cur_len = 1;
-                size_t cur_step = 0;
-                for(size_t j=1;j<=max_entry_width;j++) {
-                    uint32_t key = buf[j-1];
-                    key *= m;
-                    key ^= key >> r;
-                    key *= m;
-                    hash *= m;
-                    hash ^= key;
-                    if(j == cur_len) {
-                        auto itr = block_map.find(hash);
-                        if(itr != block_map.end()) {
-                            auto block_idx = itr->second;
-                            blocks[block_idx].freq += (max_entry_width >> cur_step);
-                            blocks[block_idx].coverage = blocks[block_idx].freq * j;
-                        } else {
-                            // create a new block
-                            block_type new_block;
-                            new_block.freq = (max_entry_width >> cur_step);
-                            new_block.coverage = new_block.freq * j;
-                            new_block.entry_len = j;
-                            for(size_t k=0;k<j;k++) {
-                                new_block.entry[k] = buf[k];
-                            }
-                            block_map[hash] = blocks.size();
-                            blocks.emplace_back(std::move(new_block));
-                        }
-                        cur_len *= 2;
-                        cur_step++;
-                    }
-                }
-            }
-        }
-
-        std::vector<uint32_t> valid_target_lens;
-        std::unordered_map<uint32_t,uint64_t> block_map;
-        std::vector<block_type> blocks;
-    };
-}
-
-namespace ds2i {
-
     template<typename block_stats_type,
              uint32_t num_entries = 65536,
              uint32_t entry_width = 16
@@ -308,22 +221,9 @@ namespace ds2i {
     {
         static const size_t MIN_SIZE_THRES = 4096;
 
-        template<typename InputCollection>
-        static void build(dictionary::builder& builder,InputCollection const& input,enum dict_type type)
+        template<class block_stat_type>
+        static std::vector<typename block_stats_type::block_type> build(dictionary::builder& builder,block_stat_type& block_stats)
         {
-            // (1) create statistics
-            block_stats_type stats;
-            {
-                boost::progress_timer timer;
-                boost::progress_display progress(input.num_u32());
-                for (auto const& plist: input) {
-                    size_t n = plist.docs.size();
-                    progress += n+1;
-                    if (n < MIN_SIZE_THRES) continue;
-                    stats.process_list(plist,type);
-                }
-            }
-
             // (2) init dictionary
             builder.init(num_entries, entry_width);
 
@@ -333,8 +233,8 @@ namespace ds2i {
             std::priority_queue<btype,std::vector<btype>,decltype(coverage_cmp)> pq(coverage_cmp);
             {
                 boost::progress_timer timer;
-                boost::progress_display progress(stats.blocks.size());
-                for(const auto& block : stats.blocks) {
+                boost::progress_display progress(block_stats.blocks.size());
+                for(const auto& block : block_stats.blocks) {
                     ++progress;
                     if(pq.size() < num_entries-1) {
                         pq.push(block);
@@ -347,78 +247,14 @@ namespace ds2i {
                 }
             }
 
-            // (4) add them to the dict builder
-            size_t picked_blocks = 0;
-
-            std::vector<uint64_t> entry_len_dist(entry_width+1);
-            std::vector<uint64_t> entry_cover_dist(entry_width+1);
-            std::vector<uint64_t> entry_freq_dist(entry_width+1);
-
-            size_t total_added = 0;
-            size_t total_freq = 0;
-            size_t total_coverage = 0;
             std::vector<btype> final_blocks;
             while(!pq.empty()) {
                 auto block = pq.top();
-
-                total_added++;
-                total_freq += block.freq;
-                total_coverage += block.coverage;
-
-                entry_len_dist[block.entry_len]++;
-                entry_freq_dist[block.entry_len] += block.freq;
-                entry_cover_dist[block.entry_len] += block.coverage;
-
-                std::cout << "PICKING BLOCK " << picked_blocks 
-                         <<" FREQ = " << block.freq
-                         << " COV = " << block.coverage
-                         << " ELEN = " << block.entry_len
-                         << " ENTRY = [";
-                for(size_t i=0;i<block.entry_len-1;i++) {
-                    std::cout << block.entry[i] << ",";
-                }
-                std::cout << block.entry[block.entry_len-1] << "]" << std::endl;
-
                 builder.append(block.entry,block.entry_len);
                 final_blocks.push_back(block);
                 pq.pop();
-                picked_blocks++;
             }
-
-            for(size_t i=0;i<=entry_width;i++) {
-                if(entry_len_dist[i] != 0) {
-                    std::cout << "len_dist," << i << "," << entry_len_dist[i] << "," 
-                        << double(entry_len_dist[i])/double(total_added);
-                }
-            }
-
-            for(size_t i=0;i<=entry_width;i++) {
-                if(entry_len_dist[i] != 0) {
-                    std::cout << "freq_dist," << i << "," << entry_freq_dist[i] << "," 
-                        << double(entry_freq_dist[i])/double(total_freq);
-                }
-            }
-
-            for(size_t i=0;i<=entry_width;i++) {
-                if(entry_len_dist[i] != 0) {
-                    std::cout << "cover_dist," << i << "," << entry_cover_dist[i] << "," 
-                        << double(entry_cover_dist[i])/double(total_coverage);
-                }
-            }
-
-            for(size_t i=0;i<20;i++) {
-                std::cout << "block,"<<i<<"," << final_blocks[i].entry_len << ","
-                    << final_blocks[i].entry_len << ","
-                    << final_blocks[i].freq << ","
-                    << double(final_blocks[i].freq)/double(total_freq) << ","
-                    << final_blocks[i].coverage << ","
-                    << double(final_blocks[i].freq)/double(total_coverage) << ",[";
-                for(size_t j=0;j<final_blocks[i].entry_len-1;j++) {
-                    std::cout << final_blocks[i].entry[j] << ",";
-                }
-                std::cout << final_blocks[i].entry[final_blocks[i].entry_len-1] 
-                        << "]" << std::endl;
-            }
+            return final_blocks;
         }
 
 
