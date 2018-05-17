@@ -183,7 +183,12 @@ encoding_stats encode_lists(ds2i::dictionary::builder& dict,std::string input_ba
     boost::progress_display progress(input.data_size());
     std::vector<uint32_t> buf(block_size);
     std::vector<uint32_t> output(block_size*3);
+    size_t first = true;
     for (auto const& list: input) {
+        if(type == dict_type::docs && first) {
+            first = false;
+            continue; // skip first doc list as it contains #docs in col
+        }
         size_t n = list.size();
         auto itr = list.begin();
         uint32_t prev = 0;
