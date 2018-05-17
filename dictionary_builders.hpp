@@ -230,6 +230,10 @@ namespace ds2i {
             uint32_t entry[width];
         };
 
+        block_stats_full_stride_geom() {
+            block_map.max_load_factor(0.1);
+        }
+
         using block_type = block_info<max_entry_width>;
 
         template<class t_list>
@@ -308,6 +312,7 @@ namespace ds2i {
             // (1) create statistics
             block_stats_type stats;
             {
+                boost::progress_timer timer;
                 boost::progress_display progress(input.num_u32());
                 for (auto const& plist: input) {
                     size_t n = plist.docs.size();
@@ -325,6 +330,7 @@ namespace ds2i {
             auto coverage_cmp = [](const btype& left,const btype& right) { return left.coverage < right.coverage;};
             std::priority_queue<btype,std::vector<btype>,decltype(coverage_cmp)> pq(coverage_cmp);
             {
+                boost::progress_timer timer;
                 boost::progress_display progress(stats.blocks.size());
                 for(const auto& block : stats.blocks) {
                     ++progress;
