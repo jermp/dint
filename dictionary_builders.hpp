@@ -234,7 +234,6 @@ namespace ds2i {
             auto coverage_cmp = [](const btype& left,const btype& right) { return left.coverage < right.coverage;};
             std::priority_queue<btype,std::vector<btype>,decltype(coverage_cmp)> pq(coverage_cmp);
             {
-                boost::progress_timer timer;
                 boost::progress_display progress(block_stats.blocks.size());
                 for(const auto& block : block_stats.blocks) {
                     ++progress;

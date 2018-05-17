@@ -44,10 +44,10 @@ namespace ds2i {
         }
 
         block_stats_full_stride_geom(std::string file_name) {
-            logger() << "reading block stats" << std::endl;
             std::ifstream in(file_name.c_str());
             uint64_t num_blocks;
             in.read(reinterpret_cast<char*>(&num_blocks), sizeof(uint64_t));
+            logger() << "reading block stats (num_blocks = " << num_blocks << ")" << std::endl;
             blocks.resize(num_blocks);
             auto block_data = reinterpret_cast<char*>(blocks.data());
             in.read(block_data, num_blocks * sizeof(block_type));
