@@ -172,6 +172,7 @@ std::ostream &operator<<(std::ostream &os, encoding_stats const &stats) {
 
 encoding_stats encode_lists(ds2i::dictionary::builder& dict,std::string input_basename,dict_type type,size_t block_size)
 {
+    logger() << "encoding lists" << std::endl;
     encoding_stats stats(dict.capacity());
 
     std::string file_name = input_basename + ".docs";
@@ -249,6 +250,8 @@ int main(int argc, const char** argv) {
         auto dict = build_dict<block_stat_type,dict_constructor_type>(block_stats);
 
         auto enc_stats = encode_lists(dict,input_basename,dict_type::docs,encoding_block_size);
+
+        std::cout << enc_stats << std::endl;
     }
 
 

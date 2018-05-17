@@ -31,6 +31,7 @@ namespace ds2i {
         }
 
         block_stats_full_stride_geom(binary_collection& input,bool compute_gaps) {
+            logger() << "creating block stats" << std::endl;
             std::unordered_map<uint32_t,uint64_t> block_map;
             block_map.max_load_factor(0.1);
             boost::progress_display progress(input.data_size());
