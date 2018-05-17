@@ -7,9 +7,9 @@
 [submodule "stxxl"]
 	path = stxxl
 	url = https://github.com/stxxl/stxxl.git
-[submodule "external/streamvbyte"]
-    path = external/streamvbyte
-    url = https://github.com/lemire/streamvbyte.git
-[submodule "external/MaskedVByte"]
-    path = external/MaskedVByte
-    url = https://github.com/lemire/MaskedVByte.git
+[submodule "streamvbyte"]
+	path = streamvbyte
+	url = https://github.com/lemire/streamvbyte.git
+[submodule "MaskedVByte"]
+	path = MaskedVByte
+	url = https://github.com/lemire/MaskedVByte.git
