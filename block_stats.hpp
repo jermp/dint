@@ -21,7 +21,8 @@ namespace ds2i {
         struct block_info {
             size_t freq;
             size_t coverage;
-            size_t entry_len;
+            size_t savings;
+            uint16_t entry_len;
             uint32_t entry[width];
         };
 

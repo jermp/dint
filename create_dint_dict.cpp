@@ -267,7 +267,7 @@ int main(int argc, const char** argv) {
     const uint32_t max_entry_width = 16;
     const uint32_t dict_entries = 65536;
     using block_stat_type = ds2i::block_stats_full_stride_geom<max_entry_width>;
-    using dict_constructor_type = ds2i::dint_dict_builder_smc<block_stat_type,dict_entries, max_entry_width>;
+    using dict_constructor_type = ds2i::dint_dict_builder_smc3l<block_stat_type,dict_entries, max_entry_width>;
 
     // first docs
     {

@@ -217,12 +217,12 @@ namespace ds2i {
              uint32_t num_entries = 65536,
              uint32_t entry_width = 16
              >
-    struct dint_dict_builder_smc
+    struct dint_dict_builder_sbc
     {
         static const size_t MIN_SIZE_THRES = 4096;
 
         template<class block_stat_type>
-        static std::vector<typename block_stats_type::block_type> build(dictionary::builder& builder,block_stat_type& block_stats)
+        static void build(dictionary::builder& builder,block_stat_type& block_stats)
         {
             // (1) init dictionary
             logger() << "(1) init dictionary" << std::endl;
@@ -249,14 +249,107 @@ namespace ds2i {
             }
 
             logger() << "(3) add blocks to dict" << std::endl;
-            std::vector<btype> final_blocks;
             while(!pq.empty()) {
                 auto block = pq.top();
                 builder.append(block.entry,block.entry_len,block.freq,block.coverage);
-                final_blocks.push_back(block);
                 pq.pop();
             }
-            return final_blocks;
+        }
+
+
+    };
+
+    template<typename block_stats_type,
+             uint32_t num_entries = 65536,
+             uint32_t entry_width = 16
+             >
+    struct dint_dict_builder_smc
+    {
+        static const size_t MIN_SIZE_THRES = 4096;
+
+        template<class block_stat_type>
+        static void build(dictionary::builder& builder,block_stat_type& block_stats)
+        {
+            // (1) init dictionary
+            logger() << "(1) init dictionary" << std::endl;
+            builder.init(num_entries, entry_width);
+
+            // (2) find the top-K most covering blocks
+            logger() << "(2) find the top-K most covering blocks" << std::endl;
+            using btype = typename block_stats_type::block_type;
+            auto coverage_cmp = [](const btype& left,const btype& right) { return left.coverage < right.coverage;};
+            std::priority_queue<btype,std::vector<btype>,decltype(coverage_cmp)> pq(coverage_cmp);
+            {
+                boost::progress_display progress(block_stats.blocks.size());
+                for(const auto& block : block_stats.blocks) {
+                    ++progress;
+                    if(pq.size() < num_entries-1) {
+                        pq.push(block);
+                    } else {
+                        if( pq.top().coverage < block.coverage ) {
+                            pq.pop();
+                            pq.push(block);
+                        }
+                    }
+                }
+            }
+
+            logger() << "(3) add blocks to dict" << std::endl;
+            while(!pq.empty()) {
+                auto block = pq.top();
+                builder.append(block.entry,block.entry_len,block.freq,block.coverage);
+                pq.pop();
+            }
+        }
+
+
+    };
+
+
+
+    template<typename block_stats_type,
+             uint32_t num_entries = 65536,
+             uint32_t entry_width = 16
+             >
+    struct dint_dict_builder_smc3l
+    {
+        static const size_t MIN_SIZE_THRES = 4096;
+
+        template<class block_stat_type>
+        static void build(dictionary::builder& builder,block_stat_type& block_stats)
+        {
+            // (1) init dictionary
+            logger() << "(1) init dictionary" << std::endl;
+            builder.init(num_entries, entry_width);
+
+            // (2) find the top-K most covering blocks
+            logger() << "(2) find the top-K most covering blocks" << std::endl;
+            using btype = typename block_stats_type::block_type;
+            auto coverage_cmp = [](const btype& left,const btype& right) { 
+                return (left.freq * (3*left.entry_len-1)) < (right.freq * (3*right.entry_len-1));
+            };
+            std::priority_queue<btype,std::vector<btype>,decltype(coverage_cmp)> pq(coverage_cmp);
+            {
+                boost::progress_display progress(block_stats.blocks.size());
+                for(const auto& block : block_stats.blocks) {
+                    ++progress;
+                    if(pq.size() < num_entries-1) {
+                        pq.push(block);
+                    } else {
+                        if( coverage_cmp(pq.top(),block) ) {
+                            pq.pop();
+                            pq.push(block);
+                        }
+                    }
+                }
+            }
+
+            logger() << "(3) add blocks to dict" << std::endl;
+            while(!pq.empty()) {
+                auto block = pq.top();
+                builder.append(block.entry,block.entry_len,block.freq,block.coverage);
+                pq.pop();
+            }
         }
 
 
