@@ -60,6 +60,8 @@ struct block_enc_stats {
         for(size_t i=0;i<capacity;i++) {
             dict_entry_freqs.push_back(dict.freq(i));
             dict_entry_metric.push_back(dict.metric(i));
+            std::cout << "freqs " << dict_entry_freqs.back() 
+                      << "\tmetric " << dict_entry_freqs.back() << std::endl;
         }
         dict_usage.resize(capacity);
         dict_entry_lens.resize(capacity);
@@ -183,9 +185,9 @@ struct encoding_stats {
 };
 
 std::ostream &operator<<(std::ostream &os, encoding_stats const &stats) {
-    return os << "small_lists: \n" << stats.small_lists << "\n"
-              << "full_blocks: \n" << stats.full_blocks << "\n"
-              << "nonfull_blocks: \n" << stats.nonfull_blocks << "\n";
+    return os //<< "small_lists: \n" << stats.small_lists << "\n"
+              << "full_blocks: \n" << stats.full_blocks << "\n";
+              //<< "nonfull_blocks: \n" << stats.nonfull_blocks << "\n";
 }
 
 
