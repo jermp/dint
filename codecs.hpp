@@ -535,7 +535,8 @@ namespace ds2i {
                 }
 
                 if (index < dictionary::reserved) {
-                    out.insert(out.end(), index);
+                    auto ptr = reinterpret_cast<uint8_t const*>(&index);
+                    out.insert(out.end(), ptr, ptr + 2);
                     begin += std::min<uint64_t>(run_size, end - begin);
                 } else {
                     for (uint32_t sub_block_size  = builder->entry_size();
@@ -543,7 +544,8 @@ namespace ds2i {
                                   sub_block_size /= 2)
                     {
 
-                        index = builder->lookup(begin, std::min<uint32_t>(sub_block_size, end - begin));
+                        uint32_t len = std::min<uint32_t>(sub_block_size, end - begin);
+                        index = builder->lookup(begin, len);
                         if (index != dictionary::invalid_index) {
 
                             // out.insert(out.end(),  index &  MASK);
@@ -551,8 +553,7 @@ namespace ds2i {
 
                             auto ptr = reinterpret_cast<uint8_t const*>(&index);
                             out.insert(out.end(), ptr, ptr + 2);
-
-                            begin += sub_block_size; // can be > end
+                            begin += len;
                             break;
                         }
                     }
@@ -560,7 +561,8 @@ namespace ds2i {
                     if (index == dictionary::invalid_index) {
                         // pattern was not found, thus we have an exception
                         // and leave it uncompressed
-                        out.insert(out.end(), 0); // special value
+                        out.insert(out.end(), 0);
+                        out.insert(out.end(), 0);
                         uint32_t exception = *begin;
                         auto ptr = reinterpret_cast<uint8_t const*>(&exception);
                         out.insert(out.end(), ptr, ptr + 4);
@@ -577,7 +579,7 @@ namespace ds2i {
         {
             uint16_t const* ptr = reinterpret_cast<uint16_t const*>(in);
 
-            uint32_t cw = 0;
+            // uint32_t cw = 0;
 
             for (size_t i = 0; i < n; ++ptr)
             {
@@ -623,10 +625,10 @@ namespace ds2i {
                     decoded_ints = run_lengths[index]; // runs of 256, 128, 64, 32 or 16 ints
                     if (DS2I_UNLIKELY(decoded_ints == 1)) {
                         ++ptr;
-                        ++cw;
+                        // ++cw;
                         *out = *(reinterpret_cast<uint32_t const*>(ptr));
                         ++ptr;
-                        ++cw;
+                        // ++cw;
                     }
                 }
 
@@ -646,14 +648,14 @@ namespace ds2i {
 
                 out += decoded_ints;
                 i += decoded_ints;
-                ++cw;
+                // ++cw;
 
-                std::cout << i << "; " << cw << std::endl;
+                // std::cout << i << "; " << cw << std::endl;
             }
 
             // std::cout << "num of decoded bytes " << (reinterpret_cast<uint8_t const*>(ptr) - in) << std::endl;
 
-            assert(reinterpret_cast<uint8_t const*>(ptr) == in + 2 * cw);
+            // assert(reinterpret_cast<uint8_t const*>(ptr) == in + 2 * cw);
 
             return reinterpret_cast<uint8_t const*>(ptr);
         }

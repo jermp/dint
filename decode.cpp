@@ -61,19 +61,19 @@ void decode(char const* encoded_data_filename,
     uint64_t total_decoded_ints = 0;
 
     auto start = clock_type::now();
-    while (begin < end)
+    while (begin != end)
     {
         uint32_t n, universe;
         begin = read_header(begin, &n, &universe);
 
-        logger() << "n = " << n << "; universe = " << universe << std::endl;
+        // logger() << "n = " << n << "; universe = " << universe << std::endl;
 
         begin = Decoder::decode(begin,
                                 decoded.data(),
                                 universe, n, &dict);
         total_decoded_ints += n;
 
-        logger() << "decoded " << total_decoded_ints << " ints" << std::endl;
+        // logger() << "decoded " << total_decoded_ints << " ints" << std::endl;
 
         // std::exit(1);
         // for (uint64_t i = 0; i < n; ++i) {
