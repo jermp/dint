@@ -33,6 +33,24 @@ namespace ds2i {
                 m_capacity = capacity;
                 m_entry_size = entry_size;
                 m_table.resize(capacity * (entry_size + 1), 0);
+                m_freq.resize(capacity);
+                m_metric.resize(capacity);
+
+                m_freq.push_back(0);    // exceptions
+                m_metric.push_back(0);  // exceptions
+
+                m_freq.push_back(0);    // 256
+                m_metric.push_back(0);  // 256
+
+                m_freq.push_back(0);    // 128
+                m_metric.push_back(0);  // 128
+
+                m_freq.push_back(0);    // 64
+                m_metric.push_back(0);  // 64
+
+                m_freq.push_back(0);    // 32
+                m_metric.push_back(0);  // 32
+
             }
 
             builder(uint32_t capacity, uint32_t entry_size) {
@@ -43,7 +61,7 @@ namespace ds2i {
                 return m_size == m_capacity;
             }
 
-            bool append(uint32_t const* entry, uint32_t entry_size) {
+            bool append(uint32_t const* entry, uint32_t entry_size,uint64_t freq,uint64_t metric) {
                 if (full()) {
                     return false;
                 }
@@ -51,6 +69,8 @@ namespace ds2i {
                 std::copy(entry, entry + entry_size, &m_table[m_pos]);
                 m_pos += m_entry_size + 1;
                 m_table[m_pos - 1] = entry_size;
+                m_freq.push_back(freq);
+                m_metric.push_back(metric);
                 ++m_size;
                 return true;
             }
@@ -60,7 +80,7 @@ namespace ds2i {
                 std::vector<uint32_t> run(256, 1);
                 uint8_t const* ptr = reinterpret_cast<uint8_t const*>(run.data());
                 uint32_t i = 0;
-                for (uint32_t n = 256; n != 8; n /= 2, ++i) {
+                for (uint32_t n = 256; n != 16; n /= 2, ++i) {
                     uint64_t hash = hash_bytes64(byte_range(ptr, ptr + n * sizeof(uint32_t)));
                     m_map[hash] = i;
                 }
@@ -117,6 +137,14 @@ namespace ds2i {
                 return m_table[end];
             }
 
+            uint64_t freq(uint32_t i) const {
+                returm m_freq[i];
+            }
+
+            uint64_t metric(uint32_t i) const {
+                returm m_metric[i];
+            }
+
             uint32_t special_cases() const {
                 return m_reserved;
             }
@@ -145,6 +173,8 @@ namespace ds2i {
             uint32_t m_capacity;
             uint32_t m_entry_size;
             std::vector<uint32_t> m_table;
+            std::vector<uint64_t> m_freq;
+            std::vector<uint64_t> m_metric;
 
             // map from hash codes to table indexes, used during encoding
             std::unordered_map<uint64_t, uint32_t> m_map;

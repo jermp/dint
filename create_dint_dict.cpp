@@ -46,6 +46,8 @@ struct block_enc_stats {
     std::vector<uint64_t> dict_usage_lens;
     std::vector<uint64_t> dict_usage;
     std::vector<uint64_t> dict_entry_lens;
+    std::vector<uint64_t> dict_entry_freqs;
+    std::vector<uint64_t> dict_entry_metric;
     std::vector<uint32_t> codes_per_block;
     std::vector<uint32_t> block_size;
     std::vector<std::string> dict_entries;
@@ -55,6 +57,10 @@ struct block_enc_stats {
 
     void init(ds2i::dictionary::builder& dict) {
         size_t capacity = dict.capacity();
+        for(size_t i=0;i<capacity;i++) {
+            dict_entry_freqs.push_back(dict.freq(i));
+            dict_entry_metric.push_back(dict.metric(i));
+        }
         dict_usage.resize(capacity);
         dict_entry_lens.resize(capacity);
         dict_usage_lens.resize(256+1);
@@ -133,7 +139,9 @@ std::ostream &operator<<(std::ostream &os, block_enc_stats const &stats) {
         if(i == 0) encoded_nums = 1;
         os  << "\tcode = " << std::setw(5) << i
             << "\tcode_len = " << std::setw(3) << stats.dict_entry_lens[i]
-            << "\tfreq = " << std::setw(10) << stats.dict_usage[i]
+            << "\tfreq = " << std::setw(12) << stats.dict_usage[i]
+            << "\tfreq = " << std::setw(12) << stats.dict_entry_freqs[i]
+            << "\tmetric = " << std::setw(12) << stats.dict_entry_metric[i]
             << "\tpercent of codes = " << std::setw(6) << std::fixed << std::setprecision(2) << double(stats.dict_usage[i]) / double(stats.total_codes) * 100
             << "\tpercent of postings = " << std::setw(6) << std::fixed <<  std::setprecision(2) << double(stats.dict_usage[i]*encoded_nums) / double(stats.postings_encoded) * 100
             << "\t" << stats.dict_entries[i] << "\n";
