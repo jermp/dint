@@ -580,40 +580,10 @@ namespace ds2i {
             uint16_t const* ptr = reinterpret_cast<uint16_t const*>(in);
 
             // uint32_t cw = 0;
-
-            for (size_t i = 0; i < n; ++ptr)
+            for (size_t i = 0; i != n; ++ptr)
             {
                 uint32_t index = *ptr;
-                assert(index < dict->capacity());
                 uint32_t decoded_ints = 1;
-
-
-                // if (DS2I_UNLIKELY(index == 0)) {
-                //     ++ptr;
-                //     std::copy(ptr, ptr + 2, reinterpret_cast<uint16_t*>(out));
-                //     ++ptr;
-                // } else {
-                //     if (DS2I_LIKELY(index < dictionary::reserved)) {
-                //         decoded_ints = 256 >> (index - 1);
-                //     } else {
-                //         decoded_ints = dict->copy(index, out);
-                //     }
-                // }
-
-                // if (DS2I_LIKELY(index != 0)) {
-                //     if (DS2I_LIKELY(index < /*dictionary::reserved*/ 6)) {
-                //         static const uint32_t run_lengths[6] = {0, // unused
-                //                                                 256, 128, 64, 32, 16};
-                //         decoded_ints = run_lengths[index]; // runs of 256, 128, 64, 32 or 16 ints
-                //     } else {
-                //         decoded_ints = dict->copy(index, out);
-                //     }
-                // } else {
-                //     ++ptr;
-                //     *out = *(reinterpret_cast<uint32_t const*>(ptr));
-                //     // memcpy(out, ptr, 4);
-                //     ++ptr;
-                // }
 
                 if (DS2I_LIKELY(index > 5)) {
                     // std::cout << "0" << "\n";
@@ -632,24 +602,10 @@ namespace ds2i {
                     }
                 }
 
-                // if (DS2I_LIKELY(index != 0)) {
-                //     if (DS2I_LIKELY(index < /*dictionary::reserved*/ 6)) {
-                //         static const uint32_t run_lengths[6] = {0, // unused
-                //                                                 256, 128, 64, 32, 16};
-                //         decoded_ints = run_lengths[index]; // runs of 256, 128, 64, 32 or 16 ints
-                //     } else {
-                //         decoded_ints = dict->copy(index, out);
-                //     }
-                // } else {
-                //     ++ptr;
-                //     *out = *(reinterpret_cast<uint32_t const*>(ptr));
-                //     ++ptr;
-                // }
-
                 out += decoded_ints;
                 i += decoded_ints;
-                // ++cw;
 
+                // ++cw;
                 // std::cout << i << "; " << cw << std::endl;
             }
 
