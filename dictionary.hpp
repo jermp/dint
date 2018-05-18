@@ -138,11 +138,11 @@ namespace ds2i {
             }
 
             uint64_t freq(uint32_t i) const {
-                returm m_freq[i];
+                return m_freq[i];
             }
 
             uint64_t metric(uint32_t i) const {
-                returm m_metric[i];
+                return m_metric[i];
             }
 
             uint32_t special_cases() const {
