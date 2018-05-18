@@ -252,7 +252,7 @@ namespace ds2i {
             std::vector<btype> final_blocks;
             while(!pq.empty()) {
                 auto block = pq.top();
-                builder.append(block.entry,block.entry_len);
+                builder.append(block.entry,block.entry_len,block.freq,block.coverage);
                 final_blocks.push_back(block);
                 pq.pop();
             }
