@@ -105,6 +105,12 @@ namespace ds2i {
                 double docs_percentages[5] = {40, 15, 20, 20, 5};
                 DictBuilder::build(m_docs_dict_builder, docs_percentages, total_integers, "docs");
 
+
+                // XXX: temporary
+                std::ofstream dictionary_file("./dictionary.docs");
+                m_docs_dict_builder.write(dictionary_file);
+
+
                 logger() << "Building dictionary for freqs..." << std::endl;
                 // double freqs_percentages[5] = {40, 25, 20, 10, 5};
                 double freqs_percentages[5] = {50, 20, 20, 5, 5};

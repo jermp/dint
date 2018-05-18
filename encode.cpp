@@ -16,6 +16,13 @@
 
 using namespace ds2i;
 
+static void write_header(uint32_t n, uint32_t universe,
+                         std::vector<uint8_t>& out)
+{
+    TightVariableByte::encode_single(n, out);
+    TightVariableByte::encode_single(universe, out);
+}
+
 template<typename Encoder>
 void encode(char const* collection_name,
             char const* output_filename,
@@ -56,12 +63,12 @@ void encode(char const* collection_name,
 
     for (auto const& list: input)
     {
-        uint64_t n = list.size();
+        uint32_t n = list.size();
         if (n > MIN_SIZE)
         {
             buf.reserve(n);
             uint32_t prev = 0;
-            uint64_t universe = 0;
+            uint32_t universe = 0;
 
             for (auto begin = list.begin(); begin != list.end(); ++begin) {
                 buf.push_back(*begin - prev);
@@ -69,24 +76,27 @@ void encode(char const* collection_name,
                     prev = *begin;
                 }
                 universe += buf.back();
-                ++begin;
             }
+            assert(buf.size() == n);
 
+            write_header(n, universe, output);
             Encoder::encode(buf.data(), universe, n, output, &builder);
             buf.clear();
 
             ++num_processed_lists;
             num_total_ints += n;
 
-            if (num_processed_lists % 1000 == 0) {
-                logger() << "processed " << num_processed_lists << " lists" << std::endl;
+            if (num_processed_lists % 200 == 0) {
+                logger() << "encoded " << num_processed_lists << " lists" << std::endl;
                 logger() << "encoded " << num_total_ints << " integers" << std::endl;
+                logger() << "bits x integer: "
+                         << output.size() * sizeof(output[0]) * 8.0 / num_total_ints << std::endl;
             }
         }
     }
 
-    logger() << "processed " << num_processed_lists << " lists" << std::endl;
-    logger() << "processed " << num_total_ints << " integers" << std::endl;
+    logger() << "encoded " << num_processed_lists << " lists" << std::endl;
+    logger() << "encoded " << num_total_ints << " integers" << std::endl;
     logger() << "bits x integer: "
              << output.size() * sizeof(output[0]) * 8.0 / num_total_ints << std::endl;
 
@@ -109,11 +119,10 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    using namespace ds2i;
     std::string type = argv[1];
     char const* collection_name = argv[2];
-    char const* dictionary_filename = argv[3];
-    char const* output_filename = argv[4];
+    char const* dictionary_filename = nullptr;
+    char const* output_filename = nullptr;
 
     for (int i = 3; i < argc; ++i) {
         if (argv[i] == std::string("--dict")) {

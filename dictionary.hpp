@@ -212,6 +212,17 @@ namespace ds2i {
         //     }
         // }
 
+        void print() {
+            uint64_t sum = 0;
+            for (int i = 0; i < 65536; ++i) {
+                for (int j = 0; j < 9; ++j) {
+                    std::cout << m_table[sum + j] << " ";
+                }
+                std::cout << std::endl;
+                sum += 9;
+            }
+        }
+
         uint32_t copy(uint32_t i, uint32_t* out) const {
 
             assert(i < 65536);
@@ -253,7 +264,16 @@ namespace ds2i {
             uint32_t end = begin + 8;
             uint32_t size = m_table[end];
             uint32_t const* ptr = &m_table[begin];
+
+            // std::cout << "i = " << i << std::endl;
+            // for (uint32_t i = begin; i < end; ++i) {
+            //     std::cout << m_table[i] << " ";
+            // }
+            // std::cout << std::endl;
+
             memcpy(out, ptr, 32);
+
+
 
             return size;
         }

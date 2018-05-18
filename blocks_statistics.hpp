@@ -16,7 +16,7 @@ namespace ds2i {
             : m_block_size(block_size)
         {
             logger() << "initialize blocks_statistics with block_size = " << block_size << std::endl;
-            assert(util::is_power_of_two(m_block_size));
+            assert(is_power_of_two(m_block_size));
         }
 
         void process(uint32_t const* begin, uint64_t n)
