@@ -33,8 +33,6 @@ namespace ds2i {
                 m_capacity = capacity;
                 m_entry_size = entry_size;
                 m_table.resize(capacity * (entry_size + 1), 0);
-                m_freq.resize(capacity);
-                m_metric.resize(capacity);
 
                 m_freq.push_back(0);    // exceptions
                 m_metric.push_back(0);  // exceptions
@@ -70,7 +68,7 @@ namespace ds2i {
                 m_pos += m_entry_size + 1;
                 m_table[m_pos - 1] = entry_size;
                 m_freq.push_back(freq);
-                m_metric.push_back(metric);
+                m_metric.push_back(metric);             
                 ++m_size;
                 return true;
             }
