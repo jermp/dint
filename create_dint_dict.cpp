@@ -60,8 +60,6 @@ struct block_enc_stats {
         for(size_t i=0;i<capacity;i++) {
             dict_entry_freqs.push_back(dict.freq(i));
             dict_entry_metric.push_back(dict.metric(i));
-            std::cout << "freqs " << dict_entry_freqs.back() 
-                      << "\tmetric " << dict_entry_freqs.back() << std::endl;
         }
         dict_usage.resize(capacity);
         dict_entry_lens.resize(capacity);
@@ -142,8 +140,9 @@ std::ostream &operator<<(std::ostream &os, block_enc_stats const &stats) {
         os  << "\tcode = " << std::setw(5) << i
             << "\tcode_len = " << std::setw(3) << stats.dict_entry_lens[i]
             << "\tfreq = " << std::setw(12) << stats.dict_usage[i]
-            << "\tfreq = " << std::setw(12) << stats.dict_entry_freqs[i]
-            << "\tmetric = " << std::setw(12) << stats.dict_entry_metric[i]
+            << "\tpredicted_freq = " << std::setw(12) << stats.dict_entry_freqs[i]
+            << "\tcoverage = " << std::setw(12) << stats.dict_usage[i] * encoded_nums
+            << "\tpredicted_coverage = " << std::setw(12) << stats.dict_entry_metric[i]
             << "\tpercent of codes = " << std::setw(6) << std::fixed << std::setprecision(2) << double(stats.dict_usage[i]) / double(stats.total_codes) * 100
             << "\tpercent of postings = " << std::setw(6) << std::fixed <<  std::setprecision(2) << double(stats.dict_usage[i]*encoded_nums) / double(stats.postings_encoded) * 100
             << "\t" << stats.dict_entries[i] << "\n";
