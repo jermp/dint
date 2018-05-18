@@ -128,6 +128,8 @@ namespace ds2i {
                 std::swap(m_capacity, other.m_capacity);
                 std::swap(m_entry_size, other.m_entry_size);
                 m_table.swap(other.m_table);
+                m_freq.swap(other.m_freq);
+                m_metric.swap(other.m_metric);
                 m_map.swap(other.m_map);
             }
 
