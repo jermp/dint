@@ -228,16 +228,16 @@ namespace ds2i {
         //     }
         // }
 
-        void print() {
-            uint64_t sum = 0;
-            for (int i = 0; i < 65536; ++i) {
-                for (int j = 0; j < 9; ++j) {
-                    std::cout << m_table[sum + j] << " ";
-                }
-                std::cout << std::endl;
-                sum += 9;
-            }
-        }
+        // void print() {
+        //     uint64_t sum = 0;
+        //     for (int i = 0; i < 65536; ++i) {
+        //         for (int j = 0; j < 9; ++j) {
+        //             std::cout << m_table[sum + j] << " ";
+        //         }
+        //         std::cout << std::endl;
+        //         sum += 9;
+        //     }
+        // }
 
         uint32_t copy(uint32_t i, uint32_t* out) const {
 
@@ -276,8 +276,8 @@ namespace ds2i {
             // uint32_t const* ptr = &m_table[begin];
             // std::copy(ptr, ptr + 16, out);
 
-            uint32_t begin = i * 9;
-            uint32_t end = begin + 8;
+            uint32_t begin = i * 17; // 9
+            uint32_t end = begin + 16; // 8
             uint32_t size = m_table[end];
             uint32_t const* ptr = &m_table[begin];
 
@@ -287,7 +287,7 @@ namespace ds2i {
             // }
             // std::cout << std::endl;
 
-            memcpy(out, ptr, 32);
+            memcpy(out, ptr, 64); // 32
             return size;
         }
 

@@ -42,7 +42,7 @@ namespace ds2i {
     typedef block_freq_index<ds2i::simple16_block> block_simple16_index;
 
     // DINT codec
-    typedef dict_freq_index<ds2i::dint_dictionary_builder<65536, 8>,
+    typedef dict_freq_index<ds2i::dint_dictionary_builder<65536, 16>,
                             ds2i::dint_block> block_dint_index;
 }
 

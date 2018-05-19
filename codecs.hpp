@@ -8,8 +8,6 @@
 #include "VarIntG8IU.h"
 #include "varintgb.h"
 #include "interpolative_coding.hpp"
-// #include "compress_integer_qmx_improved.h"
-
 #include "qmx.hpp"
 
 #include "succinct/util.hpp"
