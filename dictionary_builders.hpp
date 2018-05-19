@@ -238,7 +238,7 @@ namespace ds2i {
             for(size_t i=0;i<block_stats.blocks.size();i++) {
                 const auto& b = block_stats.blocks[i];
                 auto max_savings = (3*b.entry_len -1) * b.freq;
-                if(max_savings > 256) {
+                if(max_savings > 1500) {
                     bid_map[i] = F.size();
                     rbid_map[F.size()] = i;
                     F.push_back(b.freq);
@@ -271,7 +271,7 @@ namespace ds2i {
                             savings[mapped_prefix_id] = (3*pb.entry_len -1) * F[mapped_prefix_id];
 
                             // (3) savings decreased. this guy has to try again!
-                            auto ditr = dictionary.find(prefix_id);
+                            auto ditr = dictionary.find(mapped_prefix_id);
                             if(ditr != dictionary.end()) {
                                 dictionary.erase(ditr);
                                 needed++;
@@ -294,7 +294,7 @@ namespace ds2i {
                 auto savings = dict_entry.second;
                 auto freq = F[mapped_block_id];
                 auto& block = block_stats.blocks[block_id];
-                builder.append(block.entry,block.entry_len,freq,savings);
+                builder.append(block.entry,block.entry_len,block.freq,block.coverage);
             }
         }
 
