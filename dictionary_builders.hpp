@@ -230,14 +230,24 @@ namespace ds2i {
 
             // (2) find the top-K most covering blocks
             logger() << "(2) compute initial savings" << std::endl;
-            std::vector<uint64_t> savings(block_stats.blocks.size());
-            std::vector<uint64_t> F(block_stats.blocks.size());
+            std::vector<uint64_t> block_ids;
+            std::vector<uint64_t> savings;
+            std::vector<uint64_t> F;
             std::unordered_map<uint64_t,uint64_t> dictionary;
+            std::unordered_map<uint64_t,uint64_t> bid_map;
+            std::unordered_map<uint64_t,uint64_t> rbid_map;
             for(size_t i=0;i<block_stats.blocks.size();i++) {
                 const auto& b = block_stats.blocks[i];
-                F[i] = b.freq;
-                savings[i] = (3*b.entry_len -1) * b.freq;
+                auto max_savings = (3*b.entry_len -1) * b.freq;
+                if(max_savings > 32) {
+                    F.push_back(b.freq);
+                    savings.push_back(max_savings);
+                    bid_map[i] = block_ids.size();
+                    rbid_map[block_ids.size()] = i;
+                    block_ids.push_back(i);
+                }
             }
+            logger() << "Considering " << block_ids.size() << " blocks out of " << block_stats.blocks.size() << std::endl;
 
             logger() << "(3) performing coverage with adjusted counts" << std::endl;
             {
@@ -247,24 +257,30 @@ namespace ds2i {
                 while(needed != 0) {
                     logger() << "needed = " << needed << std::endl;
                     // (1) find next best block to add
-                    auto max_savings_bid = std::distance(savings.begin(),std::max_element(savings.begin(),savings.end()));
-                    dictionary[max_savings_bid] = savings[max_savings_bid];
-                    savings[max_savings_bid] = 0;
-                    auto max_freq = F[max_savings_bid];
+                    auto max_savings_mapped_bid = std::distance(savings.begin(),std::max_element(savings.begin(),savings.end()));
+                    dictionary[max_savings_mapped_bid] = savings[max_savings_mapped_bid];
+                    savings[max_savings_mapped_bid] = 0;
+                    auto max_freq = F[max_savings_mapped_bid];
                     // (2) find the prefixes and adjust freqs
-                    auto& max_block = block_stats.blocks[max_savings_bid];
+                    auto orig_max_id = rbid_map[max_savings_mapped_bid];
+                    auto& max_block = block_stats.blocks[orig_max_id];
                     for(size_t i=0;i<max_block.num_prefixes;i++) {
                         auto prefix_id = max_block.prefix_ids[i];
-                        auto& pb = block_stats.blocks[prefix_id];
-                        F[prefix_id] -= max_freq;
-                        savings[prefix_id] = (3*pb.entry_len -1) * F[prefix_id];
+                        auto map_itr = bid_map.find(prefix_id);
+                        if(map_itr != bid_map.end()) {
+                            auto mapped_prefix_id = map_itr->second;
+                            auto& pb = block_stats.blocks[prefix_id];
+                            F[mapped_prefix_id] -= max_freq;
+                            savings[mapped_prefix_id] = (3*pb.entry_len -1) * F[mapped_prefix_id];
 
-                        // (3) savings decreased. this guy has to try again!
-                        auto ditr = dictionary.find(prefix_id);
-                        if(ditr != dictionary.end()) {
-                            dictionary.erase(ditr);
-                            needed++;
+                            // (3) savings decreased. this guy has to try again!
+                            auto ditr = dictionary.find(prefix_id);
+                            if(ditr != dictionary.end()) {
+                                dictionary.erase(ditr);
+                                needed++;
+                            }
                         }
+
                     }
                     needed--;
                     if(next == needed) {
