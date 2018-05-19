@@ -288,13 +288,18 @@ namespace ds2i {
             }
 
             logger() << "(3) add blocks to dict" << std::endl;
+            std::vector<std::pair<uint64_t,uint64_t>> final_blocks;
             for(auto& dict_entry : dictionary) {
+                final_blocks.emplace_back(-1*dict_entry.second,dict_entry.first);
+            }
+            std::sort(final_blocks.begin(),final_blocks.end());
+            for(auto& dict_entry : final_blocks) {
                 auto mapped_block_id = dict_entry.first;
                 auto block_id = rbid_map[mapped_block_id];
-                auto savings = dict_entry.second;
+                auto savings = dict_entry.second * -1;
                 auto freq = F[mapped_block_id];
                 auto& block = block_stats.blocks[block_id];
-                builder.append(block.entry,block.entry_len,block.freq,block.coverage);
+                builder.append(block.entry,block.entry_len,freq,savings);
             }
         }
 
