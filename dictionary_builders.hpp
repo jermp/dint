@@ -294,9 +294,9 @@ namespace ds2i {
             }
             std::sort(final_blocks.begin(),final_blocks.end());
             for(auto& dict_entry : final_blocks) {
-                auto mapped_block_id = dict_entry.first;
+                auto mapped_block_id = dict_entry.second;
                 auto block_id = rbid_map[mapped_block_id];
-                auto savings = dict_entry.second * -1;
+                auto savings = dict_entry.first * -1;
                 auto freq = F[mapped_block_id];
                 auto& block = block_stats.blocks[block_id];
                 builder.append(block.entry,block.entry_len,freq,savings);
