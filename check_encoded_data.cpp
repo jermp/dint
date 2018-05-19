@@ -92,10 +92,11 @@ void check(char const* collection_filename,
                 if (decoded[j] != expected) {
                     std::cerr << "Error at position " << j << "/" << n << ": got " << decoded[j] << " but expected " << expected << std::endl;
                 }
+                decoded[j] = 1; // re-init
                 // std::cerr << expected << " ";
             }
-            std::cerr << std::endl;
-            std::exit(1);
+            // std::cerr << std::endl;
+            // break;
         }
 
         ++sequence;

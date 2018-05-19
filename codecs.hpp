@@ -528,7 +528,7 @@ namespace ds2i {
 
             uint32_t const* begin = in;
             uint32_t const* end = begin + n;
-            uint32_t i = 0;
+            // uint32_t i = 0;
             while (begin < end) // can overshoot
             {
                 // first, try runs of sizes 256, 128, 64, 32 and 16
@@ -536,9 +536,9 @@ namespace ds2i {
                 uint32_t run_size = 256;
                 uint32_t index = 1;
 
-                if (i == 5647 or i == 5648 or i == 5649) {
-                    std::cout << "*** i = " << i << ": " << *begin << std::endl;
-                }
+                // if (i == 5647 or i == 5648 or i == 5649) {
+                //     std::cout << "*** i = " << i << ": " << *begin << std::endl;
+                // }
 
                 for (uint32_t const* ptr  = begin;
                                      ptr != begin + std::min<uint64_t>(run_size, end - begin);
@@ -562,10 +562,10 @@ namespace ds2i {
 
                 if (index < dictionary::reserved) {
 
-                    if (i == 5647 or i == 5648 or i == 5649) {
-                        // std::cout << "***" << *begin << std::endl;
-                        std::cout << "index of run: " << index << std::endl;
-                    }
+                    // if (i == 5647 or i == 5648 or i == 5649) {
+                    //     // std::cout << "***" << *begin << std::endl;
+                    //     std::cout << "index of run: " << index << std::endl;
+                    // }
 
 
                     auto ptr = reinterpret_cast<uint8_t const*>(&index);
@@ -574,11 +574,11 @@ namespace ds2i {
                     // std::cout << "advancing by " << std::min<uint64_t>(run_size, end - begin) << std::endl;
 
 
-                    if (i == 5647 or i == 5648 or i == 5649) {
-                        std::cout << "advancing by " << std::min<uint64_t>(run_size, end - begin) << std::endl;
-                    }
+                    // if (i == 5647 or i == 5648 or i == 5649) {
+                    //     std::cout << "advancing by " << std::min<uint64_t>(run_size, end - begin) << std::endl;
+                    // }
 
-                    i += std::min<uint64_t>(run_size, end - begin);
+                    // i += std::min<uint64_t>(run_size, end - begin);
 
                 } else {
                     for (uint32_t sub_block_size  = builder->entry_size();
@@ -597,11 +597,11 @@ namespace ds2i {
                             begin += len;
 
 
-                            if (i == 5647 or i == 5648 or i == 5649) {
-                                std::cout << "using a cw of size " << len << std::endl;
-                            }
+                            // if (i == 5647 or i == 5648 or i == 5649) {
+                            //     std::cout << "using a cw of size " << len << std::endl;
+                            // }
 
-                            i += len;
+                            // i += len;
 
                             break;
                         }
@@ -617,7 +617,7 @@ namespace ds2i {
                         auto ptr = reinterpret_cast<uint8_t const*>(&exception);
                         out.insert(out.end(), ptr, ptr + 4);
                         begin += 1;
-                        i += 1;
+                        // i += 1;
                     }
                 }
             }
@@ -636,9 +636,9 @@ namespace ds2i {
                 uint32_t index = *ptr;
                 uint32_t decoded_ints = 1;
 
-                if (i == 5646 or i == 8879 or i == 5647 or i == 8880 or i == 8908) {
-                    std::cerr << i << ": index = " << index << std::endl;
-                }
+                // if (i == 5646 or i == 8879 or i == 5647 or i == 8880 or i == 8908) {
+                //     std::cerr << i << ": index = " << index << std::endl;
+                // }
 
                 if (DS2I_LIKELY(index > 5)) {
                     // std::cout << "0" << "\n";
@@ -653,15 +653,15 @@ namespace ds2i {
                         ++ptr;
                         // ++cw;
                         *out = *(reinterpret_cast<uint32_t const*>(ptr));
-                        std::cout << "exception: " << *out << std::endl;
+                        // std::cout << "exception: " << *out << std::endl;
                         ++ptr;
                         // ++cw;
                     }
                 }
 
-                if (i == 5646 or i == 8879 or i == 5647 or i == 8880 or i == 8908) {
-                    std::cerr << i << ": decoded_ints = " << decoded_ints << std::endl;
-                }
+                // if (i == 5646 or i == 8879 or i == 5647 or i == 8880 or i == 8908) {
+                //     std::cerr << i << ": decoded_ints = " << decoded_ints << std::endl;
+                // }
 
                 out += decoded_ints;
                 i += decoded_ints;

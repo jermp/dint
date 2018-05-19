@@ -78,7 +78,7 @@ void encode(char const* collection_name,
 
             ++num_processed_lists;
             num_total_ints += n;
-            break; // encode just the first sequence
+            // break; // encode just the first sequence
 
             if (num_processed_lists % 200 == 0) {
                 logger() << "encoded " << num_processed_lists << " lists" << std::endl;
