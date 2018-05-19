@@ -237,17 +237,15 @@ namespace ds2i {
                 const auto& b = block_stats.blocks[i];
                 F[i] = b.freq;
                 savings[i] = (3*b.entry_len -1) * b.freq;
-
-                // determine ids of prefixes of each block
-
             }
 
-            logger() << "(2) compute initial savings" << std::endl;
+            logger() << "(3) performing coverage with adjusted counts" << std::endl;
             {
                 boost::progress_display progress(num_entries);
                 size_t needed = num_entries;
                 size_t next = num_entries-1;
                 while(needed != 0) {
+                    logger() << "needed = " << needed << std::endl;
                     // (1) find next best block to add
                     auto max_savings_bid = std::distance(savings.begin(),std::max_element(savings.begin(),savings.end()));
                     dictionary[max_savings_bid] = savings[max_savings_bid];
