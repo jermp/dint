@@ -244,7 +244,7 @@ namespace ds2i {
                     savings.push_back(max_savings);
                     bid_map[i] = block_ids.size();
                     rbid_map[block_ids.size()] = i;
-                    block_ids.push_back(i);
+                        .push_back(i);
                 }
             }
             logger() << "Considering " << block_ids.size() << " blocks out of " << block_stats.blocks.size() << std::endl;
@@ -255,7 +255,6 @@ namespace ds2i {
                 size_t needed = num_entries;
                 size_t next = num_entries-1;
                 while(needed != 0) {
-                    logger() << "needed = " << needed << std::endl;
                     // (1) find next best block to add
                     auto max_savings_mapped_bid = std::distance(savings.begin(),std::max_element(savings.begin(),savings.end()));
                     dictionary[max_savings_mapped_bid] = savings[max_savings_mapped_bid];
@@ -292,9 +291,10 @@ namespace ds2i {
 
             logger() << "(3) add blocks to dict" << std::endl;
             for(auto& dict_entry : dictionary) {
-                auto block_id = dict_entry.first;
+                auto mapped_block_id = dict_entry.first;
+                block_id = rbid_map[mapped_block_id];
                 auto savings = dict_entry.second;
-                auto freq = F[block_id];
+                auto freq = F[mapped_block_id];
                 auto& block = block_stats.blocks[block_id];
                 builder.append(block.entry,block.entry_len,freq,savings);
             }
