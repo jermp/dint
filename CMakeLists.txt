@@ -85,6 +85,14 @@ target_link_libraries(decode
   MaskedVByte
   )
 
+add_executable(check_encoded_data check_encoded_data.cpp)
+target_link_libraries(check_encoded_data
+  ${Boost_LIBRARIES}
+  FastPFor_lib
+  streamvbyte
+  MaskedVByte
+  )
+
 add_executable(optimal_hybrid_index optimal_hybrid_index.cpp)
 target_link_libraries(optimal_hybrid_index
   ${Boost_LIBRARIES}

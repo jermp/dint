@@ -21,7 +21,7 @@ namespace ds2i {
                 , m_size(reserved)
                 , m_capacity(0)
                 , m_entry_size(0)
-                , m_table(0, 0)
+                , m_table(0, 1)
             {}
 
             void init(uint32_t capacity, uint32_t entry_size) {
@@ -32,7 +32,23 @@ namespace ds2i {
                 m_size = reserved;
                 m_capacity = capacity;
                 m_entry_size = entry_size;
-                m_table.resize(capacity * (entry_size + 1), 0);
+
+                // XXX: Giulio
+                /*
+                    We prefill the table with 1s to let the
+                    decoder skip whenever we have a run.
+                    In fact, whenever we have to copy en entry
+                    from the dictionary of size t, we copy to the output:
+                    x ..... x 1 .... 1
+                    --------- --------
+                        t      unused
+                    if a run will follow, the decoder will have to just skip
+                    without performing any copy.
+
+                    If we encode deltas by subtracting an additional 1,
+                    we must change the default value to 0.
+                */
+                m_table.resize(capacity * (entry_size + 1), 1);
             }
 
             builder(uint32_t capacity, uint32_t entry_size) {
@@ -272,9 +288,6 @@ namespace ds2i {
             // std::cout << std::endl;
 
             memcpy(out, ptr, 32);
-
-
-
             return size;
         }
 

@@ -16,13 +16,6 @@
 
 using namespace ds2i;
 
-static void write_header(uint32_t n, uint32_t universe,
-                         std::vector<uint8_t>& out)
-{
-    TightVariableByte::encode_single(n, out);
-    TightVariableByte::encode_single(universe, out);
-}
-
 template<typename Encoder>
 void encode(char const* collection_name,
             char const* output_filename,
@@ -70,21 +63,22 @@ void encode(char const* collection_name,
             uint32_t prev = 0;
             uint32_t universe = 0;
 
-            for (auto begin = list.begin(); begin != list.end(); ++begin) {
-                buf.push_back(*begin - prev);
+            for (auto b = list.begin(); b != list.end(); ++b) {
+                buf.push_back(*b - prev);
                 if (take_gaps) {
-                    prev = *begin;
+                    prev = *b;
                 }
                 universe += buf.back();
             }
             assert(buf.size() == n);
 
-            write_header(n, universe, output);
+            header::write(n, universe, output);
             Encoder::encode(buf.data(), universe, n, output, &builder);
             buf.clear();
 
             ++num_processed_lists;
             num_total_ints += n;
+            break; // encode just the first sequence
 
             if (num_processed_lists % 200 == 0) {
                 logger() << "encoded " << num_processed_lists << " lists" << std::endl;

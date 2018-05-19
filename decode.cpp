@@ -16,15 +16,6 @@
 
 using namespace ds2i;
 
-static uint8_t const* read_header(uint8_t const* in,
-                                  uint32_t* n, uint32_t* universe)
-{
-    uint8_t const* inbuf = in;
-    inbuf = TightVariableByte::decode(inbuf, n, 1);
-    inbuf = TightVariableByte::decode(inbuf, universe, 1);
-    return inbuf;
-}
-
 template<typename Decoder>
 void decode(char const* encoded_data_filename,
             char const* dictionary_filename)
@@ -64,7 +55,7 @@ void decode(char const* encoded_data_filename,
     while (begin != end)
     {
         uint32_t n, universe;
-        begin = read_header(begin, &n, &universe);
+        begin = header::read(begin, &n, &universe);
 
         // logger() << "n = " << n << "; universe = " << universe << std::endl;
 
