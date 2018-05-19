@@ -1,6 +1,5 @@
 #pragma once
 
-// #include "compress_integer_qmx_improved.h"
 #include "FastPFor/headers/optpfor.h"
 #include "FastPFor/headers/variablebyte.h"
 #include "streamvbyte/include/streamvbyte.h"
@@ -9,7 +8,10 @@
 #include "VarIntG8IU.h"
 #include "varintgb.h"
 #include "interpolative_coding.hpp"
-#include "qmx_codec.hpp"
+// #include "compress_integer_qmx_improved.h"
+
+#include "qmx.hpp"
+
 #include "succinct/util.hpp"
 #include "util.hpp"
 #include "dictionary.hpp"
@@ -339,34 +341,33 @@ namespace ds2i {
         }
     };
 
-    // struct qmx {
+    struct qmx {
 
-    //     static const uint64_t overflow = 512;
+        static void encode(uint32_t const* in,
+                           uint32_t /*universe*/, uint32_t n,
+                           std::vector<uint8_t>& out,
+                           dictionary::builder const* /*builder*/)
+        {
+            static const uint64_t overflow = 512;
+            thread_local std::vector<uint8_t> buf( (overflow * 4) + 2 * 4 * n);
+            QMX::codec qmx_codec(n);
+            size_t compressed_bytes = qmx_codec.encode(buf.data(), in);
+            TightVariableByte::encode_single(compressed_bytes, out);
+            out.insert(out.end(), buf.data(), buf.data() + compressed_bytes);
+        }
 
-    //     static void encode(uint32_t const* in,
-    //                        uint32_t universe, uint32_t n,
-    //                        std::vector<uint8_t>& out,
-    //                        dictionary::builder const* /*builder*/)
-    //     {
-    //         thread_local std::vector<uint8_t> buf( (overflow * 4) + 2 * 4 * n);
-    //         JASS::compress_integer_qmx_improved qmx_codec;
-    //         size_t compressed_bytes = qmx_codec.encode(buf.data(), 0, in, n);
-    //         TightVariableByte::encode_single(compressed_bytes, out);
-    //         out.insert(out.end(), buf.data(), buf.data() + compressed_bytes);
-    //     }
-
-    //     static uint8_t const* decode(uint8_t const* in,
-    //                                  uint32_t* out,
-    //                                  uint32_t universe, uint32_t n,
-    //                                  dictionary const* /*dict*/)
-    //     {
-    //         uint32_t compressed_bytes = 0;
-    //         in = TightVariableByte::decode(in, &compressed_bytes, 1);
-    //         JASS::compress_integer_qmx_improved qmx_codec;
-    //         qmx_codec.decode(out, n, in, compressed_bytes);
-    //         return in + compressed_bytes;
-    //     }
-    // };
+        static uint8_t const* decode(uint8_t const* in,
+                                     uint32_t* out,
+                                     uint32_t /*universe*/, uint32_t n,
+                                     dictionary const* /*dict*/)
+        {
+            uint32_t compressed_bytes = 0;
+            in = TightVariableByte::decode(in, &compressed_bytes, 1);
+            QMX::codec qmx_codec(n);
+            qmx_codec.decode(out, in, compressed_bytes);
+            return in + compressed_bytes;
+        }
+    };
 
     struct vbyte {
 
@@ -678,5 +679,5 @@ namespace ds2i {
         }
     };
 
-    #define CODECS (interpolative)(optpfor)(varintg8iu)(vbyte)(u32)(simple16)(streamvbyte)(maskedvbyte)(varintgb)(dint)
+    #define CODECS (interpolative)(optpfor)(varintg8iu)(qmx)(vbyte)(u32)(simple16)(streamvbyte)(maskedvbyte)(varintgb)(dint)
 }

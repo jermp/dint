@@ -76,10 +76,10 @@ void decode(char const* encoded_data_filename,
     auto finish = clock_type::now();
     std::chrono::duration<double> elapsed = finish - start;
 
-    std::cout << "elapsed time " << elapsed.count() << " [sec]" << std::endl;
+    logger() << "elapsed time " << elapsed.count() << " [sec]" << std::endl;
     double ns_x_int = elapsed.count() * 1000000000 / total_decoded_ints;
-    std::cout << ns_x_int << " [ns] x int" << std::endl;
-    std::cout << 1 / ns_x_int * 1000000000 << " ints x [sec]" << std::endl;
+    logger() << ns_x_int << " [ns] x int" << std::endl;
+    logger() << 1 / ns_x_int * 1000000000 << " ints x [sec]" << std::endl;
 
     file.close();
 }
