@@ -288,9 +288,9 @@ namespace ds2i {
             }
 
             logger() << "(3) add blocks to dict" << std::endl;
-            std::vector<std::pair<uint64_t,uint64_t>> final_blocks;
+            std::vector<std::pair<uint64_t,int64_t>> final_blocks;
             for(auto& dict_entry : dictionary) {
-                final_blocks.emplace_back(-1*dict_entry.second,dict_entry.first);
+                final_blocks.emplace_back(-1*int64_t(dict_entry.second),dict_entry.first);
             }
             std::sort(final_blocks.begin(),final_blocks.end());
             for(auto& dict_entry : final_blocks) {
