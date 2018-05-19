@@ -229,30 +229,60 @@ namespace ds2i {
             builder.init(num_entries, entry_width);
 
             // (2) find the top-K most covering blocks
-            logger() << "(2) find the top-K most covering blocks" << std::endl;
-            using btype = typename block_stats_type::block_type;
-            auto coverage_cmp = [](const btype& left,const btype& right) { return left.coverage < right.coverage;};
-            std::priority_queue<btype,std::vector<btype>,decltype(coverage_cmp)> pq(coverage_cmp);
+            logger() << "(2) compute initial savings" << std::endl;
+            std::vector<uint64_t> savings(block_stats.blocks.size());
+            std::vector<uint64_t> F(block_stats.blocks.size());
+            std::unordered_map<uint64_t,uint64_t> dictionary;
+            for(size_t i=0;i<block_stats.blocks.size();i++) {
+                const auto& b = block_stats.blocks[i];
+                F[i] = b.freq;
+                savings[i] = (3*b.entry_len -1) * b.freq;
+
+                // determine ids of prefixes of each block
+
+            }
+
+            logger() << "(2) compute initial savings" << std::endl;
             {
-                boost::progress_display progress(block_stats.blocks.size());
-                for(const auto& block : block_stats.blocks) {
-                    ++progress;
-                    if(pq.size() < num_entries-1) {
-                        pq.push(block);
-                    } else {
-                        if( pq.top().coverage < block.coverage ) {
-                            pq.pop();
-                            pq.push(block);
+                boost::progress_display progress(num_entries);
+                size_t needed = num_entries;
+                size_t next = num_entries-1;
+                while(needed != 0) {
+                    // (1) find next best block to add
+                    auto max_savings_bid = std::distance(savings.begin(),std::max_element(savings.begin(),savings.end()));
+                    dictionary[max_savings_bid] = savings[max_savings_bid];
+                    savings[max_savings_bid] = 0;
+                    auto max_freq = F[max_savings_bid];
+                    // (2) find the prefixes and adjust freqs
+                    auto& max_block = block_stats.blocks[max_savings_bid];
+                    for(size_t i=0;i<max_block.num_prefixes;i++) {
+                        auto prefix_id = max_block.prefix_ids[i];
+                        auto& pb = block_stats.blocks[prefix_id];
+                        F[prefix_id] -= max_freq;
+                        savings[prefix_id] = (3*pb.entry_len -1) * F[prefix_id];
+
+                        // (3) savings decreased. this guy has to try again!
+                        auto ditr = dictionary.find(prefix_id);
+                        if(ditr != dictionary.end()) {
+                            dictionary.erase(ditr);
+                            needed++;
                         }
+                    }
+                    needed--;
+                    if(next == needed) {
+                        ++progress;
+                        next--;
                     }
                 }
             }
 
             logger() << "(3) add blocks to dict" << std::endl;
-            while(!pq.empty()) {
-                auto block = pq.top();
-                builder.append(block.entry,block.entry_len,block.freq,block.coverage);
-                pq.pop();
+            for(auto& dict_entry : dictionary) {
+                auto block_id = dict_entry.first;
+                auto savings = dict_entry.second;
+                auto freq = F[block_id];
+                auto& block = block_stats.blocks[block_id];
+                builder.append(block.entry,block.entry_len,freq,savings);
             }
         }
 
@@ -325,7 +355,7 @@ namespace ds2i {
             // (2) find the top-K most covering blocks
             logger() << "(2) find the top-K most covering blocks" << std::endl;
             using btype = typename block_stats_type::block_type;
-            auto coverage_cmp = [](const btype& left,const btype& right) { 
+            auto coverage_cmp = [](const btype& left,const btype& right) {
                 return (left.freq * (3*left.entry_len-1)) < (right.freq * (3*right.entry_len-1));
             };
             std::priority_queue<btype,std::vector<btype>,decltype(coverage_cmp)> pq(coverage_cmp);

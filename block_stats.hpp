@@ -17,13 +17,17 @@ namespace ds2i {
             return "block_stats_full_stride_geom-L" + std::to_string(max_entry_width);
         }
 
+        #pragma pack(push, 1)
         template<uint32_t width>
         struct block_info {
             size_t freq;
             size_t coverage;
-            size_t entry_len;
+            uint8_t entry_len;
+            uint8_t num_prefixes;
+            uint64_t prefix_ids[4];
             uint32_t entry[width];
         };
+        #pragma pack(pop)
 
         using block_type = block_info<max_entry_width>;
 
@@ -56,6 +60,7 @@ namespace ds2i {
         template<class t_list>
         void process_list(std::unordered_map<uint32_t,uint64_t>& block_map,t_list& list,bool compute_gaps) {
             thread_local std::vector<uint32_t> buf(max_entry_width);
+            thread_local std::vector<uint32_t> prefix_hashes(max_entry_width);
             size_t n = list.size();
             size_t full_strides = n / max_entry_width;
             auto lst_itr = list.begin();
@@ -81,6 +86,7 @@ namespace ds2i {
                     hash *= m;
                     hash ^= key;
                     if(j == cur_len) {
+                        prefix_hashes[cur_step] = hash;
                         auto itr = block_map.find(hash);
                         if(itr != block_map.end()) {
                             auto block_idx = itr->second;
@@ -92,6 +98,11 @@ namespace ds2i {
                             new_block.freq = (max_entry_width >> cur_step);
                             new_block.coverage = new_block.freq * j;
                             new_block.entry_len = j;
+                            new_block.num_prefixes = cur_step;
+                            for(size_t k=0;k<new_block.num_prefixes;k++) {
+                                auto prefix_itr = block_map.find(prefix_hashes[k]); // must exist!
+                                new_block.prefix_ids[k] = prefix_itr->second;
+                            }
                             for(size_t k=0;k<j;k++) {
                                 new_block.entry[k] = buf[k];
                             }
@@ -99,6 +110,7 @@ namespace ds2i {
                             blocks.emplace_back(std::move(new_block));
                         }
                         cur_len *= 2;
+
                         cur_step++;
                     }
                 }
