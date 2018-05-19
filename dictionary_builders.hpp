@@ -290,7 +290,7 @@ namespace ds2i {
             logger() << "(3) add blocks to dict" << std::endl;
             for(auto& dict_entry : dictionary) {
                 auto mapped_block_id = dict_entry.first;
-                block_id = rbid_map[mapped_block_id];
+                auto block_id = rbid_map[mapped_block_id];
                 auto savings = dict_entry.second;
                 auto freq = F[mapped_block_id];
                 auto& block = block_stats.blocks[block_id];
