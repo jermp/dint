@@ -230,7 +230,6 @@ namespace ds2i {
 
             // (2) find the top-K most covering blocks
             logger() << "(2) compute initial savings" << std::endl;
-            std::vector<uint64_t> block_ids;
             std::vector<uint64_t> savings;
             std::vector<uint64_t> F;
             std::unordered_map<uint64_t,uint64_t> dictionary;
@@ -239,15 +238,14 @@ namespace ds2i {
             for(size_t i=0;i<block_stats.blocks.size();i++) {
                 const auto& b = block_stats.blocks[i];
                 auto max_savings = (3*b.entry_len -1) * b.freq;
-                if(max_savings > 32) {
+                if(max_savings > 256) {
+                    bid_map[i] = F.size();
+                    rbid_map[F.size()] = i;
                     F.push_back(b.freq);
                     savings.push_back(max_savings);
-                    bid_map[i] = block_ids.size();
-                    rbid_map[block_ids.size()] = i;
-                        .push_back(i);
                 }
             }
-            logger() << "Considering " << block_ids.size() << " blocks out of " << block_stats.blocks.size() << std::endl;
+            logger() << "Considering " << F.size() << " blocks out of " << block_stats.blocks.size() << std::endl;
 
             logger() << "(3) performing coverage with adjusted counts" << std::endl;
             {
