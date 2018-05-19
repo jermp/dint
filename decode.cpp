@@ -98,14 +98,19 @@ int main(int argc, char** argv) {
     char const* encoded_data_filename = argv[2];
     char const* dictionary_filename = nullptr;
 
+    std::string cmd(type + " " + std::string(encoded_data_filename));
+
     for (int i = 3; i < argc; ++i) {
         if (argv[i] == std::string("--dict")) {
             ++i;
             dictionary_filename = argv[i];
+            cmd += " --dict " + std::string(dictionary_filename);
         } else {
             throw std::runtime_error("unknown parameter");
         }
     }
+
+    logger() << cmd << std::endl;
 
     if (false) {
 #define LOOP_BODY(R, DATA, T)                                    \

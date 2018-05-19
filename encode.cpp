@@ -80,7 +80,7 @@ void encode(char const* collection_name,
             num_total_ints += n;
             // break; // encode just the first sequence
 
-            if (num_processed_lists % 200 == 0) {
+            if (num_processed_lists % 1000 == 0) {
                 logger() << "encoded " << num_processed_lists << " lists" << std::endl;
                 logger() << "encoded " << num_total_ints << " integers" << std::endl;
                 logger() << "bits x integer: "
@@ -118,17 +118,23 @@ int main(int argc, char** argv) {
     char const* dictionary_filename = nullptr;
     char const* output_filename = nullptr;
 
+    std::string cmd(type + " " + std::string(collection_name));
+
     for (int i = 3; i < argc; ++i) {
         if (argv[i] == std::string("--dict")) {
             ++i;
             dictionary_filename = argv[i];
+            cmd += " --dict " + std::string(dictionary_filename);
         } else if (argv[i] == std::string("--out")) {
             ++i;
             output_filename = argv[i];
+            cmd += " --out " + std::string(output_filename);
         } else {
             throw std::runtime_error("unknown parameter");
         }
     }
+
+    logger() << cmd << std::endl;
 
     if (false) {
 #define LOOP_BODY(R, DATA, T)                                               \
