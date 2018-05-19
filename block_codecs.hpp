@@ -9,12 +9,13 @@
 #include "succinct/util.hpp"
 #include "util.hpp"
 
+#include "codecs.hpp"
 #include "dictionary.hpp"
 
 namespace ds2i {
 
     namespace constants {
-        constexpr uint32_t block_size = 256; // 256
+        constexpr uint32_t block_size = 256;
     }
 
     // workaround: VariableByte::decodeArray needs the buffer size, while we
@@ -432,7 +433,6 @@ namespace ds2i {
         }
     };
 
-
     struct dint_block {
         static const uint64_t block_size = constants::block_size;
         static const uint64_t overflow = 512;
@@ -442,62 +442,8 @@ namespace ds2i {
                            uint32_t sum_of_values, size_t n,
                            std::vector<uint8_t>& out)
         {
-            (void) sum_of_values;
-            const static uint32_t MASK = (uint32_t(1) << 8) - 1; // select 1 byte
-
-            uint32_t const* begin = in;
-            uint32_t const* end = begin + n;
-            while (begin < end) // can overshoot
-            {
-                // first, try runs of sizes 256, 128, 64, 32 and 16
-                uint32_t longest_run_size = 0;
-                uint32_t run_size = 256;
-                uint32_t table_index = 1;
-
-                for (uint32_t const* ptr  = begin;
-                                     ptr != begin + std::min<uint64_t>(run_size, end - begin);
-                                   ++ptr)
-                {
-                    if (*ptr == 1) {
-                        ++longest_run_size;
-                    } else {
-                        break;
-                    }
-                }
-
-                while (longest_run_size < run_size and run_size != 8) {
-                    run_size /= 2;
-                    ++table_index;
-                }
-
-                if (table_index < dictionary::reserved) {
-                    out.insert(out.end(), table_index);
-                    begin += std::min<uint64_t>(run_size, end - begin);
-                } else {
-                    for (uint32_t sub_block_size  = builder->entry_size();
-                                  sub_block_size != 0;
-                                  sub_block_size /= 2)
-                    {
-                        table_index = builder->lookup(begin, sub_block_size);
-                        if (table_index != dictionary::invalid_index) {
-                            out.insert(out.end(),  table_index &  MASK);
-                            out.insert(out.end(), (table_index & ~MASK) >> 8);
-                            begin += sub_block_size; // can be >= end
-                            break;
-                        }
-                    }
-
-                    if (table_index == dictionary::invalid_index) {
-                        // pattern was not found, thus we have an exception
-                        // and leave it uncompressed
-                        out.insert(out.end(), 0); // special value
-                        uint32_t exception = *begin;
-                        auto ptr = reinterpret_cast<uint8_t const*>(&exception);
-                        out.insert(out.end(), ptr, ptr + 4);
-                        begin += 1;
-                    }
-                }
-            }
+            assert(n <= block_size);
+            dint::encode(in, sum_of_values, n, out, builder);
         }
 
         static uint8_t const* decode(dictionary const* dict,
@@ -505,79 +451,8 @@ namespace ds2i {
                                      uint32_t *out,
                                      uint32_t sum_of_values, size_t n)
         {
-            (void) sum_of_values;
-            uint16_t const* ptr = reinterpret_cast<uint16_t const*>(in);
-
-            for (size_t i = 0; i < n; ++ptr)
-            {
-                uint32_t table_index = *ptr;
-                uint32_t decoded_ints = 1;
-
-                // if (DS2I_UNLIKELY(table_index == 0)) {
-                //     ++ptr;
-                //     std::copy(ptr, ptr + 2, reinterpret_cast<uint16_t*>(out));
-                //     ++ptr;
-                // } else {
-                //     if (DS2I_LIKELY(table_index < dictionary::reserved)) {
-                //         decoded_ints = 256 >> (table_index - 1);
-                //     } else {
-                //         decoded_ints = dict->copy(table_index, out);
-                //     }
-                // }
-
-                // if (DS2I_LIKELY(table_index != 0)) {
-                //     if (DS2I_LIKELY(table_index < /*dictionary::reserved*/ 6)) {
-                //         static const uint32_t run_lengths[6] = {0, // unused
-                //                                                 256, 128, 64, 32, 16};
-                //         decoded_ints = run_lengths[table_index]; // runs of 256, 128, 64, 32 or 16 ints
-                //     } else {
-                //         decoded_ints = dict->copy(table_index, out);
-                //     }
-                // } else {
-                //     ++ptr;
-                //     *out = *(reinterpret_cast<uint32_t const*>(ptr));
-                //     // memcpy(out, ptr, 4);
-                //     ++ptr;
-                // }
-
-                if (DS2I_LIKELY(table_index > 5)) {
-                    // std::cout << "0" << "\n";
-                    decoded_ints = dict->copy(table_index, out);
-                } else {
-                    // std::cout << "1" << "\n";
-                    static const uint32_t run_lengths[6] = {0, // unused
-                                                            256, 128, 64, 32, 16};
-                    decoded_ints = run_lengths[table_index]; // runs of 256, 128, 64, 32 or 16 ints
-                    if (DS2I_UNLIKELY(decoded_ints == 0)) {
-                        ++ptr;
-                        *out = *(reinterpret_cast<uint32_t const*>(ptr));
-                        ++ptr;
-                    }
-                }
-
-                // if (DS2I_LIKELY(table_index != 0)) {
-                //     if (DS2I_LIKELY(table_index < /*dictionary::reserved*/ 6)) {
-                //         static const uint32_t run_lengths[6] = {0, // unused
-                //                                                 256, 128, 64, 32, 16};
-                //         decoded_ints = run_lengths[table_index]; // runs of 256, 128, 64, 32 or 16 ints
-                //     } else {
-                //         decoded_ints = dict->copy(table_index, out);
-                //     }
-                // } else {
-                //     ++ptr;
-                //     *out = *(reinterpret_cast<uint32_t const*>(ptr));
-                //     ++ptr;
-                // }
-
-                // std::cout << decoded_ints << "\n";
-
-                out += decoded_ints;
-                i += decoded_ints;
-            }
-
-            // std::cout << "num of decoded bytes " << (reinterpret_cast<uint8_t const*>(ptr) - in) << std::endl;
-
-            return reinterpret_cast<uint8_t const*>(ptr);
+            assert(n <= block_size);
+            return dint::decode(in, out, sum_of_values, n, dict);
         }
     };
 }

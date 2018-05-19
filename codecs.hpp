@@ -525,21 +525,14 @@ namespace ds2i {
                            std::vector<uint8_t>& out,
                            dictionary::builder const* builder)
         {
-            // const static uint32_t MASK = (uint32_t(1) << 8) - 1; // select 1 byte
-
             uint32_t const* begin = in;
             uint32_t const* end = begin + n;
-            // uint32_t i = 0;
-            while (begin < end) // can overshoot
-            {
+
+            while (begin < end) {
                 // first, try runs of sizes 256, 128, 64, 32 and 16
                 uint32_t longest_run_size = 0;
                 uint32_t run_size = 256;
                 uint32_t index = 1;
-
-                // if (i == 5647 or i == 5648 or i == 5649) {
-                //     std::cout << "*** i = " << i << ": " << *begin << std::endl;
-                // }
 
                 for (uint32_t const* ptr  = begin;
                                      ptr != begin + std::min<uint64_t>(run_size, end - begin);
@@ -552,73 +545,36 @@ namespace ds2i {
                     }
                 }
 
-                // if (longest_run_size >= 16) {
-                //     std::cout << "longest_run_size " << longest_run_size << std::endl;
-                // }
-
                 while (longest_run_size < run_size and run_size != 8) {
                     run_size /= 2;
                     ++index;
                 }
 
                 if (index < dictionary::reserved) {
-
-                    // if (i == 5647 or i == 5648 or i == 5649) {
-                    //     // std::cout << "***" << *begin << std::endl;
-                    //     std::cout << "index of run: " << index << std::endl;
-                    // }
-
-
                     auto ptr = reinterpret_cast<uint8_t const*>(&index);
                     out.insert(out.end(), ptr, ptr + 2);
                     begin += std::min<uint64_t>(run_size, end - begin);
-                    // std::cout << "advancing by " << std::min<uint64_t>(run_size, end - begin) << std::endl;
-
-
-                    // if (i == 5647 or i == 5648 or i == 5649) {
-                    //     std::cout << "advancing by " << std::min<uint64_t>(run_size, end - begin) << std::endl;
-                    // }
-
-                    // i += std::min<uint64_t>(run_size, end - begin);
-
                 } else {
                     for (uint32_t sub_block_size  = builder->entry_size();
                                   sub_block_size != 0; sub_block_size /= 2)
                     {
-
                         uint32_t len = std::min<uint32_t>(sub_block_size, end - begin);
                         index = builder->lookup(begin, len);
                         if (index != dictionary::invalid_index) {
-
-                            // out.insert(out.end(),  index &  MASK);
-                            // out.insert(out.end(), (index & ~MASK) >> 8);
-
                             auto ptr = reinterpret_cast<uint8_t const*>(&index);
                             out.insert(out.end(), ptr, ptr + 2);
                             begin += len;
-
-
-                            // if (i == 5647 or i == 5648 or i == 5649) {
-                            //     std::cout << "using a cw of size " << len << std::endl;
-                            // }
-
-                            // i += len;
-
                             break;
                         }
                     }
 
                     if (index == dictionary::invalid_index) {
-                        // std::cout << "exception at pos: " << i << std::endl;
-                        // pattern was not found, thus we have an exception
-                        // and leave it uncompressed
                         out.insert(out.end(), 0);
                         out.insert(out.end(), 0);
                         uint32_t exception = *begin;
                         auto ptr = reinterpret_cast<uint8_t const*>(&exception);
                         out.insert(out.end(), ptr, ptr + 4);
                         begin += 1;
-                        // i += 1;
                     }
                 }
             }
@@ -630,16 +586,9 @@ namespace ds2i {
                                      dictionary const* dict)
         {
             uint16_t const* ptr = reinterpret_cast<uint16_t const*>(in);
-
-            // uint32_t cw = 0;
-            for (size_t i = 0; i != n; ++ptr)
-            {
+            for (size_t i = 0; i != n; ++ptr) {
                 uint32_t index = *ptr;
                 uint32_t decoded_ints = 1;
-
-                // if (i == 5646 or i == 8879 or i == 5647 or i == 8880 or i == 8908) {
-                //     std::cerr << i << ": index = " << index << std::endl;
-                // }
 
                 if (DS2I_LIKELY(index > 5)) {
                     // std::cout << "0" << "\n";
@@ -660,20 +609,11 @@ namespace ds2i {
                     }
                 }
 
-                // if (i == 5646 or i == 8879 or i == 5647 or i == 8880 or i == 8908) {
-                //     std::cerr << i << ": decoded_ints = " << decoded_ints << std::endl;
-                // }
-
                 out += decoded_ints;
                 i += decoded_ints;
 
                 // ++cw;
-                // std::cout << i << "; " << cw << std::endl;
             }
-
-            // std::cout << "num of decoded bytes " << (reinterpret_cast<uint8_t const*>(ptr) - in) << std::endl;
-
-            // assert(reinterpret_cast<uint8_t const*>(ptr) == in + 2 * cw);
 
             return reinterpret_cast<uint8_t const*>(ptr);
         }

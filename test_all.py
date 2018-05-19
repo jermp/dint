@@ -4,7 +4,7 @@ dataset_filename = sys.argv[1]
 output_prefix = sys.argv[2]
 dictionary_filename = sys.argv[3]
 
-codecs = ["interpolative", "optpfor", "varintg8iu", "vbyte", "u32",
+codecs = ["interpolative", "optpfor", "varintg8iu", "qmx", "vbyte", "u32",
           "simple16", "streamvbyte", "maskedvbyte", "varintgb", "dint"]
 
 for codec in codecs:
