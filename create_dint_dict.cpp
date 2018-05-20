@@ -134,9 +134,15 @@ std::ostream &operator<<(std::ostream &os, block_enc_stats const &stats) {
         }
     }
     os << "CODE WORD USAGE:\n";
+    size_t total_bits = 0;
     for(size_t i=0;i<stats.dict_usage.size();i++) {
         size_t encoded_nums = stats.dict_entry_lens[i];
-        if(i == 0) encoded_nums = 1;
+        if(i == 0) {
+            encoded_nums = 1;
+            total_bits += stats.dict_usage[i] * (16*3);
+        } else {
+            total_bits += stats.dict_usage[i] * 16;
+        }
         os  << "\tcode = " << std::setw(5) << i
             << "\tcode_len = " << std::setw(3) << stats.dict_entry_lens[i]
             << "\tfreq = " << std::setw(12) << stats.dict_usage[i]
@@ -166,6 +172,8 @@ std::ostream &operator<<(std::ostream &os, block_enc_stats const &stats) {
         }
         cur = codes_per_block[i];
     }
+
+    os << "\nESTIMATED BPI = " << double(total_bits) / double(stats.postings_encoded) << std::endl;
 
 
     return os;
