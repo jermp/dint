@@ -262,9 +262,14 @@ namespace ds2i {
                     // (2) find the prefixes and adjust freqs
                     auto orig_max_id = rbid_map[max_savings_mapped_bid];
                     auto& max_block = block_stats.blocks[orig_max_id];
+                    std::cout << "adding [";
+                    for(size_t i=0;i<max_block.entry_len;i++) {
+                        std::cout << max_block.entry[i] << ",";
+                    }
+                    std::cout << "] to dictionary" << std::endl;
                     int64_t adjustment = max_freq;
                     for(size_t i=max_block.num_prefixes;i>=1;i--) {
-                        std::cout << "adjusting " << max_block.num_prefixes << " prefixes..." << std::endl;
+                        std::cout << "adjusting " << int(max_block.num_prefixes) << " prefixes..." << std::endl;
                         auto prefix_id = max_block.prefix_ids[i-1];
                         adjustment = 2*adjustment;
                         std::cout << "adjustment = " << adjustment << std::endl;
@@ -273,6 +278,11 @@ namespace ds2i {
                             auto mapped_prefix_id = map_itr->second;
                             int64_t wasfreep = F[mapped_prefix_id];
                             auto& pb = block_stats.blocks[prefix_id];
+                            std::cout << "adjusting prefix [";
+                            for(size_t i=0;i<pb.entry_len;i++) {
+                                std::cout << pb.entry[i] << ",";
+                            }
+                            std::cout << "]" << std::endl;
                             std::cout << "F[before] = " << F[mapped_prefix_id] << std::endl;
                             F[mapped_prefix_id] = int64_t(F[mapped_prefix_id]) - adjustment;
                             std::cout << "F[after] = " << F[mapped_prefix_id] << std::endl;
