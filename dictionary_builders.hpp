@@ -240,7 +240,7 @@ namespace ds2i {
             for(size_t i=0;i<block_stats.blocks.size();i++) {
                 const auto& b = block_stats.blocks[i];
                 auto max_savings = (3*b.entry_len -1) * b.freq;
-                if(max_savings > 1500) {
+                if(max_savings > 256) {
                     bid_map[i] = F.size();
                     rbid_map[F.size()] = i;
                     F.push_back(b.freq);
@@ -261,13 +261,13 @@ namespace ds2i {
                     savings[max_savings_mapped_bid] = 0;
                     auto max_freq = F[max_savings_mapped_bid];
 #ifdef DINT_DEBUG
-                    std::cout << "needed = " << needed << " max_freq = " << max_freq << " at pos " << max_savings_mapped_bid << std::endl;
+                    std::cout << "needed = " << needed  << std::endl;
 #endif
                     // (2) find the prefixes and adjust freqs
                     auto orig_max_id = rbid_map[max_savings_mapped_bid];
                     auto& max_block = block_stats.blocks[orig_max_id];
 #ifdef DINT_DEBUG
-                    std::cout << "adding [";
+                    std::cout << "adding max_freq = " << max_freq << " at pos " << max_savings_mapped_bid << " [";
                     for(size_t i=0;i<max_block.entry_len;i++) {
                         std::cout << max_block.entry[i] << ",";
                     }
