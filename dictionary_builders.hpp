@@ -258,7 +258,7 @@ namespace ds2i {
                     dictionary[max_savings_mapped_bid] = savings[max_savings_mapped_bid];
                     savings[max_savings_mapped_bid] = 0;
                     auto max_freq = F[max_savings_mapped_bid];
-                    std::cout << "needed = " << needed << " max_freq = " << max_freq << " at pos " << max_savings_mapped_bid;
+                    std::cout << "needed = " << needed << " max_freq = " << max_freq << " at pos " << max_savings_mapped_bid << std::endl;
                     // (2) find the prefixes and adjust freqs
                     auto orig_max_id = rbid_map[max_savings_mapped_bid];
                     auto& max_block = block_stats.blocks[orig_max_id];
