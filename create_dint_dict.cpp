@@ -280,15 +280,15 @@ int main(int argc, const char** argv) {
         std::cout << enc_stats << std::endl;
     }
     // second freqs
-    {
-        auto block_stats = create_block_stats<block_stat_type>(input_basename,dict_type::freqs);
+    // {
+    //     auto block_stats = create_block_stats<block_stat_type>(input_basename,dict_type::freqs);
 
-        auto dict = build_dict<block_stat_type,dict_constructor_type>(block_stats);
+    //     auto dict = build_dict<block_stat_type,dict_constructor_type>(block_stats);
 
-        auto enc_stats = encode_lists(dict,input_basename,dict_type::freqs,encoding_block_size);
+    //     auto enc_stats = encode_lists(dict,input_basename,dict_type::freqs,encoding_block_size);
 
-        std::cout << enc_stats << std::endl;
-    }
+    //     std::cout << enc_stats << std::endl;
+    // }
 
 
     return 0;
