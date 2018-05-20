@@ -258,19 +258,25 @@ namespace ds2i {
                     dictionary[max_savings_mapped_bid] = savings[max_savings_mapped_bid];
                     savings[max_savings_mapped_bid] = 0;
                     auto max_freq = F[max_savings_mapped_bid];
+                    std::cout << "needed = " << needed << " max_freq = " << max_freq << " at pos " << max_savings_mapped_bid;
                     // (2) find the prefixes and adjust freqs
                     auto orig_max_id = rbid_map[max_savings_mapped_bid];
                     auto& max_block = block_stats.blocks[orig_max_id];
                     int64_t adjustment = max_freq;
                     for(size_t i=max_block.num_prefixes;i>=1;i--) {
+                        std::cout << "adjusting " << max_block.num_prefixes << " prefixes..." << std::endl;
                         auto prefix_id = max_block.prefix_ids[i-1];
                         adjustment = 2*adjustment;
+                        std::cout << "adjustment = " << adjustment << std::endl;
                         auto map_itr = bid_map.find(prefix_id);
                         if(map_itr != bid_map.end()) {
                             auto mapped_prefix_id = map_itr->second;
                             int64_t wasfreep = F[mapped_prefix_id];
                             auto& pb = block_stats.blocks[prefix_id];
+                            std::cout << "F[before] = " << F[mapped_prefix_id] << std::endl;
                             F[mapped_prefix_id] = int64_t(F[mapped_prefix_id]) - adjustment;
+                            std::cout << "F[after] = " << F[mapped_prefix_id] << std::endl;
+
                             savings[mapped_prefix_id] = (3*pb.entry_len -1) * F[mapped_prefix_id];
 
                             // (3) savings decreased. this guy has to try again!
@@ -278,6 +284,7 @@ namespace ds2i {
                             if(ditr != dictionary.end()) {
                                 dictionary.erase(ditr);
                                 adjustment -= wasfreep;
+                                std::cout << "Remove prefix from dictionary. adjustment = " << adjustment << std::endl;
                                 needed++;
                             }
                         }
