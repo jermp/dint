@@ -78,7 +78,6 @@ void encode(char const* collection_name,
 
             ++num_processed_lists;
             num_total_ints += n;
-            // break; // encode just the first sequence
 
             if (num_processed_lists % 1000 == 0) {
                 logger() << "encoded " << num_processed_lists << " lists" << std::endl;
@@ -139,7 +138,7 @@ int main(int argc, char** argv) {
     if (false) {
 #define LOOP_BODY(R, DATA, T)                                               \
         } else if (type == BOOST_PP_STRINGIZE(T)) {                         \
-            encode<BOOST_PP_CAT(T, )>                                         \
+            encode<BOOST_PP_CAT(T, )>                                       \
                 (collection_name, output_filename, dictionary_filename);    \
             /**/
 

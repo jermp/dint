@@ -40,7 +40,6 @@ void decode(char const* encoded_data_filename,
         std::ifstream dictionary_file(dictionary_filename);
         builder.load(dictionary_file);
         builder.build(dict);
-        // dict.print();
     }
 
     const static uint64_t MAX_SIZE = 30000000;
@@ -52,38 +51,16 @@ void decode(char const* encoded_data_filename,
     uint64_t total_decoded_ints = 0;
     std::vector<double> timings;
 
-    // auto start = clock_type::now();
-    while (begin != end)
-    {
+    while (begin != end) {
         uint32_t n, universe;
         begin = header::read(begin, &n, &universe);
-
-        // logger() << "n = " << n << "; universe = " << universe << std::endl;
-
         auto start = clock_type::now();
         begin = Decoder::decode(begin, decoded.data(), universe, n, &dict);
         auto finish = clock_type::now();
         std::chrono::duration<double> elapsed = finish - start;
         timings.push_back(elapsed.count());
-
         total_decoded_ints += n;
-
-        // logger() << "decoded " << total_decoded_ints << " ints" << std::endl;
-
-        // std::exit(1);
-        // for (uint64_t i = 0; i < n; ++i) {
-        //     std::cout << decoded[i] << " ";
-        // }
-        // std::cout << std::endl;
-
     }
-    // auto finish = clock_type::now();
-    // std::chrono::duration<double> elapsed = finish - start;
-
-    // logger() << "elapsed time " << elapsed.count() << " [sec]" << std::endl;
-    // double ns_x_int = elapsed.count() * 1000000000 / total_decoded_ints;
-    // logger() << ns_x_int << " [ns] x int" << std::endl;
-    // logger() << 1 / ns_x_int * 1000000000 << " ints x [sec]" << std::endl;
 
     double tot_elapsed = std::accumulate(timings.begin(), timings.end(), double(0.0));
     logger() << "elapsed time " << tot_elapsed << " [sec]" << std::endl;

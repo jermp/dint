@@ -10,15 +10,12 @@ namespace ds2i {
         heap()
         {}
 
-        heap(uint64_t size, C const& comparator)
-            : heap()
-        {
-            init(size, comparator);
-        }
+        heap(C const& comparator)
+            : m_comparator(comparator)
+        {}
 
-        void init(uint64_t size, C const& comparator) {
+        void reserve(size_t size) {
             m_q.reserve(size);
-            m_comparator = comparator;
         }
 
         void push_back(T const& x) {
@@ -64,18 +61,18 @@ namespace ds2i {
         std::vector<T> m_q;
         C m_comparator;
 
-        void sink(uint64_t pos) {
-            assert(pos <= size());
-            while (2 * pos + 1 < size()) {
-                uint64_t i = 2 * pos + 1;
-                if (i + 1 < size() and m_comparator(m_q[i], m_q[i + 1])) {
-                    ++i;
-                }
-                if (not m_comparator(m_q[pos], m_q[i])) break;
-                std::swap(m_q[pos], m_q[i]);
-                pos = i;
-            }
-        }
+        // void sink(uint64_t pos) {
+        //     assert(pos <= size());
+        //     while (2 * pos + 1 < size()) {
+        //         uint64_t i = 2 * pos + 1;
+        //         if (i + 1 < size() and m_comparator(m_q[i], m_q[i + 1])) {
+        //             ++i;
+        //         }
+        //         if (not m_comparator(m_q[pos], m_q[i])) break;
+        //         std::swap(m_q[pos], m_q[i]);
+        //         pos = i;
+        //     }
+        // }
     };
 
 }
