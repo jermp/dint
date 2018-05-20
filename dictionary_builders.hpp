@@ -590,9 +590,9 @@ namespace ds2i {
                     final_bpi -= cost_saving;
 
                     if (added_entries % 500 == 0) {
-                        std::cout << "entries in dictionary " << added_entries << "/65536" << std::endl;
-                        std::cout << "current bits x integer: " << final_bpi << std::endl;
-                        std::cout << "covering " << total_coverage << "% of integers" << std::endl;
+                        logger() << "entries in dictionary " << added_entries << "/65536" << std::endl;
+                        logger() << "current bits x integer: " << final_bpi << std::endl;
+                        logger() << "covering " << total_coverage << "% of integers" << std::endl;
                     }
 
                     // decrease frequencies of smaller blocks (if any)
@@ -609,7 +609,7 @@ namespace ds2i {
                     }
                 }
 
-                logger() << "covering " << total_coverage << "% of integers"
+                logger() << "covering " << total_coverage << "% of integers "
                          << "with entries of size " << (16 >> i) << std::endl;
 
                 if (i != 4) {
