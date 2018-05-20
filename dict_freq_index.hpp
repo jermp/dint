@@ -108,8 +108,8 @@ namespace ds2i {
                 // double docs_percentages[5] = {40, 15, 20, 20, 5};
                 // DictBuilder::build(m_docs_dict_builder, docs_percentages, total_integers, "docs");
                 // XXX: temporary
-                // std::ofstream docs_dictionary_file("./dictionary.docs");
-                // m_docs_dict_builder.write(docs_dictionary_file);
+                std::ofstream docs_dictionary_file("./dictionary.docs");
+                m_docs_dict_builder.write(docs_dictionary_file);
 
 
                 logger() << "Building dictionary for freqs..." << std::endl;
@@ -118,8 +118,8 @@ namespace ds2i {
                 // double freqs_percentages[5] = {50, 20, 20, 5, 5};
                 // DictBuilder::build(m_freqs_dict_builder, freqs_percentages, total_integers, "freqs");
                 // XXX: temporary
-                // std::ofstream freqs_dictionary_file("./dictionary.freqs");
-                // m_freqs_dict_builder.write(freqs_dictionary_file);
+                std::ofstream freqs_dictionary_file("./dictionary.freqs");
+                m_freqs_dict_builder.write(freqs_dictionary_file);
 
                 m_docs_dict_builder.prepare_for_encoding();
                 m_freqs_dict_builder.prepare_for_encoding();

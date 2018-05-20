@@ -46,8 +46,8 @@ void encode(char const* collection_name,
     }
 
     std::vector<uint8_t> output;
-    const static uint64_t GB = 1073741824;
-    uint64_t bytes = 5 * GB;
+    const static uint64_t GiB = 1073741824;
+    uint64_t bytes = 5 * GiB;
     output.reserve(bytes);
 
     std::vector<uint32_t> buf;
@@ -90,6 +90,7 @@ void encode(char const* collection_name,
 
     logger() << "encoded " << num_processed_lists << " lists" << std::endl;
     logger() << "encoded " << num_total_ints << " integers" << std::endl;
+    logger() << output.size() * 1.0 / GiB << " [GiB]" << std::endl;
     logger() << "bits x integer: "
              << output.size() * sizeof(output[0]) * 8.0 / num_total_ints << std::endl;
 

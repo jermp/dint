@@ -17,3 +17,4 @@ for codec in codecs:
     os.system(enc_cmd)
     for i in xrange(0, 3):
         os.system(dec_cmd)
+    os.system("rm " + output)
