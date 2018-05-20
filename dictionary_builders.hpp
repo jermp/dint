@@ -230,8 +230,8 @@ namespace ds2i {
 
             // (2) find the top-K most covering blocks
             logger() << "(2) compute initial savings" << std::endl;
-            std::vector<uint64_t> savings;
-            std::vector<uint64_t> F;
+            std::vector<int64_t> savings;
+            std::vector<int64_t> F;
             std::unordered_map<uint64_t,uint64_t> dictionary;
             std::unordered_map<uint64_t,uint64_t> bid_map;
             std::unordered_map<uint64_t,uint64_t> rbid_map;
@@ -261,19 +261,23 @@ namespace ds2i {
                     // (2) find the prefixes and adjust freqs
                     auto orig_max_id = rbid_map[max_savings_mapped_bid];
                     auto& max_block = block_stats.blocks[orig_max_id];
-                    for(size_t i=0;i<max_block.num_prefixes;i++) {
-                        auto prefix_id = max_block.prefix_ids[i];
+                    int64_t adjustment = max_freq;
+                    for(size_t i=max_block.num_prefixes;i>=1;i--) {
+                        auto prefix_id = max_block.prefix_ids[i-1];
+                        adjustment = 2*adjustment;
                         auto map_itr = bid_map.find(prefix_id);
                         if(map_itr != bid_map.end()) {
                             auto mapped_prefix_id = map_itr->second;
+                            int64_t wasfreep = F[mapped_prefix_id];
                             auto& pb = block_stats.blocks[prefix_id];
-                            F[mapped_prefix_id] -= max_freq;
+                            F[mapped_prefix_id] = int64_t(F[mapped_prefix_id]) - adjustment;
                             savings[mapped_prefix_id] = (3*pb.entry_len -1) * F[mapped_prefix_id];
 
                             // (3) savings decreased. this guy has to try again!
                             auto ditr = dictionary.find(mapped_prefix_id);
                             if(ditr != dictionary.end()) {
                                 dictionary.erase(ditr);
+                                adjustment -= wasfreep;
                                 needed++;
                             }
                         }
