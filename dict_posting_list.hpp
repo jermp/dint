@@ -27,8 +27,8 @@ namespace ds2i {
             std::vector<uint32_t> docs_buf(block_size);
             std::vector<uint32_t> freqs_buf(block_size);
 
-            // uint32_t last_doc(-1);
-            uint32_t last_doc(0);
+            uint32_t last_doc(-1);
+            // uint32_t last_doc(0);
             uint32_t block_base = 0;
 
             for (size_t b = 0; b < blocks; ++b) {
@@ -44,10 +44,10 @@ namespace ds2i {
                 //     freqs_buf[i] = *freqs_it++ - 1;
                 // }
 
-                // do not subtract 1 from everything
+                // substract 1 from docs
                 for (size_t i = 0; i < cur_block_size; ++i) {
                     uint32_t doc(*docs_it++);
-                    docs_buf[i] = doc - last_doc;
+                    docs_buf[i] = doc - last_doc - 1;
                     last_doc = doc;
                     freqs_buf[i] = *freqs_it++;
                 }

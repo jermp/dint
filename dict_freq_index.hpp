@@ -12,7 +12,9 @@
 
 namespace ds2i {
 
-    template<typename DictBuilder, typename DictBlock>
+    template<typename Dictionary,
+             typename DictionaryBuilder,
+             typename Encoder>
     struct dict_freq_index {
 
         struct builder {
@@ -29,10 +31,10 @@ namespace ds2i {
                                   uint64_t /* occurrences */)
             {
                 if (!n) throw std::invalid_argument("List must be nonempty");
-                dict_posting_list<DictBlock>::write(&m_docs_dict_builder,
-                                                    &m_freqs_dict_builder,
-                                                    m_lists, n,
-                                                    docs_begin, freqs_begin);
+                dict_posting_list<Encoder>::write(&m_docs_dict_builder,
+                                                  &m_freqs_dict_builder,
+                                                   m_lists, n,
+                                                   docs_begin, freqs_begin);
                 m_endpoints.push_back(m_lists.size());
             }
 
@@ -42,78 +44,78 @@ namespace ds2i {
                 logger() << "Collecting statistics..." << std::endl;
 
                 // step 1. collect statistics
-                std::vector<uint32_t> gaps;
-                uint64_t processed_lists = 0;
+                // std::vector<uint32_t> gaps;
+                // uint64_t processed_lists = 0;
                 uint64_t total_integers = 0;
 
-                for (uint32_t block_size = MAX_BLOCK_LEN; block_size != 0; block_size /= 2)
-                {
-                    blocks_statistics docs_blocks_stats(block_size);
-                    blocks_statistics freqs_blocks_stats(block_size);
-                    total_integers = 0;
-                    processed_lists = 0;
+                // for (uint32_t block_size = MAX_BLOCK_LEN; block_size != 0; block_size /= 2)
+                // {
+                //     blocks_statistics docs_blocks_stats(block_size);
+                //     blocks_statistics freqs_blocks_stats(block_size);
+                //     total_integers = 0;
+                //     processed_lists = 0;
 
-                    for (auto const& plist: input)
-                    {
-                        size_t n = plist.docs.size();
-                        if (n > MIN_SIZE)
-                        {
-                            total_integers += n;
-                            if (!n) throw std::invalid_argument("List must be nonempty");
+                //     for (auto const& plist: input)
+                //     {
+                //         size_t n = plist.docs.size();
+                //         if (n > MIN_SIZE)
+                //         {
+                //             total_integers += n;
+                //             if (!n) throw std::invalid_argument("List must be nonempty");
 
-                            gaps.reserve(n);
-                            auto docs_begin = plist.docs.begin();
-                            auto docs_end = docs_begin + n;
-                            uint32_t prev = -1;
-                            while (docs_begin != docs_end) {
-                                gaps.push_back(*docs_begin - prev - 1);
-                                prev = *docs_begin;
-                                ++docs_begin;
-                            }
-                            assert(gaps.size() == n);
+                //             gaps.reserve(n);
+                //             auto docs_begin = plist.docs.begin();
+                //             auto docs_end = docs_begin + n;
+                //             uint32_t prev = -1;
+                //             while (docs_begin != docs_end) {
+                //                 gaps.push_back(*docs_begin - prev - 1);
+                //                 prev = *docs_begin;
+                //                 ++docs_begin;
+                //             }
+                //             assert(gaps.size() == n);
 
-                            docs_blocks_stats.process(gaps.data(), n);
-                            freqs_blocks_stats.process(plist.freqs.begin(), n); // do not take gaps
+                //             docs_blocks_stats.process(gaps.data(), n);
+                //             freqs_blocks_stats.process(plist.freqs.begin(), n); // do not take gaps
 
-                            gaps.clear();
-                            ++processed_lists;
+                //             gaps.clear();
+                //             ++processed_lists;
 
-                            if (processed_lists and processed_lists % 10000 == 0) {
-                                logger() << "processed " << processed_lists << " lists" << std::endl;
-                                logger() << "processed " << total_integers << " integers" << std::endl;
-                            }
-                        }
-                    }
+                //             if (processed_lists and processed_lists % 10000 == 0) {
+                //                 logger() << "processed " << processed_lists << " lists" << std::endl;
+                //                 logger() << "processed " << total_integers << " integers" << std::endl;
+                //             }
+                //         }
+                //     }
 
-                    logger() << "processed " << processed_lists << " lists" << std::endl;
-                    logger() << "processed " << total_integers << " integers" << std::endl;
+                //     logger() << "processed " << processed_lists << " lists" << std::endl;
+                //     logger() << "processed " << total_integers << " integers" << std::endl;
 
-                    // write blocks statistics to the disk
-                    logger() << "Writing blocks statistics to the disk..." << std::endl;
-                    std::string docs_output_filename("./" + prefix_name + ".docs.blocks_stats." + std::to_string(block_size) + ".bin");
-                    docs_blocks_stats.sort_and_write(docs_output_filename);
-                    std::string freqs_output_filename("./" + prefix_name + ".freqs.blocks_stats." + std::to_string(block_size) + ".bin");
-                    freqs_blocks_stats.sort_and_write(freqs_output_filename);
-                }
+                //     // write blocks statistics to the disk
+                //     logger() << "Writing blocks statistics to the disk..." << std::endl;
+                //     std::string docs_output_filename("./" + prefix_name + ".docs.blocks_stats." + std::to_string(block_size) + ".bin");
+                //     docs_blocks_stats.sort_and_write(docs_output_filename);
+                //     std::string freqs_output_filename("./" + prefix_name + ".freqs.blocks_stats." + std::to_string(block_size) + ".bin");
+                //     freqs_blocks_stats.sort_and_write(freqs_output_filename);
+                // }
 
-                // total_integers = 19691599096; // 19691599096 5406586692
+                total_integers = 5406586692; // 19691599096 5406586692
 
                 // step 2. build dictionary from statistics
 
                 logger() << "Building dictionary for docs..." << std::endl;
-                DictBuilder::build(m_docs_dict_builder, total_integers, "./" + prefix_name + ".docs");
+                DictionaryBuilder::build(m_docs_dict_builder, total_integers, "./" + prefix_name + ".docs");
 
                 // double docs_percentages[5] = {40, 15, 20, 20, 5};
-                // DictBuilder::build(m_docs_dict_builder, docs_percentages, total_integers, "docs");
+                // DictionaryBuilder::build(m_docs_dict_builder, docs_percentages, total_integers, "docs");
                 std::ofstream docs_dictionary_file("./" + prefix_name + ".dictionary.docs");
                 m_docs_dict_builder.write(docs_dictionary_file);
 
 
                 logger() << "Building dictionary for freqs..." << std::endl;
-                DictBuilder::build(m_freqs_dict_builder, total_integers, "./" + prefix_name + ".freqs");
+                DictionaryBuilder::build(m_freqs_dict_builder, total_integers, "./" + prefix_name + ".freqs");
 
                 // double freqs_percentages[5] = {50, 20, 20, 5, 5};
-                // DictBuilder::build(m_freqs_dict_builder, freqs_percentages, total_integers, "freqs");
+                // DictionaryBuilder::build(m_freqs_dict_builder, freqs_percentages, total_integers, "freqs");
                 std::ofstream freqs_dictionary_file("./" + prefix_name + ".dictionary.freqs");
                 m_freqs_dict_builder.write(freqs_dictionary_file);
 
@@ -170,7 +172,7 @@ namespace ds2i {
             return m_freqs_dict;
         }
 
-        typedef typename dict_posting_list<DictBlock>::document_enumerator document_enumerator;
+        typedef typename dict_posting_list<Encoder>::document_enumerator document_enumerator;
 
         document_enumerator operator[](size_t i) const
         {
@@ -237,7 +239,7 @@ namespace ds2i {
         succinct::bit_vector m_endpoints;
         succinct::mapper::mappable_vector<uint8_t> m_lists;
 
-        dictionary m_docs_dict;
-        dictionary m_freqs_dict;
+        Dictionary m_docs_dict;
+        Dictionary m_freqs_dict;
     };
 }

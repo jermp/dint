@@ -431,11 +431,12 @@ namespace ds2i {
         }
     };
 
+    template<typename Dictionary>
     struct dint_block {
         static const uint64_t block_size = constants::block_size;
         static const uint64_t overflow = 512;
 
-        static void encode(dictionary::builder const* builder,
+        static void encode(typename Dictionary::builder const* builder,
                            uint32_t const *in,
                            uint32_t /*sum_of_values*/, size_t n,
                            std::vector<uint8_t>& out)
@@ -496,7 +497,7 @@ namespace ds2i {
             }
         }
 
-        static uint8_t const* decode(dictionary const* dict,
+        static uint8_t const* decode(Dictionary const* dict,
                                      uint8_t const *in,
                                      uint32_t *out,
                                      uint32_t /*sum_of_values*/, size_t n)

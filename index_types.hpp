@@ -42,8 +42,9 @@ namespace ds2i {
     typedef block_freq_index<ds2i::simple16_block> block_simple16_index;
 
     // DINT codec
-    typedef dict_freq_index<ds2i::dint_dictionary_builder<65536, 16>,
-                            ds2i::dint_block> block_dint_index;
+    typedef dict_freq_index<ds2i::dictionary,
+                            ds2i::dint_dictionary_builder<65536, 16>,
+                            ds2i::dint_block<ds2i::dictionary>> block_dint_index;
 }
 
 #define DS2I_INDEX_TYPES (ef)(single)(uniform)(opt)(block_optpfor)(block_varint)(block_interpolative)(block_mixed)(block_qmx)(block_u32)(block_vbyte)(block_simple16)(block_dint)
