@@ -85,13 +85,13 @@ Gov2 DINT Statistics
 |----------------:|---------------------:|----------------------:|---------------------------:|
 | 1092408356      | 14132727 (1.293%)    | 1067335904 (97.70%)   | 10939725  (1.001%)         |
 
-| total codewords         | 1092408356          :|
+| total codewords         | 1092408356           |
 |-------------------------|---------------------:|
-| codewords for 16+ ints  | 39752184 (3.638%)   :|
-| codewords for 8 ints    | 69770445 (6.386%)   :|
-| codewords for 4 ints    | 265554905 (24.309%) :|
-| codewords for 2 ints    | 436771872 (39.982%) :|
-| codewords for 1 ints    | 280558950 (25.682%) :|
+| codewords for 16+ ints  | 39752184 (3.638%)    |
+| codewords for 8 ints    | 69770445 (6.386%)    |
+| codewords for 4 ints    | 265554905 (24.309%)  |
+| codewords for 2 ints    | 436771872 (39.982%)  |
+| codewords for 1 ints    | 280558950 (25.682%)  |
 
 
 CC_News DINT Statistics
@@ -105,13 +105,13 @@ CC_News DINT Statistics
 |----------------:|---------------------:|----------------------:|---------------------------:|
 | 5003968348      | 46411036 (0.927%)    | 4904662233 (98.01%)   | 52895079  (1.057%)         |
 
-| total codewords         | 5003968348          :|
+| total codewords         | 5003968348           |
 |-------------------------|---------------------:|
-| codewords for 16+ ints  | 158635935 (3.170%)  :|
-| codewords for 8 ints    | 315066971 (6.296%)  :|
-| codewords for 4 ints    | 1141219579 (22.80%) :|
-| codewords for 2 ints    | 2071530103 (41.39%) :|
-| codewords for 1 ints    | 1317515760 (26.32%) :|
+| codewords for 16+ ints  | 158635935 (3.170%)   |
+| codewords for 8 ints    | 315066971 (6.296%)   |
+| codewords for 4 ints    | 1141219579 (22.80%)  |
+| codewords for 2 ints    | 2071530103 (41.39%)  |
+| codewords for 1 ints    | 1317515760 (26.32%)  |
 
 - A codeword is a short, namely 16 bits.
 - Exceptions are encoded using 3 shorts.
