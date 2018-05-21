@@ -516,6 +516,13 @@ namespace ds2i {
         }
     };
 
+    struct dint_statistics {
+        std::vector<uint64_t> ints(3, 0);       // 0:runs; 1:table; 2:exceptions
+
+        // NOTE: a "codeword" is a short (16 bits)
+        std::vector<uint64_t> codewords(3, 0);  // 0:runs; 1:table; 2:exceptions
+    };
+
     struct dint {
 
         static void encode(uint32_t const* in,
@@ -581,7 +588,8 @@ namespace ds2i {
         static uint8_t const* decode(uint8_t const* in,
                                      uint32_t* out,
                                      uint32_t /*universe*/, size_t n,
-                                     dictionary const* dict)
+                                     dictionary const* dict,
+                                     dint_statistics* stats)
         {
             uint16_t const* ptr = reinterpret_cast<uint16_t const*>(in);
             for (size_t i = 0; i != n; ++ptr) {
@@ -589,28 +597,28 @@ namespace ds2i {
                 uint32_t decoded_ints = 1;
 
                 if (DS2I_LIKELY(index > 5)) {
-                    // std::cout << "0" << "\n";
                     decoded_ints = dict->copy(index, out);
+                    stats.ints[1] += decoded_ints;
+                    stats.codewords[1] += 1;
                 } else {
-                    // std::cout << "1" << "\n";
                     static const uint32_t run_lengths[6] = {1, // exception
                                                             256, 128, 64, 32, 16};
-
                     decoded_ints = run_lengths[index]; // runs of 256, 128, 64, 32 or 16 ints
                     if (DS2I_UNLIKELY(decoded_ints == 1)) {
                         ++ptr;
-                        // ++cw;
                         *out = *(reinterpret_cast<uint32_t const*>(ptr));
-                        // std::cout << "exception: " << *out << std::endl;
                         ++ptr;
-                        // ++cw;
+
+                        stats.ints[2] += 1;
+                        stats.codewords[2] += 3;
+                    } else {
+                        stats.ints[0] += decoded_ints;
+                        stats.codewords[0] += 1;
                     }
                 }
 
                 out += decoded_ints;
                 i += decoded_ints;
-
-                // ++cw;
             }
 
             return reinterpret_cast<uint8_t const*>(ptr);

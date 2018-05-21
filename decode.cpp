@@ -53,11 +53,14 @@ void decode(std::string const& type,
     uint64_t num_decoded_lists = 0;
     std::vector<double> timings;
 
+    dint_statistics stats;
+
     while (begin != end) {
         uint32_t n, universe;
         begin = header::read(begin, &n, &universe);
         auto start = clock_type::now();
-        begin = Decoder::decode(begin, decoded.data(), universe, n, &dict);
+        begin = Decoder::decode(begin, decoded.data(), universe, n, &dict
+                                , &stats);
         auto finish = clock_type::now();
         std::chrono::duration<double> elapsed = finish - start;
         timings.push_back(elapsed.count());
@@ -82,6 +85,28 @@ void decode(std::string const& type,
     std::cout << "\"tot_elapsed_time\": \"" << tot_elapsed << "\", ";
     std::cout << "\"ns_x_int\": \"" << ns_x_int << "\"";
     std::cout << "\"ints_x_sec\": \"" << ints_x_sec << "\"";
+    std::cout << "}" << std::endl;
+
+    uint64_t total_codewords = stats.codewords[0] +
+                               stats.codewords[1] +
+                               stats.codewords[2] ;
+    uint64_t total_decoded_ints = stats.ints[0] +
+                                  stats.ints[1] +
+                                  stats.ints[2] ;
+    std::cout << "{";
+    std::cout << "\"filename\": \"" << encoded_data_filename << "\", ";
+    std::cout << "\"num_sequences\": \"" << num_decoded_lists << "\", ";
+    std::cout << "\"num_integers\": \"" << total_decoded_ints << "\", ";
+    std::cout << "\"num_codewords\": \"" << total_codewords << "\", ";
+
+    std::cout << "\"ints_runs\": \"" << stats.ints[0] << "\", ";
+    std::cout << "\"ints_table\": \"" << stats.ints[1] << "\", ";
+    std::cout << "\"ints_exception\": \"" << stats.ints[2] << "\"";
+
+    std::cout << "\"codewords_runs\": \"" << stats.codewords[0] << "\", ";
+    std::cout << "\"codewords_table\": \"" << stats.codewords[1] << "\", ";
+    std::cout << "\"codewords_exception\": \"" << stats.codewords[2] << "\"";
+
     std::cout << "}" << std::endl;
 
     file.close();
@@ -115,19 +140,21 @@ int main(int argc, char** argv) {
 
     logger() << cmd << std::endl;
 
-    if (false) {
-#define LOOP_BODY(R, DATA, T)                                          \
-        } else if (type == BOOST_PP_STRINGIZE(T)) {                    \
-            decode<BOOST_PP_CAT(T, )>                                  \
-                (type, encoded_data_filename, dictionary_filename);    \
-            /**/
+    decode<dint>(type, encoded_data_filename, dictionary_filename);
 
-        BOOST_PP_SEQ_FOR_EACH(LOOP_BODY, _, CODECS);
-#undef LOOP_BODY
-    } else {
-        logger() << "ERROR: unknown type '"
-                 << type << "'" << std::endl;
-    }
+//     if (false) {
+// #define LOOP_BODY(R, DATA, T)                                          \
+//         } else if (type == BOOST_PP_STRINGIZE(T)) {                    \
+//             decode<BOOST_PP_CAT(T, )>                                  \
+//                 (type, encoded_data_filename, dictionary_filename);    \
+//             /**/
+
+//         BOOST_PP_SEQ_FOR_EACH(LOOP_BODY, _, CODECS);
+// #undef LOOP_BODY
+//     } else {
+//         logger() << "ERROR: unknown type '"
+//                  << type << "'" << std::endl;
+//     }
 
     return 0;
 }
