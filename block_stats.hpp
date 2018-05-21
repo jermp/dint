@@ -36,6 +36,31 @@ namespace ds2i {
         block_stats_full_stride_geom() {
         }
 
+        std::string block_string(size_t id) const {
+            const auto& b = blocks[id];
+
+            std::string prefix_ids = "[";
+            for(size_t i=0;i<b.num_prefixes-1;i++) {
+                prefix_ids += std::to_string(b.prefix_ids[i]) + ",";
+            }
+            prefix_ids += std::to_string(b.prefix_ids[b.num_prefixes-1]) + "]";
+
+            std::string entry_str = "[";
+            for(size_t i=0;i<b.entry_len-1;i++) {
+                entry_str += std::to_string(b.entry[i]) + ",";
+            }
+            entry_str += std::to_string(b.entry[b.entry_len-1]) + "]";
+
+
+            std::string str = "<id="  + std::to_string(id)
+                + ",freq=" + std::to_string(b.freq)
+                + ",len=" + std::to_string(b.entry_len)
+                + ",num_prefixes=" + std::to_string(b.num_prefixes)
+                + ",prefix_ids=" + prefix_ids
+                + ",entry=" + entry_str + ">";
+            return str;
+        }
+
         block_stats_full_stride_geom(binary_collection& input,bool compute_gaps) {
             logger() << "creating block stats" << std::endl;
             std::unordered_map<uint32_t,uint64_t> block_map;
