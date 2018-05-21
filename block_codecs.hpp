@@ -493,7 +493,7 @@ namespace ds2i {
                     if (table_index == dictionary::invalid_index) {
                         // pattern was not found, thus we have an exception
                         // and leave it uncompressed
-                        if(*begin < 256) {
+                        if(*begin <= std::numeric_limits<uint16_t>::max()) {
                           out[stats.written_codes++] = 0;
                         } else {
                           out[stats.written_codes++] = 1;
