@@ -43,13 +43,13 @@ ds2i::dictionary::builder build_dict(block_stat_type& block_stats)
 }
 
 struct block_enc_stats {
-    std::vector<uint64_t> dict_usage_lens;
-    std::vector<uint64_t> dict_usage;
-    std::vector<uint64_t> dict_entry_lens;
-    std::vector<uint64_t> dict_entry_freqs;
-    std::vector<uint64_t> dict_entry_metric;
-    std::vector<uint32_t> codes_per_block;
-    std::vector<uint32_t> block_size;
+    std::vector<int64_t> dict_usage_lens;
+    std::vector<int64_t> dict_usage;
+    std::vector<int64_t> dict_entry_lens;
+    std::vector<int64_t> dict_entry_freqs;
+    std::vector<int64_t> dict_entry_metric;
+    std::vector<int32_t> codes_per_block;
+    std::vector<int32_t> block_size;
     std::vector<std::string> dict_entries;
     size_t num_blocks = 0;
     size_t total_codes = 0;
@@ -149,7 +149,7 @@ std::ostream &operator<<(std::ostream &os, block_enc_stats const &stats) {
             << "\tcode_len = " << std::setw(3) << stats.dict_entry_lens[i]
             << "\tfreq = " << std::setw(12) << stats.dict_usage[i]
             << "\tpredicted_freq = " << std::setw(12) << stats.dict_entry_freqs[i]
-            << "\tsavings = " << std::setw(12) << stats.dict_usage[i] * ( (2*encoded_nums) - shorts_used)
+            << "\tsavings = " << std::setw(12) << stats.dict_usage[i] * ( (3*encoded_nums) - shorts_used)
             << "\tpredicted_savings = " << std::setw(12) << stats.dict_entry_metric[i]
             << "\tpercent of codes = " << std::setw(6) << std::fixed << std::setprecision(2) << double(stats.dict_usage[i]) / double(stats.total_codes) * 100
             << "\tpercent of postings = " << std::setw(6) << std::fixed <<  std::setprecision(2) << double(stats.dict_usage[i]*encoded_nums) / double(stats.postings_encoded) * 100
