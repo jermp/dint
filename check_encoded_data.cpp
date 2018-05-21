@@ -65,6 +65,8 @@ void check(char const* collection_filename,
     uint64_t total_decoded_ints = 0;
     uint64_t sequence = 0;
 
+    dint_statistics stats;
+
     for (auto const& list: input)
     {
         uint32_t size = list.size();
@@ -79,7 +81,8 @@ void check(char const* collection_filename,
 
             begin = Decoder::decode(begin,
                                     decoded.data(),
-                                    universe, n, &dict);
+                                    universe, n, &dict
+                                    , stats);
             total_decoded_ints += n;
 
             uint32_t prev = 0;
@@ -131,20 +134,22 @@ int main(int argc, char** argv) {
         }
     }
 
-    if (false) {
-#define LOOP_BODY(R, DATA, T)                                   \
-        } else if (type == BOOST_PP_STRINGIZE(T)) {             \
-            check<BOOST_PP_CAT(T, )>                            \
-                (collection_filename, encoded_data_filename,    \
-                 dictionary_filename);                          \
-            /**/
+    check<dint>(collection_filename, encoded_data_filename, dictionary_filename);
 
-        BOOST_PP_SEQ_FOR_EACH(LOOP_BODY, _, CODECS);
-#undef LOOP_BODY
-    } else {
-        logger() << "ERROR: unknown type '"
-                 << type << "'" << std::endl;
-    }
+//     if (false) {
+// #define LOOP_BODY(R, DATA, T)                                   \
+//         } else if (type == BOOST_PP_STRINGIZE(T)) {             \
+//             check<BOOST_PP_CAT(T, )>                            \
+//                 (collection_filename, encoded_data_filename,    \
+//                  dictionary_filename);                          \
+//             /**/
+
+//         BOOST_PP_SEQ_FOR_EACH(LOOP_BODY, _, CODECS);
+// #undef LOOP_BODY
+//     } else {
+//         logger() << "ERROR: unknown type '"
+//                  << type << "'" << std::endl;
+//     }
 
     return 0;
 }

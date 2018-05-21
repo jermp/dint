@@ -602,6 +602,7 @@ namespace ds2i {
 
                 if (DS2I_LIKELY(index > 5)) {
                     decoded_ints = dict->copy(index, out);
+
                     stats.ints[1] += decoded_ints;
                     stats.codewords[1] += 1;
                 } else {
@@ -616,6 +617,7 @@ namespace ds2i {
                         stats.ints[2] += 1;
                         stats.codewords[2] += 3;
                     } else {
+
                         stats.ints[0] += decoded_ints;
                         stats.codewords[0] += 1;
                     }

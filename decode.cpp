@@ -83,7 +83,7 @@ void decode(std::string const& type,
     std::cout << "\"num_integers\": \"" << num_decoded_ints << "\", ";
     std::cout << "\"type\": \"" << type << "\", ";
     std::cout << "\"tot_elapsed_time\": \"" << tot_elapsed << "\", ";
-    std::cout << "\"ns_x_int\": \"" << ns_x_int << "\"";
+    std::cout << "\"ns_x_int\": \"" << ns_x_int << "\", ";
     std::cout << "\"ints_x_sec\": \"" << ints_x_sec << "\"";
     std::cout << "}" << std::endl;
 
@@ -101,7 +101,7 @@ void decode(std::string const& type,
 
     std::cout << "\"ints_runs\": \"" << stats.ints[0] << "\", ";
     std::cout << "\"ints_table\": \"" << stats.ints[1] << "\", ";
-    std::cout << "\"ints_exception\": \"" << stats.ints[2] << "\"";
+    std::cout << "\"ints_exception\": \"" << stats.ints[2] << "\", ";
 
     std::cout << "\"codewords_runs\": \"" << stats.codewords[0] << "\", ";
     std::cout << "\"codewords_table\": \"" << stats.codewords[1] << "\", ";
