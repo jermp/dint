@@ -53,6 +53,8 @@ struct block_enc_stats {
     std::vector<std::string> dict_entries;
     size_t num_blocks = 0;
     size_t total_codes = 0;
+    size_t total_exception_codes_u16 = 0;
+    size_t total_exception_codes_u32 = 0;
     size_t postings_encoded = 0;
 
     void init(ds2i::dictionary::builder& dict) {
@@ -97,9 +99,11 @@ struct block_enc_stats {
                 switch(codes[i]) {
                     case 0:
                         dict_usage_lens[0]++;
+                        total_exception_codes_u16++;
                         break;
                     case 1:
                         dict_usage_lens[1]++;
+                        total_exception_codes_u32++;
                         break;
                     case 2:
                         dict_usage_lens[256]++;
@@ -194,6 +198,11 @@ struct block_enc_stats {
         }
 
         os << "\nBPI = " <<  std::setprecision(5) << double(total_bits) / double(postings_encoded) << std::endl;
+        os << "\nEXCEPTIONS_BPI = " << double(exceptions_bits) / double(postings_encoded) << std::endl;
+        os << "\nTOTAL_NON_EXCEPTION_U16 = " << total_codes  << std::endl;
+        os << "\nTOTAL_EXCEPTION_U16 = " << total_exception_codes_u16  << std::endl;
+        os << "\nTOTAL_EXCEPTION_U32 = " << total_exception_codes_u32  << std::endl;
+        os << "\nTOTAL_U16 = " << total_codes + total_exception_codes_u16 + (2 * total_exception_codes_u32)  << std::endl;
         os << "\nEXCEPTIONS BPI = " << double(exceptions_bits) / double(postings_encoded) << std::endl;
     }
 };

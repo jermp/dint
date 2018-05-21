@@ -93,6 +93,7 @@ namespace ds2i {
 
             logger() << "(2) preparing initial estimates" << std::endl;
             std::vector<int64_t> freedom(block_stats.blocks.size());
+            std::vector<int64_t> predicted_freq(block_stats.blocks.size());
             std::vector<uint8_t> dictionary(block_stats.blocks.size());
             using pqdata_t = std::pair<int64_t,size_t>;
             auto cmp = [](const pqdata_t& left,const pqdata_t& right) { return left.first < right.first;};
@@ -120,6 +121,7 @@ namespace ds2i {
 
                     // (b) add to dict and adjust freedom of top item
                     auto adjust = freedom[block_id];
+                    predicted_freq[block_id] = adjust;
                     freedom[block_id] = freedom[block_id] - adjust;
                     dictionary[block_id] = 1;
                     auto& block = block_stats.blocks[block_id];
@@ -151,13 +153,13 @@ namespace ds2i {
             for(size_t i=0;i<dictionary.size();i++) {
                 if(dictionary[i] == 1) {
                     auto& block = block_stats.blocks[i];
-                    final_blocks.emplace_back(-1 * int64_t(block.freq),block);
+                    final_blocks.emplace_back(-1 * predicted_freq[i],block);
                 }
             }
             std::sort(final_blocks.begin(),final_blocks.end());
             for(auto& dict_entry : final_blocks) {
                 auto& block = dict_entry.second;
-                builder.append(block.entry,block.entry_len,block.freq);
+                builder.append(block.entry,block.entry_len,uint64_t(dict_entry.first * -1));
             }
         }
 
