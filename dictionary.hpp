@@ -276,17 +276,17 @@ namespace ds2i {
             // uint32_t const* ptr = &m_table[begin];
             // std::copy(ptr, ptr + 16, out);
 
-            // uint32_t begin = i * 17; // 9
-            // uint32_t end = begin + 16; // 8
-            // uint32_t size = m_table[end];
-            // uint32_t const* ptr = &m_table[begin];
-            // memcpy(out, ptr, 64); // 32
-
-            uint32_t begin = i * 9;
-            uint32_t end = begin + 8;
+            uint32_t begin = i * 17;
+            uint32_t end = begin + 16;
             uint32_t size = m_table[end];
             uint32_t const* ptr = &m_table[begin];
-            memcpy(out, ptr, 32);
+            memcpy(out, ptr, 64);
+
+            // uint32_t begin = i * 9;
+            // uint32_t end = begin + 8;
+            // uint32_t size = m_table[end];
+            // uint32_t const* ptr = &m_table[begin];
+            // memcpy(out, ptr, 32);
 
             return size;
         }
