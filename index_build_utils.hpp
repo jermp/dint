@@ -67,8 +67,10 @@ namespace ds2i {
         docs_size = total_size - freqs_size;
     }
 
-    template <typename builder, typename coder>
-    void get_size_stats(dict_freq_index<builder, coder>& coll,
+    template<typename Dictionary,
+             typename DictionaryBuilder,
+             typename Encoder>
+    void get_size_stats(dict_freq_index<Dictionary, DictionaryBuilder, Encoder>& coll,
                         uint64_t& docs_size, uint64_t& freqs_size)
     {
         auto size_tree = succinct::mapper::size_tree_of(coll);
