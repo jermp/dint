@@ -47,8 +47,8 @@ struct block_enc_stats {
     std::vector<int64_t> dict_usage;
     std::vector<int64_t> dict_entry_lens;
     std::vector<int64_t> dict_entry_freqs;
-    std::vector<int64_t> dict_entry_metric;
-    std::vector<int32_t> codes_per_block;
+    std::vector<uint32_t> codes_per_block;
+    std::vector<uint32_t> exceptions_per_block;
     std::vector<int32_t> block_size;
     std::vector<std::string> dict_entries;
     size_t num_blocks = 0;
@@ -59,22 +59,23 @@ struct block_enc_stats {
         size_t capacity = dict.capacity();
         for(size_t i=0;i<capacity;i++) {
             dict_entry_freqs.push_back(dict.freq(i));
-            dict_entry_metric.push_back(dict.metric(i));
         }
         dict_usage.resize(capacity);
         dict_entry_lens.resize(capacity);
         dict_usage_lens.resize(256+1);
         dict_entry_lens[0] = 0;
-        dict_entries.push_back("[exception code]");
-        dict_entry_lens[1] = 256;
+        dict_entries.push_back("[exception code 16bit]");
+        dict_entry_lens[1] = 0;
+        dict_entries.push_back("[exception code 32bit]");
+        dict_entry_lens[2] = 256;
         dict_entries.push_back("[1]*256");
-        dict_entry_lens[2] = 128;
+        dict_entry_lens[3] = 128;
         dict_entries.push_back("[1]*128");
-        dict_entry_lens[3] = 64;
+        dict_entry_lens[4] = 64;
         dict_entries.push_back("[1]*64");
-        dict_entry_lens[4] = 32;
+        dict_entry_lens[5] = 32;
         dict_entries.push_back("[1]*32");
-        for(size_t i=5;i<capacity;i++) {
+        for(size_t i=6;i<capacity;i++) {
             dict_entry_lens[i] = dict.size(i);
             dict_entries.push_back(dict.entry_string(i));
         }
@@ -82,13 +83,14 @@ struct block_enc_stats {
     }
 
     template<class t_dict>
-    void update(t_dict& dict,size_t input_size,std::vector<uint32_t>& codes,size_t num_codes)
+    void update(t_dict& dict,size_t input_size,std::vector<uint32_t>& codes,size_t num_codes,size_t num_exceptions)
     {
         num_blocks++;
         postings_encoded += input_size;
         total_codes += num_codes;
         block_size.push_back(input_size);
-        codes_per_block.push_back(num_codes);
+        codes_per_block.push_back(num_codes+num_exceptions);
+        exceptions_per_block.push_back(num_exceptions);
         for(size_t i=0;i<num_codes;i++) {
             dict_usage[codes[i]]++;
             if(codes[i] < dict.special_cases()) {
@@ -97,19 +99,19 @@ struct block_enc_stats {
                         dict_usage_lens[0]++;
                         break;
                     case 1:
-                        dict_usage_lens[256]++;
+                        dict_usage_lens[1]++;
                         break;
                     case 2:
-                        dict_usage_lens[128]++;
+                        dict_usage_lens[256]++;
                         break;
                     case 3:
-                        dict_usage_lens[64]++;
+                        dict_usage_lens[128]++;
                         break;
                     case 4:
-                        dict_usage_lens[32]++;
+                        dict_usage_lens[64]++;
                         break;
                     case 5:
-                        dict_usage_lens[16]++;
+                        dict_usage_lens[32]++;
                         break;
                 }
             } else {
@@ -118,87 +120,104 @@ struct block_enc_stats {
 
         }
     }
+
+    void print(std::ostream &os,ds2i::dictionary::builder& dict) {
+        os << "DICT LEN USAGE:\n";
+        for(size_t i=0;i<dict_usage_lens.size();i++) {
+            if(dict_usage_lens[i] != 0) {
+                size_t encoded_nums = i;
+                if(i == 0) encoded_nums = 1;
+                os  << "\tlen = " << std::setw(3) << i
+                    << "\tnum_codes = "  << std::setw(10) << dict_usage_lens[i]
+                    << "\tnum_postings = " << std::setw(10) << dict_usage_lens[i] * encoded_nums
+                    << "\tpercent of codes = " << std::setw(6) << std::fixed <<  std::setprecision(2) << double(dict_usage_lens[i]) / double(total_codes) * 100
+                    << "\tpercent of postings = " << std::setw(6) << std::fixed <<  std::setprecision(2) << double(dict_usage_lens[i]*encoded_nums) / double(postings_encoded) * 100 << "\n";
+            }
+        }
+        os << "CODE WORD USAGE:\n";
+        size_t total_bits = 0;
+        size_t exceptions_bits = 0;
+        for(size_t i=0;i<dict_usage.size();i++) {
+            int64_t encoded_nums = dict.size(i);
+            int64_t shorts_used = 1;
+            if(i == 0 || i == 1) {
+                encoded_nums = 1;
+                shorts_used = 2;
+                if(i == 1) shorts_used = 3;
+                exceptions_bits += 16*(shorts_used-1);
+            }
+            size_t cur_bits = dict_usage[i] * shorts_used * 16;
+            total_bits += cur_bits;
+            os  << "\tcode = " << std::setw(5) << i
+                << "\tcode_u16 = " << std::setw(1) << shorts_used
+                << "\tentry_len = " << std::setw(3) << dict.size(i)
+                << "\tfreq = " << std::setw(12) << dict_usage[i]
+                << "\tpredicted_freq = " << std::setw(12) << dict_entry_freqs[i]
+                << "\tpercent of codes = " << std::setw(6) << std::fixed << std::setprecision(2) << double(dict_usage[i]) / double(total_codes) * 100
+                << "\tpercent of postings = " << std::setw(6) << std::fixed <<  std::setprecision(2) << double(dict_usage[i]*encoded_nums) / double(postings_encoded) * 100
+                << "\t" << dict.entry_string(i) << "\n";
+        }
+
+        std::sort(codes_per_block.begin(),codes_per_block.end());
+
+        os << "CODES PER BLOCK:\n";
+        size_t cur = codes_per_block[0];
+        size_t freq = 1;
+        for(size_t i=1;i<codes_per_block.size();i++) {
+            if(codes_per_block[i] != cur) {
+                os  << "\t\tnum_codes_in_block = " << std::setw(10) << cur
+                    << "\tbpi = " << std::setw(6) << std::fixed <<  std::setprecision(3) << double(cur*16) / double(block_size[0])
+                    << "\tfreq = " << std::setw(10) << freq
+                    << "\tpercent of blocks = " << std::setw(6) << std::fixed <<  std::setprecision(2) << double(freq) / double(num_blocks) * 100 << "\n";
+                freq = 1;
+            } else {
+                freq++;
+            }
+            cur = codes_per_block[i];
+        }
+
+        std::sort(exceptions_per_block.begin(),exceptions_per_block.end());
+
+        os << "EXCEPTIONS PER BLOCK:\n";
+        cur = exceptions_per_block[0];
+        freq = 1;
+        for(size_t i=1;i<exceptions_per_block.size();i++) {
+            if(exceptions_per_block[i] != cur) {
+                os  << "\t\texceptions_per_block = " << std::setw(10) << cur
+                    << "\tfreq = " << std::setw(10) << freq
+                    << "\tpercent of blocks = " << std::setw(6) << std::fixed <<  std::setprecision(2) << double(freq) / double(num_blocks) * 100 << "\n";
+                freq = 1;
+            } else {
+                freq++;
+            }
+            cur = exceptions_per_block[i];
+        }
+
+        os << "\nBPI = " << double(total_bits) / double(postings_encoded) << std::endl;
+        os << "\nEXCEPTIONS BPI = " << double(exceptions_bits) / double(postings_encoded) << std::endl;
+    }
 };
 
-std::ostream &operator<<(std::ostream &os, block_enc_stats const &stats) {
-    os << "DICT LEN USAGE:\n";
-    for(size_t i=0;i<stats.dict_usage_lens.size();i++) {
-        if(stats.dict_usage_lens[i] != 0) {
-            size_t encoded_nums = i;
-            if(i == 0) encoded_nums = 1;
-            os  << "\tlen = " << std::setw(3) << i
-                << "\tnum_codes = "  << std::setw(10) << stats.dict_usage_lens[i]
-                << "\tnum_postings = " << std::setw(10) << stats.dict_usage_lens[i] * encoded_nums
-                << "\tpercent of codes = " << std::setw(6) << std::fixed <<  std::setprecision(2) << double(stats.dict_usage_lens[i]) / double(stats.total_codes) * 100
-                << "\tpercent of postings = " << std::setw(6) << std::fixed <<  std::setprecision(2) << double(stats.dict_usage_lens[i]*encoded_nums) / double(stats.postings_encoded) * 100 << "\n";
-        }
-    }
-    os << "CODE WORD USAGE:\n";
-    size_t total_bits = 0;
-    for(size_t i=0;i<stats.dict_usage.size();i++) {
-        int64_t encoded_nums = stats.dict_entry_lens[i];
-        int64_t shorts_used = 1;
-        if(i == 0) {
-            encoded_nums = 1;
-            shorts_used = 3;
-            total_bits += stats.dict_usage[i] * (16*3);
-        } else {
-            total_bits += stats.dict_usage[i] * 16;
-        }
-        os  << "\tcode = " << std::setw(5) << i
-            << "\tcode_len = " << std::setw(3) << stats.dict_entry_lens[i]
-            << "\tfreq = " << std::setw(12) << stats.dict_usage[i]
-            << "\tpredicted_freq = " << std::setw(12) << stats.dict_entry_freqs[i]
-            << "\tsavings = " << std::setw(12) << stats.dict_usage[i] * ( (3*encoded_nums) - shorts_used)
-            << "\tpredicted_savings = " << std::setw(12) << stats.dict_entry_metric[i]
-            << "\tpercent of codes = " << std::setw(6) << std::fixed << std::setprecision(2) << double(stats.dict_usage[i]) / double(stats.total_codes) * 100
-            << "\tpercent of postings = " << std::setw(6) << std::fixed <<  std::setprecision(2) << double(stats.dict_usage[i]*encoded_nums) / double(stats.postings_encoded) * 100
-            << "\t" << stats.dict_entries[i] << "\n";
-    }
 
-    auto codes_per_block = stats.codes_per_block;
-    std::sort(codes_per_block.begin(),codes_per_block.end());
-
-    os << "CODES PER BLOCK:\n";
-    size_t cur = codes_per_block[0];
-    size_t freq = 1;
-    for(size_t i=1;i<codes_per_block.size();i++) {
-        if(codes_per_block[i] != cur) {
-            os  << "\t\tnum_codes_in_block = " << std::setw(10) << cur
-                << "\tbpi = " << std::setw(6) << std::fixed <<  std::setprecision(3) << double(cur*16) / double(stats.block_size[0])
-                << "\tfreq = " << std::setw(10) << freq
-                << "\tpercent of blocks = " << std::setw(6) << std::fixed <<  std::setprecision(2) << double(freq) / double(stats.num_blocks) * 100 << "\n";
-            freq = 1;
-        } else {
-            freq++;
-        }
-        cur = codes_per_block[i];
-    }
-
-    os << "\nESTIMATED BPI = " << double(total_bits) / double(stats.postings_encoded) << std::endl;
-
-
-    return os;
-}
 
 struct encoding_stats {
     encoding_stats(ds2i::dictionary::builder& dict) {
         small_lists.init(dict);
+        small_lists.init(dict);
         full_blocks.init(dict);
         nonfull_blocks.init(dict);
+        all_blocks.init(dict);
     }
 
     block_enc_stats small_lists;
     block_enc_stats full_blocks;
     block_enc_stats nonfull_blocks;
+    block_enc_stats all_blocks;
+
+    void print(std::ostream& os,ds2i::dictionary::builder& dict) {
+        all_blocks.print(os,dict);
+    }
 };
-
-std::ostream &operator<<(std::ostream &os, encoding_stats const &stats) {
-    return os //<< "small_lists: \n" << stats.small_lists << "\n"
-              << "full_blocks: \n" << stats.full_blocks << "\n";
-              //<< "nonfull_blocks: \n" << stats.nonfull_blocks << "\n";
-}
-
 
 
 encoding_stats encode_lists(ds2i::dictionary::builder& dict,std::string input_basename,dict_type type,size_t block_size)
@@ -229,8 +248,9 @@ encoding_stats encode_lists(ds2i::dictionary::builder& dict,std::string input_ba
                     if(type == dict_type::docs) prev = *itr;
                     ++itr;
             }
-            auto written_codes = dint_block::encode(dict,buf.data(),n,output.data());
-            stats.small_lists.update(dict,n,output,written_codes);
+            auto bs = dint_block::encode(dict,buf.data(),n,output.data());
+            stats.small_lists.update(dict,n,output,bs.written_codes,bs.written_exceptions);
+            stats.all_blocks.update(dict,n,output,bs.written_codes,bs.written_exceptions);
         } else {
             size_t full_blocks = n / block_size;
             size_t left = n % block_size;
@@ -240,8 +260,9 @@ encoding_stats encode_lists(ds2i::dictionary::builder& dict,std::string input_ba
                     if(type == dict_type::docs) prev = *itr;
                     ++itr;
                 }
-                auto written_codes = dint_block::encode(dict,buf.data(),block_size,output.data());
-                stats.full_blocks.update(dict,block_size,output,written_codes);
+                auto bs = dint_block::encode(dict,buf.data(),block_size,output.data());
+                stats.full_blocks.update(dict,block_size,output,bs.written_codes,bs.written_exceptions);
+                stats.all_blocks.update(dict,n,output,bs.written_codes,bs.written_exceptions);
             }
 
 
@@ -251,8 +272,9 @@ encoding_stats encode_lists(ds2i::dictionary::builder& dict,std::string input_ba
                     if(type == dict_type::docs) prev = *itr;
                     ++itr;
                 }
-                auto written_codes = dint_block::encode(dict,buf.data(),block_size,output.data());
-                stats.nonfull_blocks.update(dict,block_size,output,written_codes);
+                auto bs = dint_block::encode(dict,buf.data(),left,output.data());
+                stats.nonfull_blocks.update(dict,left,output,bs.written_codes,bs.written_exceptions);
+                stats.all_blocks.update(dict,left,output,bs.written_codes,bs.written_exceptions);
             }
         }
         progress += n+1;
@@ -263,43 +285,51 @@ encoding_stats encode_lists(ds2i::dictionary::builder& dict,std::string input_ba
 
 int main(int argc, const char** argv) {
 
-    if (argc < 2) {
+    if (argc < 3) {
         std::cerr << "Usage: " << argv[0] << ":\n"
-                  << "\t<collection basename>"
+                  << "\t<collection basename> <log_prefix>"
                   << std::endl;
         return 1;
     }
 
     const char* input_basename = argv[1];
+    std::string log_prefix = argv[2];
 
     // define dict type
     const uint32_t encoding_block_size = 256;
     const uint32_t max_entry_width = 16;
     const uint32_t dict_entries = 65536;
     using block_stat_type = ds2i::block_stats_full_stride_geom<max_entry_width>;
-    using dict_constructor_type = ds2i::dint_dict_builder_sbc<block_stat_type,dict_entries, max_entry_width>;
 
-    // first docs
+    // DSF
     {
-        auto block_stats = create_block_stats<block_stat_type>(input_basename,dict_type::docs);
+        using dict_constructor_type = ds2i::dint_dict_builder_DSF<block_stat_type,dict_entries, max_entry_width>;
 
+        std::ofstream log_file(log_prefix + "-docs-" + dict_constructor_type::type());
+
+        auto block_stats = create_block_stats<block_stat_type>(input_basename,dict_type::docs);
         auto dict = build_dict<block_stat_type,dict_constructor_type>(block_stats);
+
+        dict.print_stats(log_file);
 
         auto enc_stats = encode_lists(dict,input_basename,dict_type::docs,encoding_block_size);
 
-        std::cout << enc_stats << std::endl;
+        enc_stats.print(log_file,dict);
     }
-    // second freqs
-    // {
-    //     auto block_stats = create_block_stats<block_stat_type>(input_basename,dict_type::freqs);
+    {
+        using dict_constructor_type = ds2i::dint_dict_builder_DSF<block_stat_type,dict_entries, max_entry_width>;
 
-    //     auto dict = build_dict<block_stat_type,dict_constructor_type>(block_stats);
+        std::ofstream log_file(log_prefix + "-freqs-" + dict_constructor_type::type());
 
-    //     auto enc_stats = encode_lists(dict,input_basename,dict_type::freqs,encoding_block_size);
+        auto block_stats = create_block_stats<block_stat_type>(input_basename,dict_type::freqs);
+        auto dict = build_dict<block_stat_type,dict_constructor_type>(block_stats);
 
-    //     std::cout << enc_stats << std::endl;
-    // }
+        dict.print_stats(log_file);
 
+        auto enc_stats = encode_lists(dict,input_basename,dict_type::freqs,encoding_block_size);
+
+        enc_stats.print(log_file,dict);
+    }
 
     return 0;
 }

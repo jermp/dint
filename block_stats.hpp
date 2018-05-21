@@ -6,7 +6,7 @@
 
 #include <unordered_map>
 
-const size_t MIN_SIZE_THRES = 4096;
+const size_t MIN_SIZE_THRES = 256;
 
 namespace ds2i {
 
@@ -21,11 +21,13 @@ namespace ds2i {
         template<uint32_t width>
         struct block_info {
             size_t freq;
-            size_t coverage;
             uint8_t entry_len;
             uint8_t num_prefixes;
             uint64_t prefix_ids[4];
             uint32_t entry[width];
+            bool operator<(const block_info& b) const {
+                return freq < b.freq;
+            }
         };
         #pragma pack(pop)
 
@@ -91,12 +93,10 @@ namespace ds2i {
                         if(itr != block_map.end()) {
                             auto block_idx = itr->second;
                             blocks[block_idx].freq += (max_entry_width >> cur_step);
-                            blocks[block_idx].coverage = blocks[block_idx].freq * j;
                         } else {
                             // create a new block
                             block_type new_block;
                             new_block.freq = (max_entry_width >> cur_step);
-                            new_block.coverage = new_block.freq * j;
                             new_block.entry_len = j;
                             new_block.num_prefixes = cur_step;
                             for(size_t k=0;k<new_block.num_prefixes;k++) {

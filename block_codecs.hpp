@@ -437,10 +437,17 @@ namespace ds2i {
         static const uint64_t block_size = constants::block_size;
         static const uint64_t overflow = 512;
 
-        static size_t encode(dictionary::builder& builder,
+        struct stats_type {
+          size_t written_codes;
+          size_t written_exceptions;
+        };
+
+        static stats_type encode(dictionary::builder& builder,
                            uint32_t const *in,size_t n,uint32_t* out)
         {
-            size_t written_codes = 0;
+            stats_type stats;
+            stats.written_codes = 0;
+            stats.written_exceptions = 0;
 
             uint32_t const* begin = in;
             uint32_t const* end = begin + n;
@@ -449,7 +456,7 @@ namespace ds2i {
                 // first, try runs of sizes 256, 128, 64, 32 and 16
                 uint32_t longest_run_size = 0;
                 uint32_t run_size = 256;
-                uint32_t table_index = 1;
+                uint32_t table_index = 2;
 
                 for (uint32_t const* ptr  = begin;
                                      ptr != begin + std::min<uint64_t>(run_size, end - begin);
@@ -468,7 +475,7 @@ namespace ds2i {
                 }
 
                 if (table_index < dictionary::reserved) {
-                    out[written_codes++] = table_index;
+                    out[stats.written_codes++] = table_index;
                     begin += std::min<uint64_t>(run_size, end - begin);
                 } else {
                     for (uint32_t sub_block_size  = builder.entry_size();
@@ -477,7 +484,7 @@ namespace ds2i {
                     {
                         table_index = builder.lookup(begin, sub_block_size);
                         if (table_index != dictionary::invalid_index) {
-                            out[written_codes++] = table_index;
+                            out[stats.written_codes++] = table_index;
                             begin += sub_block_size; // can be >= end
                             break;
                         }
@@ -486,12 +493,17 @@ namespace ds2i {
                     if (table_index == dictionary::invalid_index) {
                         // pattern was not found, thus we have an exception
                         // and leave it uncompressed
-                        out[written_codes++] = 0;
+                        if(*begin < 256) {
+                          out[stats.written_codes++] = 0;
+                        } else {
+                          out[stats.written_codes++] = 1;
+                        }
+                        stats.written_exceptions++;
                         begin += 1;
                     }
                 }
             }
-            return written_codes;
+            return stats;
         }
 
         static uint8_t const* decode(dictionary const* dict,

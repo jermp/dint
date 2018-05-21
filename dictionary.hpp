@@ -13,7 +13,7 @@ namespace ds2i {
     struct dictionary {
 
         static const uint32_t invalid_index = uint32_t(-1);
-        static const uint32_t reserved = 5; // 1 for exceptions
+        static const uint32_t reserved = 6; // 2 for exceptions
                                             // 4 for runs
 
         struct builder {
@@ -27,28 +27,26 @@ namespace ds2i {
                 , m_table(0, 0)
             {}
 
-            void init(uint32_t capacity, uint32_t entry_size) {
+            void init(uint32_t capacity, uint32_t entry_size,std::string type = "NULL") {
+                m_type = type;
                 m_pos = reserved * (entry_size + 1);
                 m_size = reserved;
                 m_capacity = capacity;
                 m_entry_size = entry_size;
                 m_table.resize(capacity * (entry_size + 1), 0);
+                m_freq.resize(0);
 
                 m_freq.push_back(0);    // exceptions
-                m_metric.push_back(0);  // exceptions
+
+                m_freq.push_back(0);    // exceptions
 
                 m_freq.push_back(0);    // 256
-                m_metric.push_back(0);  // 256
 
                 m_freq.push_back(0);    // 128
-                m_metric.push_back(0);  // 128
 
                 m_freq.push_back(0);    // 64
-                m_metric.push_back(0);  // 64
 
                 m_freq.push_back(0);    // 32
-                m_metric.push_back(0);  // 32
-
             }
 
             builder(uint32_t capacity, uint32_t entry_size) {
@@ -59,7 +57,7 @@ namespace ds2i {
                 return m_size == m_capacity;
             }
 
-            bool append(uint32_t const* entry, uint32_t entry_size,uint64_t freq,uint64_t metric) {
+            bool append(uint32_t const* entry, uint32_t entry_size,uint64_t freq) {
                 if (full()) {
                     return false;
                 }
@@ -68,7 +66,6 @@ namespace ds2i {
                 m_pos += m_entry_size + 1;
                 m_table[m_pos - 1] = entry_size;
                 m_freq.push_back(freq);
-                m_metric.push_back(metric);             
                 ++m_size;
                 return true;
             }
@@ -127,22 +124,27 @@ namespace ds2i {
                 std::swap(m_entry_size, other.m_entry_size);
                 m_table.swap(other.m_table);
                 m_freq.swap(other.m_freq);
-                m_metric.swap(other.m_metric);
                 m_map.swap(other.m_map);
             }
 
             uint32_t size(uint32_t i) const {
+                // special cases
+                if(i == 0 || i == 1) {
+                    return 0;
+                }
+                if(i == 2) return 256;
+                if(i == 3) return 128;
+                if(i == 4) return 64;
+                if(i == 5) return 32;
+
                 uint32_t begin = i * (m_entry_size + 1);
                 uint32_t end = begin + m_entry_size;
                 return m_table[end];
             }
 
             uint64_t freq(uint32_t i) const {
+                if(i <= 5) return 0;
                 return m_freq[i];
-            }
-
-            uint64_t metric(uint32_t i) const {
-                return m_metric[i];
             }
 
             uint32_t special_cases() const {
@@ -155,6 +157,13 @@ namespace ds2i {
             }
 
             std::string entry_string(uint32_t i) const {
+                if(i == 0) return "[exception 16bit]";
+                if(i == 1) return "[exception 32bit]";
+                if(i == 2) return "[1]*256";
+                if(i == 3) return "[1]*128";
+                if(i == 4) return "[1]*64";
+                if(i == 5) return "[1]*32";
+
                 uint32_t begin = i * (m_entry_size + 1);
                 uint32_t end = begin + m_entry_size;
                 uint32_t const* entry = &m_table[begin];
@@ -166,7 +175,36 @@ namespace ds2i {
                 return estr + std::to_string(entry[esize-1]) + "]";
             }
 
+            std::string type() const {
+                return m_type;
+            }
+
+            std::ostream& print_stats(std::ostream& os) {
+                os << "type = " << type() << std::endl;
+                os << " size = " << m_size << std::endl;
+                os << " special_cases = " << m_reserved << std::endl;
+
+                std::vector<uint32_t> len_stats(257);
+                for(size_t i=0;i<m_size;i++) {
+                    len_stats[size(i)]++;
+                }
+                os << " LEN DIST = " << std::endl;
+                for(size_t i=0;i<len_stats.size();i++) {
+                    if(len_stats[i] != 0) {
+                        os << "\t" << std::setw(4) << i << " = " << std::setw(6) << len_stats[i] << std::endl;
+                    }
+                }
+                os << " CONTENT = " << m_reserved << std::endl;
+                for(size_t i=0;i<len_stats.size();i++) {
+                    os << "\t" << std::setw(5) << i
+                        << " freq = " << std::setw(15) << freq(i)
+                        << " entry = " << entry_string(i) << std::endl;
+                }
+                return os;
+            }
+
         private:
+            std::string m_type;
             uint32_t m_pos;
             uint32_t m_size;
             uint32_t m_reserved;
@@ -174,11 +212,9 @@ namespace ds2i {
             uint32_t m_entry_size;
             std::vector<uint32_t> m_table;
             std::vector<uint64_t> m_freq;
-            std::vector<uint64_t> m_metric;
 
             // map from hash codes to table indexes, used during encoding
             std::unordered_map<uint64_t, uint32_t> m_map;
-
 
         };
 
@@ -186,17 +222,6 @@ namespace ds2i {
             : m_capacity(0)
             , m_entry_size(0)
         {}
-
-        // void optimize() {
-        //     m_T.resize(65536, std::vector<uint32_t>(17, 0));
-        //     int sum = 0;
-        //     for (int i = 0; i < 65536; ++i) {
-        //         for (int j = 0; j < 17; ++j) {
-        //             m_T[i][j] = m_table[sum + j];
-        //         }
-        //         sum += 17;
-        //     }
-        // }
 
         uint32_t copy(uint32_t i, uint32_t* out) const {
 
