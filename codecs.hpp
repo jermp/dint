@@ -521,10 +521,13 @@ namespace ds2i {
         dint_statistics()
             : ints(3, 0)
             , codewords(3, 0)
+            , codewords_distr(5, 0)
         {}
 
         std::vector<uint64_t> ints;       // 0:runs; 1:table; 2:exceptions
         std::vector<uint64_t> codewords;  // 0:runs; 1:table; 2:exceptions
+
+        std::vector<uint64_t> codewords_distr;  // 0:16+; 1:8; 2:4; 3:2; 4:1
     };
 
     struct dint {
@@ -616,6 +619,7 @@ namespace ds2i {
 
                         stats.ints[2] += 1;
                         stats.codewords[2] += 3;
+                        stats.codewords_distr[4] += 2;
                     } else {
 
                         stats.ints[0] += decoded_ints;
@@ -625,6 +629,18 @@ namespace ds2i {
 
                 out += decoded_ints;
                 i += decoded_ints;
+
+                if (decoded_ints >= 16) {
+                    stats.codewords_distr[0] += 1;
+                } else if (decoded_ints == 8) {
+                    stats.codewords_distr[1] += 1;
+                } else if (decoded_ints == 4) {
+                    stats.codewords_distr[2] += 1;
+                } else if (decoded_ints == 2) {
+                    stats.codewords_distr[3] += 1;
+                } else if (decoded_ints == 1) {
+                    stats.codewords_distr[4] += 1;
+                }
             }
 
             return reinterpret_cast<uint8_t const*>(ptr);

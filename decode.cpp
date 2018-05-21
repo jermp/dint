@@ -105,7 +105,13 @@ void decode(std::string const& type,
 
     std::cout << "\"codewords_runs\": \"" << stats.codewords[0] << "\", ";
     std::cout << "\"codewords_table\": \"" << stats.codewords[1] << "\", ";
-    std::cout << "\"codewords_exception\": \"" << stats.codewords[2] << "\"";
+    std::cout << "\"codewords_exception\": \"" << stats.codewords[2] << "\", ";
+
+    std::cout << "\"codewords_16_ints\": \"" << stats.codewords_distr[0] << "\", ";
+    std::cout << "\"codewords_8_ints\": \"" << stats.codewords_distr[1] << "\", ";
+    std::cout << "\"codewords_4_ints\": \"" << stats.codewords_distr[2] << "\", ";
+    std::cout << "\"codewords_2_ints\": \"" << stats.codewords_distr[3] << "\", ";
+    std::cout << "\"codewords_1_ints\": \"" << stats.codewords_distr[4] << "\"";
 
     std::cout << "}" << std::endl;
 
