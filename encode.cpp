@@ -61,11 +61,19 @@ void encode(std::string const& type,
         if (n > MIN_SIZE)
         {
             buf.reserve(n);
-            uint32_t prev = 0;
+            uint32_t prev = -1;
             uint32_t universe = 0;
 
+                // for (size_t i = 0; i < cur_block_size; ++i) {
+                //     uint32_t doc(*docs_it++);
+                //     docs_buf[i] = doc - last_doc - 1;
+                //     last_doc = doc;
+
+                //     freqs_buf[i] = *freqs_it++ - 1;
+                // }
+
             for (auto b = list.begin(); b != list.end(); ++b) {
-                buf.push_back(*b - prev);
+                buf.push_back(*b - prev - 1);
                 if (take_gaps) {
                     prev = *b;
                 }
