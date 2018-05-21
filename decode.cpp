@@ -17,7 +17,8 @@
 using namespace ds2i;
 
 template<typename Decoder>
-void decode(char const* encoded_data_filename,
+void decode(std::string const& type,
+            char const* encoded_data_filename,
             char const* dictionary_filename)
 {
     boost::iostreams::mapped_file_source file;
@@ -42,13 +43,14 @@ void decode(char const* encoded_data_filename,
         builder.build(dict);
     }
 
-    const static uint64_t MAX_SIZE = 30000000;
+    const static uint64_t MAX_SIZE = 50000000; // ensure enough space for the largest sequence
     std::vector<uint32_t> decoded;
     decoded.resize(MAX_SIZE);
 
     logger() << "decoding..." << std::endl;
 
-    uint64_t total_decoded_ints = 0;
+    uint64_t num_decoded_ints = 0;
+    uint64_t num_decoded_lists = 0;
     std::vector<double> timings;
 
     while (begin != end) {
@@ -59,14 +61,28 @@ void decode(char const* encoded_data_filename,
         auto finish = clock_type::now();
         std::chrono::duration<double> elapsed = finish - start;
         timings.push_back(elapsed.count());
-        total_decoded_ints += n;
+        num_decoded_ints += n;
+        ++num_decoded_lists;
     }
 
     double tot_elapsed = std::accumulate(timings.begin(), timings.end(), double(0.0));
+    double ns_x_int = tot_elapsed * 1000000000 / num_decoded_ints;
+    uint64_t ints_x_sec = uint64_t(1 / ns_x_int * 1000000000);
+
     logger() << "elapsed time " << tot_elapsed << " [sec]" << std::endl;
-    double ns_x_int = tot_elapsed * 1000000000 / total_decoded_ints;
     logger() << ns_x_int << " [ns] x int" << std::endl;
-    logger() << 1 / ns_x_int * 1000000000 << " ints x [sec]" << std::endl;
+    logger() << ints_x_sec << " ints x [sec]" << std::endl;
+
+    // stats to std output
+    std::cout << "{";
+    std::cout << "\"filename\": \"" << encoded_data_filename << "\", ";
+    std::cout << "\"num_sequences\": \"" << num_decoded_lists << "\", ";
+    std::cout << "\"num_integers\": \"" << num_decoded_ints << "\", ";
+    std::cout << "\"type\": \"" << type << "\", ";
+    std::cout << "\"tot_elapsed_time\": \"" << tot_elapsed << "\", ";
+    std::cout << "\"ns_x_int\": \"" << ns_x_int << "\"";
+    std::cout << "\"ints_x_sec\": \"" << ints_x_sec << "\"";
+    std::cout << "}" << std::endl;
 
     file.close();
 }
@@ -100,10 +116,10 @@ int main(int argc, char** argv) {
     logger() << cmd << std::endl;
 
     if (false) {
-#define LOOP_BODY(R, DATA, T)                                    \
-        } else if (type == BOOST_PP_STRINGIZE(T)) {              \
-            decode<BOOST_PP_CAT(T, )>                            \
-                (encoded_data_filename, dictionary_filename);    \
+#define LOOP_BODY(R, DATA, T)                                          \
+        } else if (type == BOOST_PP_STRINGIZE(T)) {                    \
+            decode<BOOST_PP_CAT(T, )>                                  \
+                (type, encoded_data_filename, dictionary_filename);    \
             /**/
 
         BOOST_PP_SEQ_FOR_EACH(LOOP_BODY, _, CODECS);

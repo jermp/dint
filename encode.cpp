@@ -17,7 +17,8 @@
 using namespace ds2i;
 
 template<typename Encoder>
-void encode(char const* collection_name,
+void encode(std::string const& type,
+            char const* collection_name,
             char const* output_filename,
             char const* dictionary_filename)
 {
@@ -72,6 +73,9 @@ void encode(char const* collection_name,
             }
             assert(buf.size() == n);
 
+            // std::cout << "list.back() = " << list.back() << std::endl;
+            // std::cout << "n = " << n << "; universe = " << universe << std::endl;
+
             header::write(n, universe, output);
             Encoder::encode(buf.data(), universe, n, output, &builder);
             buf.clear();
@@ -88,11 +92,23 @@ void encode(char const* collection_name,
         }
     }
 
+    double GiB_space = output.size() * 1.0 / GiB;
+    double bpi_space = output.size() * sizeof(output[0]) * 8.0 / num_total_ints;
+
     logger() << "encoded " << num_processed_lists << " lists" << std::endl;
     logger() << "encoded " << num_total_ints << " integers" << std::endl;
-    logger() << output.size() * 1.0 / GiB << " [GiB]" << std::endl;
-    logger() << "bits x integer: "
-             << output.size() * sizeof(output[0]) * 8.0 / num_total_ints << std::endl;
+    logger() << GiB_space << " [GiB]" << std::endl;
+    logger() << "bits x integer: " << bpi_space << std::endl;
+
+    // stats to std output
+    std::cout << "{";
+    std::cout << "\"filename\": \"" << collection_name << "\", ";
+    std::cout << "\"num_sequences\": \"" << num_processed_lists << "\", ";
+    std::cout << "\"num_integers\": \"" << num_total_ints << "\", ";
+    std::cout << "\"type\": \"" << type << "\", ";
+    std::cout << "\"GiB\": \"" << GiB_space << "\", ";
+    std::cout << "\"bpi\": \"" << bpi_space << "\"";
+    std::cout << "}" << std::endl;
 
     if (output_filename) {
         logger() << "writing encoded data..." << std::endl;
@@ -137,10 +153,10 @@ int main(int argc, char** argv) {
     logger() << cmd << std::endl;
 
     if (false) {
-#define LOOP_BODY(R, DATA, T)                                               \
-        } else if (type == BOOST_PP_STRINGIZE(T)) {                         \
-            encode<BOOST_PP_CAT(T, )>                                       \
-                (collection_name, output_filename, dictionary_filename);    \
+#define LOOP_BODY(R, DATA, T)                                                     \
+        } else if (type == BOOST_PP_STRINGIZE(T)) {                               \
+            encode<BOOST_PP_CAT(T, )>                                             \
+                (type, collection_name, output_filename, dictionary_filename);    \
             /**/
 
         BOOST_PP_SEQ_FOR_EACH(LOOP_BODY, _, CODECS);
