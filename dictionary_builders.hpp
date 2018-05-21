@@ -128,7 +128,7 @@ namespace ds2i {
 
                     // (c) add freedom of prefixes
                     for(size_t p = block.num_prefixes;p != 0; p--) {
-                        auto p_id = block.prefix_ids[p];
+                        auto p_id = block.prefix_ids[p-1];
                         adjust = adjust * 2;
                         auto padjust = freedom[p_id];
                         freedom[p_id] = freedom[p_id] - adjust;
