@@ -27,13 +27,13 @@ void encode(std::string const& type,
     uint64_t num_processed_lists = 0;
     uint64_t num_total_ints = 0;
 
-    bool take_gaps = true;
+    bool docs = true;
     boost::filesystem::path collection_path(collection_name);
     if (collection_path.extension() == ".freqs") {
-        take_gaps = false;
-        logger() << "not taking d-gaps" << std::endl;
+        docs = false;
+        logger() << "encoding freqs..." << std::endl;
     } else if (collection_path.extension() == ".docs") {
-        logger() << "taking d-gaps" << std::endl;
+        logger() << "encoding docs..." << std::endl;
     } else {
         throw std::runtime_error("unsupported file format");
     }
@@ -61,12 +61,11 @@ void encode(std::string const& type,
         if (n > MIN_SIZE)
         {
             buf.reserve(n);
-            uint32_t prev = -1;
+            uint32_t prev = docs ? -1 : 0;
             uint32_t universe = 0;
-
             for (auto b = list.begin(); b != list.end(); ++b) {
                 buf.push_back(*b - prev - 1);
-                if (take_gaps) {
+                if (docs) {
                     prev = *b;
                 }
                 universe += buf.back();

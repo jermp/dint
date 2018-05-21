@@ -49,13 +49,13 @@ void check(char const* collection_filename,
     std::vector<uint32_t> decoded;
     decoded.resize(MAX_SIZE, 0);
 
-    bool take_gaps = true;
+    bool docs = true;
     boost::filesystem::path collection_path(collection_filename);
     if (collection_path.extension() == ".freqs") {
-        take_gaps = false;
-        logger() << "not taking d-gaps" << std::endl;
+        docs = false;
+        logger() << "decoding freqs..." << std::endl;
     } else if (collection_path.extension() == ".docs") {
-        logger() << "taking d-gaps" << std::endl;
+        logger() << "decoding docs" << std::endl;
     } else {
         throw std::runtime_error("unsupported file format");
     }
@@ -86,11 +86,11 @@ void check(char const* collection_filename,
                                     );
             total_decoded_ints += n;
 
-            uint32_t prev = -1;
+            uint32_t prev = docs ? -1 : 0;
             uint64_t j = 0;
             for (auto b = list.begin(); b != list.end(); ++b, ++j) {
                 uint32_t expected = *b - prev - 1;
-                if (take_gaps) {
+                if (docs) {
                     prev = *b;
                 }
                 if (decoded[j] != expected) {
