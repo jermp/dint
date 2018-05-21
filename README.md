@@ -19,6 +19,24 @@ Gov2 Space (bpi)
 | DINT (actual)     |  3.2332           |  2.2739          |
 | DINT (estimated)  |  3.7467 (+15.88%) |  2.6341 (+15.84%)|
 
+CC_News Space (bpi)
+-------------------
+
+| Encoder           | docs              | freqs            |
+|:------------------|------------------:|-----------------:|
+| Interpolative     |  4.3954           |                  |
+| OptPFOR           |  4.1970           |                  |
+| VarintG8IU        |  9.2909           |                  |
+| QMX               |  4.3301           |                  |
+| VByte             |  8.3719           |                  |
+| Uncompressed      | 32.0002           |                  |
+| Simple16          |  4.1714           |                  |
+| StreamVByte       | 10.2307           |                  |
+| MaskedVByte       |  8.3719           |                  |
+| VarintGB          | 10.2307           |                  |
+| DINT (actual)     |  4.0660           |  2.0655          |
+| DINT (estimated)  |  4.4729 (+10.00%) |  2.2752 (+10.15%)|
+
 Gov2 Decoding Time (ns x int)
 -----------------------------
 
@@ -36,6 +54,23 @@ Gov2 Decoding Time (ns x int)
 | VarintGB          | 0.55312     | 0.51268     |
 | DINT*             | 0.70945     | 0.42871     |
 
+CC_News Decoding Time (ns x int)
+--------------------------------
+
+| Encoder           | docs        | freqs       |
+|:------------------|------------:|------------:|
+| Interpolative     | 9.28114     |             |
+| OptPFOR           | 0.98962     |             |
+| VarintG8IU        | 0.56313     |             |
+| QMX               | 1.38498     |             |
+| VByte             | 0.95535     |             |
+| Uncompressed      | 0.90068     |             |
+| Simple16          | 1.33971     |             |
+| StreamVByte       | 0.53137     |             |
+| MaskedVByte       | 0.53541     |             |
+| VarintGB          | 0.61775     |             |
+| DINT*             | 0.87670     |             |
+
 
 * DINT uses rectangular dictionaries of 2^16 x 16 x 4 bytes
 
@@ -48,7 +83,18 @@ Gov2 DINT Statistics
 
 | total codewords | codewords for runs   | codewords for table   | codewords for expections   |
 |----------------:|---------------------:|----------------------:|---------------------------:|
-| 1092408356      | 14132727 (1.293%)    | 1067335904 (97.70%)   | 10939725  (1.001%)          |
+| 1092408356      | 14132727 (1.293%)    | 1067335904 (97.70%)   | 10939725  (1.001%)         |
+
+CC_News DINT Statistics
+-----------------------
+
+| total ints      | ints covered by runs | ints covered by table | ints covered by expections |
+|----------------:|---------------------:|----------------------:|---------------------------:|
+| 19691599096     | 5385274048 (27.34%)  | 14288693355 (72.56%)  | 17631693  (0.089%)         |
+
+| total codewords | codewords for runs   | codewords for table   | codewords for expections   |
+|----------------:|---------------------:|----------------------:|---------------------------:|
+| 5003968348      | 46411036 (0.927%)    | 4904662233 (98.01%)   | 52895079  (1.057%)         |
 
 
 - A codeword is a short, namely 16 bits.
