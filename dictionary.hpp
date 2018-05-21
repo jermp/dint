@@ -195,7 +195,7 @@ namespace ds2i {
                     }
                 }
                 os << " CONTENT = " << m_reserved << std::endl;
-                for(size_t i=0;i<len_stats.size();i++) {
+                for(size_t i=0;i<m_size;i++) {
                     os << "\t" << std::setw(5) << i
                         << " freq = " << std::setw(15) << freq(i)
                         << " entry = " << entry_string(i) << std::endl;

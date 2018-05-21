@@ -93,7 +93,6 @@ namespace ds2i {
 
             logger() << "(2) preparing initial estimates" << std::endl;
             std::vector<int64_t> freedom(block_stats.blocks.size());
-            std::vector<uint8_t> dirty(block_stats.blocks.size());
             std::vector<uint8_t> dictionary(block_stats.blocks.size());
             using pqdata_t = std::pair<int64_t,size_t>;
             auto cmp = [](const pqdata_t& left,const pqdata_t& right) { return left.first < right.first;};
@@ -101,7 +100,6 @@ namespace ds2i {
             for(size_t i=0;i<block_stats.blocks.size();i++) {
                 const auto& block = block_stats.blocks[i];
                 freedom[i] = block.freq;
-                dirty[i] = 0;
                 pq.emplace(freedom[i],i);
             }
 
@@ -114,9 +112,9 @@ namespace ds2i {
                     // (a) get top item
                     auto item = pq.top(); pq.pop();
                     auto block_id = item.second;
-                    if(dirty[block_id]) {
+                    if(freedom[block_id] != item.first) {
+                        // is the item 'dirty?'
                         pq.emplace(freedom[block_id],block_id);
-                        dirty[block_id] = 0;
                         continue;
                     }
 
@@ -134,12 +132,10 @@ namespace ds2i {
                         freedom[p_id] = freedom[p_id] - adjust;
                         if(dictionary[p_id] == 1) {
                             dictionary[p_id] = 0;
-                            pq.emplace(freedom[p_id],p_id);
                             adjust = adjust - padjust;
                             needed = needed + 1;
-                        } else {
-                            dirty[p_id] = 1;
                         }
+                        pq.emplace(freedom[p_id],p_id);
                     }
                     needed = needed - 1;
                     if(needed == next) {
