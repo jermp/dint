@@ -96,7 +96,7 @@ namespace ds2i {
             std::vector<uint8_t> dirty(block_stats.blocks.size());
             std::vector<uint8_t> dictionary(block_stats.blocks.size());
             using pqdata_t = std::pair<int64_t,size_t>;
-            auto cmp = [](const pqdata_t& left,const pqdata_t& right) { return left.first > right.first;};
+            auto cmp = [](const pqdata_t& left,const pqdata_t& right) { return left.first < right.first;};
             std::priority_queue<pqdata_t, std::vector<pqdata_t>, decltype(cmp) > pq(cmp);
             for(size_t i=0;i<block_stats.blocks.size();i++) {
                 const auto& block = block_stats.blocks[i];
