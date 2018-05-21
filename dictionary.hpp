@@ -21,7 +21,7 @@ namespace ds2i {
                 , m_size(reserved)
                 , m_capacity(0)
                 , m_entry_size(0)
-                , m_table(0, 1)
+                , m_table(0, 0)
             {}
 
             void init(uint32_t capacity, uint32_t entry_size) {
@@ -48,7 +48,7 @@ namespace ds2i {
                     If we encode deltas by subtracting an additional 1,
                     we must change the default value to 0.
                 */
-                m_table.resize(capacity * (entry_size + 1), 1);
+                m_table.resize(capacity * (entry_size + 1), 0);
             }
 
             builder(uint32_t capacity, uint32_t entry_size) {

@@ -45,9 +45,9 @@ void check(char const* collection_filename,
         builder.build(dict);
     }
 
-    const static uint64_t MAX_SIZE = 30000000;
+    const static uint64_t MAX_SIZE = 50000000;
     std::vector<uint32_t> decoded;
-    decoded.resize(MAX_SIZE, 1);
+    decoded.resize(MAX_SIZE, 0);
 
     bool take_gaps = true;
     boost::filesystem::path collection_path(collection_filename);
@@ -86,17 +86,17 @@ void check(char const* collection_filename,
                                     );
             total_decoded_ints += n;
 
-            uint32_t prev = 0;
+            uint32_t prev = -1;
             uint64_t j = 0;
             for (auto b = list.begin(); b != list.end(); ++b, ++j) {
-                uint32_t expected = *b - prev;
+                uint32_t expected = *b - prev - 1;
                 if (take_gaps) {
                     prev = *b;
                 }
                 if (decoded[j] != expected) {
                     std::cerr << "Error at position " << j << "/" << n << ": got " << decoded[j] << " but expected " << expected << std::endl;
                 }
-                decoded[j] = 1; // re-init
+                decoded[j] = 0; // re-init
                 // std::cerr << expected << " ";
             }
             // std::cerr << std::endl;

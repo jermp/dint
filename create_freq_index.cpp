@@ -19,15 +19,6 @@ template<typename Collection>
 void dump_index_specific_stats(Collection const&, std::string const&)
 {}
 
-// // Giulio: specialize this later
-// void dump_index_specific_stats(block_dint_index const& coll,
-//                                std::string const& type)
-// {
-//     stats_line()
-//         ("type", type)
-//         ;
-// }
-
 void dump_index_specific_stats(uniform_index const& coll,
                                std::string const& type)
 {
@@ -67,14 +58,14 @@ void dump_index_specific_stats(opt_index const& coll,
 }
 
 template<typename InputCollection, typename Builder>
-void build_model(InputCollection const&, Builder&)
+void build_model(InputCollection const&, Builder&, const char*)
 {}
 
 template<typename InputCollection>
 void build_model(InputCollection const& input,
-                 block_dint_index::builder& builder)
+                 block_dint_index::builder& builder, const char* output_filename)
 {
-    builder.build_model(input);
+    builder.build_model(input, std::string(output_filename));
 }
 
 template <typename InputCollection, typename CollectionType>
@@ -88,7 +79,7 @@ void create_collection(InputCollection const& input,
     double user_tick = get_user_time_usecs();
 
     typename CollectionType::builder builder(input.num_docs(), params);
-    build_model(input, builder);
+    build_model(input, builder, output_filename);
 
     progress_logger plog("Encoded");
     logger() << "Encoding..." << std::endl;
