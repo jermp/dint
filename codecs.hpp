@@ -595,8 +595,10 @@ namespace ds2i {
         static uint8_t const* decode(uint8_t const* in,
                                      uint32_t* out,
                                      uint32_t /*universe*/, size_t n,
-                                     dictionary const* dict,
-                                     dint_statistics& stats)
+                                     dictionary const* dict
+                                     // ,
+                                     // dint_statistics& stats
+                                     )
         {
             uint16_t const* ptr = reinterpret_cast<uint16_t const*>(in);
             for (size_t i = 0; i != n; ++ptr) {
@@ -613,8 +615,7 @@ namespace ds2i {
                                                             256, 128, 64, 32, 16};
                     decoded_ints = run_lengths[index]; // runs of 256, 128, 64, 32 or 16 ints
                     if (DS2I_UNLIKELY(decoded_ints == 1)) {
-                        ++ptr;
-                        *out = *(reinterpret_cast<uint32_t const*>(ptr));
+                        *out = *(reinterpret_cast<uint32_t const*>(++ptr));
                         ++ptr;
 
                         // stats.ints[2] += 1;

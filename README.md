@@ -26,18 +26,20 @@ CC_News Space (bpi)
 
 | Encoder           | docs              | freqs            |
 |:------------------|------------------:|-----------------:|
-| Interpolative     |  4.3954           |                  |
-| OptPFOR           |  4.1970           |                  |
-| VarintG8IU        |  9.2909           |                  |
-| QMX               |  4.3301           |                  |
-| VByte             |  8.3719           |                  |
-| Uncompressed      | 32.0002           |                  |
-| Simple16          |  4.1714           |                  |
-| StreamVByte       | 10.2307           |                  |
-| MaskedVByte       |  8.3719           |                  |
-| VarintGB          | 10.2307           |                  |
-| DINT* (actual)    |  4.0660           |  2.0655          |
-| DINT* (estimated) |  4.4729 (+10.00%) |  2.2752 (+10.15%)|
+| Interpolative     |  4.3954           |  3.2474          |
+| OptPFOR           |  4.1970           |  2.7653          |
+| VarintG8IU        |  9.2909           |  9.0007          |
+| QMX               |  4.3301           |  3.0798          |
+| VByte             |  8.3719           |  8.0026          |
+| Uncompressed      | 32.0002           | 32.0002          |
+| Simple16          |  4.1714           |  2.7591          |
+| StreamVByte       | 10.2307           | 10.0006          |
+| MaskedVByte       |  8.3719           |  8.0026          |
+| VarintGB          | 10.2307           | 10.0006          |
+| DINT*  (actual)   |  4.0660           |  2.0655          |
+| DINT*  (estimated)|  4.4729 (+10.00%) |  2.2752 (+10.15%)|
+| DINT** (actual)   |  4.3817           |  2.3267          |
+| DINT** (estimated)|  5.0632 (+15.55%) |  2.7294 (+14.75%)|
 
 Gov2 Decoding Time (ns x int)
 -----------------------------
@@ -73,13 +75,19 @@ CC_News Decoding Time (ns x int)
 | MaskedVByte       | 0.53541     |             |
 | VarintGB          | 0.61775     |             |
 | DINT*             | 0.87670     |             |
-
+| DINT**            | 0.75852     | 0.47938     |
 
 DINT*  uses rectangular dictionaries of 2^16 x 16 x 4 bytes = 4 MiB
 DINT** uses rectangular dictionaries of 2^16 x  8 x 4 bytes = 2 MiB
 
-Gov2 DINT Statistics
---------------------
+Gov2.docs DINT Statistics
+-------------------------
+
+added  4847 16-int entries out of 156569293 (0.00309575%)
+added  6456  8-int entries out of 200793248 (0.00321525%)
+added 12654  4-int entries out of 121968050 (0.0103748%)
+added  7087  2-int entries out of  21792274 (0.0325207%)
+added 34492  1-int entries out of    695841 (4.95688%)
 
 | total ints      | ints covered by runs | ints covered by table | ints covered by exceptions |
 |----------------:|---------------------:|----------------------:|---------------------------:|
@@ -91,15 +99,21 @@ Gov2 DINT Statistics
 
 | total codewords         | 1092408356           |
 |-------------------------|---------------------:|
-| codewords for 16+ ints  | 39752184 (3.638%)    |
-| codewords for 8 ints    | 69770445 (6.386%)    |
-| codewords for 4 ints    | 265554905 (24.309%)  |
-| codewords for 2 ints    | 436771872 (39.982%)  |
-| codewords for 1 ints    | 280558950 (25.682%)  |
+| codewords for 16+ ints  |  39752184 ( 3.638%)  |
+| codewords for  8  ints  |  69770445 ( 6.386%)  |
+| codewords for  4  ints  | 265554905 (24.309%)  |
+| codewords for  2  ints  | 436771872 (39.982%)  |
+| codewords for  1  ints  | 280558950 (25.682%)  |
 
 
-CC_News DINT Statistics
------------------------
+CC_News.docs DINT Statistics
+----------------------------
+
+added  4847 16-int entries out of 680415119 (0.000712359%)
+added 10423  8-int entries out of 870845771 (0.00119688%)
+added 14955  4-int entries out of 490138856 (0.00305118%)
+added  9135  2-int entries out of  67162184 (0.0136014%)
+added 26176  1-int entries out of    833660 (3.13989%)
 
 | total ints      | ints covered by runs | ints covered by table | ints covered by exceptions |
 |----------------:|---------------------:|----------------------:|---------------------------:|
@@ -111,11 +125,11 @@ CC_News DINT Statistics
 
 | total codewords         | 5003968348           |
 |-------------------------|---------------------:|
-| codewords for 16+ ints  | 158635935 (3.170%)   |
-| codewords for 8 ints    | 315066971 (6.296%)   |
-| codewords for 4 ints    | 1141219579 (22.80%)  |
-| codewords for 2 ints    | 2071530103 (41.39%)  |
-| codewords for 1 ints    | 1317515760 (26.32%)  |
+| codewords for 16+ ints  |  158635935 ( 3.17%)  |
+| codewords for  8  ints  |  315066971 ( 6.29%)  |
+| codewords for  4  ints  | 1141219579 (22.80%)  |
+| codewords for  2  ints  | 2071530103 (41.39%)  |
+| codewords for  1  ints  | 1317515760 (26.32%)  |
 
 - A codeword is a short, namely 16 bits.
 - Exceptions are encoded using 3 shorts.

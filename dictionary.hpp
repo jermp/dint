@@ -70,54 +70,6 @@ namespace ds2i {
                 m_size = m_capacity;
             }
 
-            // void load_from_file(std::ifstream const& dictionary_file) {
-
-            //     uint32_t capacity, entry_size;
-            //     dictionary_file.read(reinterpret_cast<char*>(&capacity), sizeof(uint32_t));
-            //     dictionary_file.read(reinterpret_cast<char*>(&entry_size), sizeof(uint32_t));
-            //     init(capacity, entry_size);
-
-            //     // 0: --- exception case
-            //     // 1: 256
-            //     // 2: 128
-            //     // 3:  64
-            //     // 4:  32
-            //     // 5:  16
-
-            //     uint32_t size = 0;
-            //     while (dictionary_file.read(reinterpret_cast<char*>(&size), sizeof(uint32_t))) {
-
-            //         if (full()) {
-            //             break;
-            //         }
-
-            //         if (!size) {
-            //             throw std::runtime_error("dictionary entry must not be empty");
-            //         }
-
-            //         if (size > entry_size()) {
-            //             std::cerr << "found an entry whose size is larger than  the maximum allowed" << std::endl;
-            //             throw std::runtime_error("aborting");
-            //         }
-
-            //         // logger() << i << "-entry size " << size << std::endl;
-
-            //         uint32_t begin = m_pos;
-            //         uint32_t end = begin + entry_size();
-            //         m_table[end] = size;
-            //         for (uint32_t i = 0; i < size; ++i) {
-            //             uint32_t x;
-            //             dictionary_file.read(reinterpret_cast<char*>(&x), sizeof(uint32_t));
-            //             m_table[begin + i] = x;
-            //         }
-
-            //         m_pos += entry_size() + 1;
-            //         ++m_size;
-            //     }
-
-            //     assert(m_size <= capacity);
-            // }
-
             bool full() {
                 return m_size == m_capacity;
             }
@@ -217,17 +169,6 @@ namespace ds2i {
             , m_entry_size(0)
         {}
 
-        // void optimize() {
-        //     m_T.resize(65536, std::vector<uint32_t>(17, 0));
-        //     int sum = 0;
-        //     for (int i = 0; i < 65536; ++i) {
-        //         for (int j = 0; j < 17; ++j) {
-        //             m_T[i][j] = m_table[sum + j];
-        //         }
-        //         sum += 17;
-        //     }
-        // }
-
         // void print() {
         //     uint64_t sum = 0;
         //     for (int i = 0; i < 65536; ++i) {
@@ -242,17 +183,6 @@ namespace ds2i {
         uint32_t copy(uint32_t i, uint32_t* out) const {
 
             assert(i < 65536);
-
-            // uint32_t begin = i * (m_entry_size + 1);
-            // uint32_t end = begin + m_entry_size;
-            // uint32_t size = m_table[end];
-            // uint32_t const* ptr = &m_table[begin];
-            // // std::copy(ptr, ptr + size, out);
-            // std::copy(ptr, &m_table[end], out);
-            // return size;
-
-            // // std::copy(&m_T[i][0], &m_T[i][16], out);
-            // // return m_T[i][16];
 
 
             // 1.78 ns x int
@@ -276,17 +206,17 @@ namespace ds2i {
             // uint32_t const* ptr = &m_table[begin];
             // std::copy(ptr, ptr + 16, out);
 
-            // uint32_t begin = i * 17;
-            // uint32_t end = begin + 16;
-            // uint32_t size = m_table[end];
-            // uint32_t const* ptr = &m_table[begin];
-            // memcpy(out, ptr, 64);
-
-            uint32_t begin = i * 9;
-            uint32_t end = begin + 8;
+            uint32_t begin = i * 17;
+            uint32_t end = begin + 16;
             uint32_t size = m_table[end];
             uint32_t const* ptr = &m_table[begin];
-            memcpy(out, ptr, 32);
+            memcpy(out, ptr, 64);
+
+            // uint32_t begin = i * 9;
+            // uint32_t end = begin + 8;
+            // uint32_t size = m_table[end];
+            // uint32_t const* ptr = &m_table[begin];
+            // memcpy(out, ptr, 32);
 
             return size;
         }
@@ -319,8 +249,6 @@ namespace ds2i {
         uint32_t m_capacity;
         uint32_t m_entry_size;
         succinct::mapper::mappable_vector<uint32_t> m_table;
-
-        // std::vector<std::vector<uint32_t>> m_T;
     };
 
 }

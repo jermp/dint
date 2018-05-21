@@ -82,7 +82,8 @@ void check(char const* collection_filename,
             begin = Decoder::decode(begin,
                                     decoded.data(),
                                     universe, n, &dict
-                                    , stats);
+                                    // , stats
+                                    );
             total_decoded_ints += n;
 
             uint32_t prev = 0;

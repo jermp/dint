@@ -98,7 +98,7 @@ namespace ds2i {
                 //     freqs_blocks_stats.sort_and_write(freqs_output_filename);
                 // }
 
-                total_integers = 5406586692;
+                total_integers = 19691599096; // 19691599096 5406586692
 
                 // step 2. build dictionary from statistics
 
@@ -108,7 +108,7 @@ namespace ds2i {
                 // double docs_percentages[5] = {40, 15, 20, 20, 5};
                 // DictBuilder::build(m_docs_dict_builder, docs_percentages, total_integers, "docs");
                 // XXX: temporary
-                std::ofstream docs_dictionary_file("./gov2.dictionary.8.docs");
+                std::ofstream docs_dictionary_file("./cc_news.dictionary.8.docs");
                 m_docs_dict_builder.write(docs_dictionary_file);
 
 
@@ -118,7 +118,7 @@ namespace ds2i {
                 // double freqs_percentages[5] = {50, 20, 20, 5, 5};
                 // DictBuilder::build(m_freqs_dict_builder, freqs_percentages, total_integers, "freqs");
                 // XXX: temporary
-                std::ofstream freqs_dictionary_file("./gov2.dictionary.8.freqs");
+                std::ofstream freqs_dictionary_file("./cc_news.dictionary.8.freqs");
                 m_freqs_dict_builder.write(freqs_dictionary_file);
 
                 m_docs_dict_builder.prepare_for_encoding();
