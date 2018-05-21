@@ -20,7 +20,7 @@ namespace ds2i {
                 : m_pos(0)
                 , m_size(reserved)
                 , m_capacity(0)
-                , m_entry_size(0)
+                , m_max_entry_size(0)
                 , m_table(0, 0)
             {}
 
@@ -31,7 +31,7 @@ namespace ds2i {
                 m_pos = reserved * (entry_size + 1);
                 m_size = reserved;
                 m_capacity = capacity;
-                m_entry_size = entry_size;
+                m_max_entry_size = entry_size;
 
                 // XXX: Giulio
                 /*
@@ -57,7 +57,7 @@ namespace ds2i {
 
             void write(std::ofstream& dictionary_file) const {
                 dictionary_file.write(reinterpret_cast<char const*>(&m_capacity), sizeof(uint32_t));
-                dictionary_file.write(reinterpret_cast<char const*>(&m_entry_size), sizeof(uint32_t));
+                dictionary_file.write(reinterpret_cast<char const*>(&m_max_entry_size), sizeof(uint32_t));
                 dictionary_file.write(reinterpret_cast<char const*>(m_table.data()), m_table.size() * sizeof(uint32_t));
             }
 
@@ -78,9 +78,9 @@ namespace ds2i {
                 if (full()) {
                     return false;
                 }
-                assert(m_pos % (m_entry_size + 1) == 0);
+                assert(m_pos % (m_max_entry_size + 1) == 0);
                 std::copy(entry, entry + entry_size, &m_table[m_pos]);
-                m_pos += m_entry_size + 1;
+                m_pos += m_max_entry_size + 1;
                 m_table[m_pos - 1] = entry_size;
                 ++m_size;
                 return true;
@@ -122,13 +122,13 @@ namespace ds2i {
                 return m_capacity;
             }
 
-            size_t entry_size() const {
-                return m_entry_size;
+            size_t max_entry_size() const {
+                return m_max_entry_size;
             }
 
             void build(dictionary& dict) {
                 std::swap(m_capacity, dict.m_capacity);
-                std::swap(m_entry_size, dict.m_entry_size);
+                std::swap(m_max_entry_size, dict.m_max_entry_size);
                 dict.m_table.steal(m_table);
                 builder().swap(*this);
             }
@@ -137,7 +137,7 @@ namespace ds2i {
                 std::swap(m_pos, other.m_pos);
                 std::swap(m_size, other.m_size);
                 std::swap(m_capacity, other.m_capacity);
-                std::swap(m_entry_size, other.m_entry_size);
+                std::swap(m_max_entry_size, other.m_max_entry_size);
                 m_table.swap(other.m_table);
                 m_map.swap(other.m_map);
             }
@@ -146,27 +146,27 @@ namespace ds2i {
             uint32_t m_pos;
             uint32_t m_size;
             uint32_t m_capacity;
-            uint32_t m_entry_size;
+            uint32_t m_max_entry_size;
             std::vector<uint32_t> m_table;
 
             // map from hash codes to table indexes, used during encoding
             std::unordered_map<uint64_t, uint32_t> m_map;
 
             uint32_t const* get(uint32_t i) const {
-                uint32_t begin = i * (m_entry_size + 1);
+                uint32_t begin = i * (m_max_entry_size + 1);
                 return &m_table[begin];
             }
 
             uint32_t size(uint32_t i) const {
-                uint32_t begin = i * (m_entry_size + 1);
-                uint32_t end = begin + m_entry_size;
+                uint32_t begin = i * (m_max_entry_size + 1);
+                uint32_t end = begin + m_max_entry_size;
                 return m_table[end];
             }
         };
 
         dictionary()
             : m_capacity(0)
-            , m_entry_size(0)
+            , m_max_entry_size(0)
         {}
 
         // void print() {
@@ -193,15 +193,15 @@ namespace ds2i {
             // memcpy(out, ptr, 64);
 
             // // 1.83 ns x int
-            // uint32_t begin = i * (m_entry_size + 1); // i * 17
-            // uint32_t end = begin + m_entry_size; // begin + 16
+            // uint32_t begin = i * (m_max_entry_size + 1); // i * 17
+            // uint32_t end = begin + m_max_entry_size; // begin + 16
             // uint32_t size = m_table[end];
             // uint32_t const* ptr = &m_table[begin];
             // memcpy(out, ptr, 64);
 
             // // 1.95 ns x int
-            // uint32_t begin = i * (m_entry_size + 1); // i * 17
-            // uint32_t end = begin + m_entry_size; // begin + 16
+            // uint32_t begin = i * (m_max_entry_size + 1); // i * 17
+            // uint32_t end = begin + m_max_entry_size; // begin + 16
             // uint32_t size = m_table[end];
             // uint32_t const* ptr = &m_table[begin];
             // std::copy(ptr, ptr + 16, out);
@@ -226,12 +226,12 @@ namespace ds2i {
         }
 
         size_t entry_size() const {
-            return m_entry_size;
+            return m_max_entry_size;
         }
 
         void swap(dictionary& other) {
             std::swap(m_capacity, other.m_capacity);
-            std::swap(m_entry_size, other.m_entry_size);
+            std::swap(m_max_entry_size, other.m_max_entry_size);
             m_table.swap(other.m_table);
         }
 
@@ -240,14 +240,14 @@ namespace ds2i {
         {
             visit
                 (m_capacity, "m_capacity")
-                (m_entry_size, "m_entry_size")
+                (m_max_entry_size, "m_max_entry_size")
                 (m_table, "m_table")
                 ;
         }
 
     private:
         uint32_t m_capacity;
-        uint32_t m_entry_size;
+        uint32_t m_max_entry_size;
         succinct::mapper::mappable_vector<uint32_t> m_table;
     };
 

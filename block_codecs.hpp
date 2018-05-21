@@ -454,7 +454,7 @@ namespace ds2i {
                                      ptr != begin + std::min<uint64_t>(run_size, end - begin);
                                    ++ptr)
                 {
-                    if (*ptr == 1) {
+                    if (*ptr == 0) {
                         ++longest_run_size;
                     } else {
                         break;
@@ -471,7 +471,7 @@ namespace ds2i {
                     out.insert(out.end(), ptr, ptr + 2);
                     begin += std::min<uint64_t>(run_size, end - begin);
                 } else {
-                    for (uint32_t sub_block_size  = builder->entry_size();
+                    for (uint32_t sub_block_size  = builder->max_entry_size();
                                   sub_block_size != 0; sub_block_size /= 2)
                     {
                         uint32_t len = std::min<uint32_t>(sub_block_size, end - begin);
@@ -506,30 +506,19 @@ namespace ds2i {
             for (size_t i = 0; i != n; ++ptr) {
                 uint32_t index = *ptr;
                 uint32_t decoded_ints = 1;
-
                 if (DS2I_LIKELY(index > 5)) {
-                    // std::cout << "0" << "\n";
                     decoded_ints = dict->copy(index, out);
                 } else {
-                    // std::cout << "1" << "\n";
                     static const uint32_t run_lengths[6] = {1, // exception
                                                             256, 128, 64, 32, 16};
-
                     decoded_ints = run_lengths[index]; // runs of 256, 128, 64, 32 or 16 ints
                     if (DS2I_UNLIKELY(decoded_ints == 1)) {
+                        *out = *(reinterpret_cast<uint32_t const*>(++ptr));
                         ++ptr;
-                        // ++cw;
-                        *out = *(reinterpret_cast<uint32_t const*>(ptr));
-                        // std::cout << "exception: " << *out << std::endl;
-                        ++ptr;
-                        // ++cw;
                     }
                 }
-
                 out += decoded_ints;
                 i += decoded_ints;
-
-                // ++cw;
             }
 
             return reinterpret_cast<uint8_t const*>(ptr);
