@@ -516,11 +516,15 @@ namespace ds2i {
         }
     };
 
-    struct dint_statistics {
-        std::vector<uint64_t> ints(3, 0);       // 0:runs; 1:table; 2:exceptions
+    struct dint_statistics
+    {
+        dint_statistics()
+            : ints(3, 0)
+            , codewords(3, 0)
+        {}
 
-        // NOTE: a "codeword" is a short (16 bits)
-        std::vector<uint64_t> codewords(3, 0);  // 0:runs; 1:table; 2:exceptions
+        std::vector<uint64_t> ints;       // 0:runs; 1:table; 2:exceptions
+        std::vector<uint64_t> codewords;  // 0:runs; 1:table; 2:exceptions
     };
 
     struct dint {
@@ -589,7 +593,7 @@ namespace ds2i {
                                      uint32_t* out,
                                      uint32_t /*universe*/, size_t n,
                                      dictionary const* dict,
-                                     dint_statistics* stats)
+                                     dint_statistics& stats)
         {
             uint16_t const* ptr = reinterpret_cast<uint16_t const*>(in);
             for (size_t i = 0; i != n; ++ptr) {

@@ -60,7 +60,7 @@ void decode(std::string const& type,
         begin = header::read(begin, &n, &universe);
         auto start = clock_type::now();
         begin = Decoder::decode(begin, decoded.data(), universe, n, &dict
-                                , &stats);
+                                , stats);
         auto finish = clock_type::now();
         std::chrono::duration<double> elapsed = finish - start;
         timings.push_back(elapsed.count());
