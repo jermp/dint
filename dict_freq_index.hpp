@@ -101,7 +101,7 @@ namespace ds2i {
                 // step 2. build dictionary from statistics
 
                 logger() << "Building dictionary for docs..." << std::endl;
-                DictBuilder::build2(m_docs_dict_builder, total_integers, "./" + prefix_name + ".docs");
+                DictBuilder::build(m_docs_dict_builder, total_integers, "./" + prefix_name + ".docs");
 
                 // double docs_percentages[5] = {40, 15, 20, 20, 5};
                 // DictBuilder::build(m_docs_dict_builder, docs_percentages, total_integers, "docs");
@@ -110,7 +110,7 @@ namespace ds2i {
 
 
                 logger() << "Building dictionary for freqs..." << std::endl;
-                DictBuilder::build2(m_freqs_dict_builder, total_integers, "./" + prefix_name + ".freqs");
+                DictBuilder::build(m_freqs_dict_builder, total_integers, "./" + prefix_name + ".freqs");
 
                 // double freqs_percentages[5] = {50, 20, 20, 5, 5};
                 // DictBuilder::build(m_freqs_dict_builder, freqs_percentages, total_integers, "freqs");
