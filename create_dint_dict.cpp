@@ -165,7 +165,7 @@ struct block_enc_stats {
         size_t freq = 1;
         for(size_t i=1;i<codes_per_block.size();i++) {
             if(codes_per_block[i] != cur) {
-                os  << "\t\tnum_codes_in_block = " << std::setw(10) << cur
+                os  << "\t\tnum_codes_in_block = " << std::setw(5) << cur
                     << "\tbpi = " << std::setw(6) << std::fixed <<  std::setprecision(3) << double(cur*16) / double(block_size[0])
                     << "\tfreq = " << std::setw(10) << freq
                     << "\tpercent of blocks = " << std::setw(6) << std::fixed <<  std::setprecision(2) << double(freq) / double(num_blocks) * 100 << "\n";
@@ -183,7 +183,7 @@ struct block_enc_stats {
         freq = 1;
         for(size_t i=1;i<exceptions_per_block.size();i++) {
             if(exceptions_per_block[i] != cur) {
-                os  << "\t\texceptions_per_block = " << std::setw(10) << cur
+                os  << "\t\texceptions_per_block = " << std::setw(5) << cur
                     << "\tfreq = " << std::setw(10) << freq
                     << "\tpercent of blocks = " << std::setw(6) << std::fixed <<  std::setprecision(2) << double(freq) / double(num_blocks) * 100 << "\n";
                 freq = 1;
@@ -193,7 +193,7 @@ struct block_enc_stats {
             cur = exceptions_per_block[i];
         }
 
-        os << "\nBPI = " << double(total_bits) / double(postings_encoded) << std::endl;
+        os << "\nBPI = " <<  std::setprecision(5) << double(total_bits) / double(postings_encoded) << std::endl;
         os << "\nEXCEPTIONS BPI = " << double(exceptions_bits) / double(postings_encoded) << std::endl;
     }
 };
@@ -262,7 +262,7 @@ encoding_stats encode_lists(ds2i::dictionary::builder& dict,std::string input_ba
                 }
                 auto bs = dint_block::encode(dict,buf.data(),block_size,output.data());
                 stats.full_blocks.update(dict,block_size,output,bs.written_codes,bs.written_exceptions);
-                stats.all_blocks.update(dict,n,output,bs.written_codes,bs.written_exceptions);
+                stats.all_blocks.update(dict,block_size,output,bs.written_codes,bs.written_exceptions);
             }
 
 
