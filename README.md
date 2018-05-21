@@ -16,8 +16,10 @@ Gov2 Space (bpi)
 | StreamVByte       | 10.1676           | 10.0070          |
 | MaskedVByte       |  8.2653           |  8.0202          |
 | VarintGB          | 10.1676           | 10.0070          |
-| DINT (actual)     |  3.2332           |  2.2739          |
-| DINT (estimated)  |  3.7467 (+15.88%) |  2.6341 (+15.84%)|
+| DINT*  (actual)   |  3.2332           |  2.2739          |
+| DINT*  (estimated)|  3.7467 (+15.88%) |  2.6341 (+15.84%)|
+| DINT** (actual)   |  3.5112           |  2.5285          |
+| DINT** (estimated)|  4.4372 (+26.37%) |  3.1382 (+24.11%)|
 
 CC_News Space (bpi)
 -------------------
@@ -34,8 +36,8 @@ CC_News Space (bpi)
 | StreamVByte       | 10.2307           |                  |
 | MaskedVByte       |  8.3719           |                  |
 | VarintGB          | 10.2307           |                  |
-| DINT (actual)     |  4.0660           |  2.0655          |
-| DINT (estimated)  |  4.4729 (+10.00%) |  2.2752 (+10.15%)|
+| DINT* (actual)    |  4.0660           |  2.0655          |
+| DINT* (estimated) |  4.4729 (+10.00%) |  2.2752 (+10.15%)|
 
 Gov2 Decoding Time (ns x int)
 -----------------------------
@@ -53,6 +55,7 @@ Gov2 Decoding Time (ns x int)
 | MaskedVByte       | 0.44983     | 0.40227     |
 | VarintGB          | 0.55312     | 0.51268     |
 | DINT*             | 0.70945     | 0.42871     |
+| DINT**            | 0.58482     | 0.39663     |
 
 CC_News Decoding Time (ns x int)
 --------------------------------
@@ -72,7 +75,8 @@ CC_News Decoding Time (ns x int)
 | DINT*             | 0.87670     |             |
 
 
-* DINT uses rectangular dictionaries of 2^16 x 16 x 4 bytes
+DINT*  uses rectangular dictionaries of 2^16 x 16 x 4 bytes = 4 MiB
+DINT** uses rectangular dictionaries of 2^16 x  8 x 4 bytes = 2 MiB
 
 Gov2 DINT Statistics
 --------------------

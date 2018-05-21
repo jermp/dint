@@ -606,8 +606,8 @@ namespace ds2i {
                 if (DS2I_LIKELY(index > 5)) {
                     decoded_ints = dict->copy(index, out);
 
-                    stats.ints[1] += decoded_ints;
-                    stats.codewords[1] += 1;
+                    // stats.ints[1] += decoded_ints;
+                    // stats.codewords[1] += 1;
                 } else {
                     static const uint32_t run_lengths[6] = {1, // exception
                                                             256, 128, 64, 32, 16};
@@ -617,30 +617,31 @@ namespace ds2i {
                         *out = *(reinterpret_cast<uint32_t const*>(ptr));
                         ++ptr;
 
-                        stats.ints[2] += 1;
-                        stats.codewords[2] += 3;
-                        stats.codewords_distr[4] += 2;
-                    } else {
-
-                        stats.ints[0] += decoded_ints;
-                        stats.codewords[0] += 1;
+                        // stats.ints[2] += 1;
+                        // stats.codewords[2] += 3;
+                        // stats.codewords_distr[4] += 2;
                     }
+                    // else {
+
+                    //     stats.ints[0] += decoded_ints;
+                    //     stats.codewords[0] += 1;
+                    // }
                 }
 
                 out += decoded_ints;
                 i += decoded_ints;
 
-                if (decoded_ints >= 16) {
-                    stats.codewords_distr[0] += 1;
-                } else if (decoded_ints == 8) {
-                    stats.codewords_distr[1] += 1;
-                } else if (decoded_ints == 4) {
-                    stats.codewords_distr[2] += 1;
-                } else if (decoded_ints == 2) {
-                    stats.codewords_distr[3] += 1;
-                } else if (decoded_ints == 1) {
-                    stats.codewords_distr[4] += 1;
-                }
+                // if (decoded_ints >= 16) {
+                //     stats.codewords_distr[0] += 1;
+                // } else if (decoded_ints == 8) {
+                //     stats.codewords_distr[1] += 1;
+                // } else if (decoded_ints == 4) {
+                //     stats.codewords_distr[2] += 1;
+                // } else if (decoded_ints == 2) {
+                //     stats.codewords_distr[3] += 1;
+                // } else if (decoded_ints == 1) {
+                //     stats.codewords_distr[4] += 1;
+                // }
             }
 
             return reinterpret_cast<uint8_t const*>(ptr);

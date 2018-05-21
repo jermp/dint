@@ -507,6 +507,9 @@ namespace ds2i {
             logger() << "covering " << total_coverage << "% of integers" << std::endl;
         }
 
+        static const uint32_t MAX_BLOCK_LEN = 8;     // 16
+        static const uint32_t MAX_FRACTAL_STEPS = 4; // 5
+
         static void build2(dictionary::builder& builder, uint64_t total_integers,
                            std::string prefix_name, double eps = 0.0001)
         {
@@ -522,11 +525,11 @@ namespace ds2i {
             // <hash of block, unique_id>
             std::unordered_map<uint64_t, uint32_t> map;
 
-            std::vector<uint64_t> id_lowerbounds(6, 0);
+            std::vector<uint64_t> id_lowerbounds(MAX_FRACTAL_STEPS + 1, 0);
             // push to the set_heap the candidates
             uint32_t i = 0;
             uint32_t id = 0;
-            for (uint32_t block_size = 16; block_size != 0; block_size /= 2)
+            for (uint32_t block_size = MAX_BLOCK_LEN; block_size != 0; block_size /= 2)
             {
                 std::string collection_name("./" + prefix_name + ".blocks_stats." + std::to_string(block_size) + ".bin");
                 binary_blocks_collection input(collection_name.c_str());
@@ -538,7 +541,7 @@ namespace ds2i {
                     auto const& block = *begin;
                     double saving = bpi(block.size(), block.freq(), total_integers);
                     // std::cout << saving << std::endl;
-                    if (saving > eps or (i == 4 and (id < num_entries))) {
+                    if (saving > eps or (i == MAX_FRACTAL_STEPS - 1 and (id < num_entries))) {
                         entry_type2 entry(std::vector<uint32_t>(), block.freq());
                         entry.first.reserve(block.size());
                         for (uint32_t x: block) {
@@ -568,7 +571,7 @@ namespace ds2i {
             uint32_t added_entries = 0;
 
             i = 0;
-            while (not builder.full() and i != 5)
+            while (not builder.full() and i != MAX_FRACTAL_STEPS)
             {
                 for (auto const& x: candidates[i])
                 {
@@ -610,9 +613,9 @@ namespace ds2i {
                 }
 
                 logger() << "covering " << total_coverage << "% of integers "
-                         << "with entries of size " << (16 >> i) << std::endl;
+                         << "with entries of size " << (MAX_BLOCK_LEN >> i) << std::endl;
 
-                if (i != 4) {
+                if (i != MAX_FRACTAL_STEPS - 1) {
                     auto& c = candidates[i + 1];
                     bpi_comparator2 comp(&c, total_integers);
                     std::sort(c.begin(), c.end(), comp);
