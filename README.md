@@ -38,3 +38,20 @@ Gov2 Decoding Time (ns x int)
 
 
 * DINT uses rectangular dictionaries of 2^16 x 16 x 4 bytes
+
+Gov2 DINT Statistics
+--------------------
+
+| total ints      | ints covered by runs | ints covered by table | ints covered by expections |
+|----------------:|---------------------:|----------------------:|---------------------------:|
+| 5406586692      | 2261594608 (41.83%)  | 3140373712 (58.08%)   | 4618372  (0.085%)          |
+
+
+| total codewords | codewords for runs   | codewords for table   | codewords for expections   |
+|----------------:|---------------------:|----------------------:|---------------------------:|
+| 1094808566      | 15485714 (1.414%)    | 1065467736 (97.32%)   | 13855116  (1.26%)          |
+
+
+- A codeword is a short, namely 16 bits.
+- Exceptions are encoded using 3 shorts.
+
