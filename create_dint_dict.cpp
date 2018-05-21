@@ -301,9 +301,9 @@ int main(int argc, const char** argv) {
     const uint32_t dict_entries = 65536;
     using block_stat_type = ds2i::block_stats_full_stride_geom<max_entry_width>;
 
-    // DSF
+    // PDF
     {
-        using dict_constructor_type = ds2i::dint_dict_builder_DSF<block_stat_type,dict_entries, max_entry_width>;
+        using dict_constructor_type = ds2i::dint_dict_builder_PDF<block_stat_type,dict_entries, max_entry_width>;
 
         std::ofstream log_file(log_prefix + "-docs-" + dict_constructor_type::type());
 
@@ -317,7 +317,7 @@ int main(int argc, const char** argv) {
         enc_stats.print(log_file,dict);
     }
     {
-        using dict_constructor_type = ds2i::dint_dict_builder_DSF<block_stat_type,dict_entries, max_entry_width>;
+        using dict_constructor_type = ds2i::dint_dict_builder_PDF<block_stat_type,dict_entries, max_entry_width>;
 
         std::ofstream log_file(log_prefix + "-freqs-" + dict_constructor_type::type());
 
@@ -330,6 +330,37 @@ int main(int argc, const char** argv) {
 
         enc_stats.print(log_file,dict);
     }
+
+
+    // // DSF
+    // {
+    //     using dict_constructor_type = ds2i::dint_dict_builder_DSF<block_stat_type,dict_entries, max_entry_width>;
+
+    //     std::ofstream log_file(log_prefix + "-docs-" + dict_constructor_type::type());
+
+    //     auto block_stats = create_block_stats<block_stat_type>(input_basename,dict_type::docs);
+    //     auto dict = build_dict<block_stat_type,dict_constructor_type>(block_stats);
+
+    //     dict.print_stats(log_file);
+
+    //     auto enc_stats = encode_lists(dict,input_basename,dict_type::docs,encoding_block_size);
+
+    //     enc_stats.print(log_file,dict);
+    // }
+    // {
+    //     using dict_constructor_type = ds2i::dint_dict_builder_DSF<block_stat_type,dict_entries, max_entry_width>;
+
+    //     std::ofstream log_file(log_prefix + "-freqs-" + dict_constructor_type::type());
+
+    //     auto block_stats = create_block_stats<block_stat_type>(input_basename,dict_type::freqs);
+    //     auto dict = build_dict<block_stat_type,dict_constructor_type>(block_stats);
+
+    //     dict.print_stats(log_file);
+
+    //     auto enc_stats = encode_lists(dict,input_basename,dict_type::freqs,encoding_block_size);
+
+    //     enc_stats.print(log_file,dict);
+    // }
 
     return 0;
 }

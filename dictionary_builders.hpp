@@ -73,4 +73,99 @@ namespace ds2i {
 
     };
 
+
+
+    template<typename block_stats_type,
+             uint32_t num_entries = 65536,
+             uint32_t entry_width = 16
+             >
+    struct dint_dict_builder_PDF
+    {
+        static std::string type() {
+            return "PDF-" + std::to_string(num_entries) + "-" + std::to_string(entry_width);
+        }
+
+        template<class block_stat_type>
+        static void build(dictionary::builder& builder,block_stat_type& block_stats)
+        {
+            logger() << "(1) init dictionary" << std::endl;
+            builder.init(num_entries, entry_width,type());
+
+            logger() << "(2) preparing initial estimates" << std::endl;
+            std::vector<int64_t> freedom(block_stats.blocks.size());
+            std::vector<uint8_t> dirty(block_stats.blocks.size());
+            std::vector<uint8_t> dictionary(block_stats.blocks.size());
+            using pqdata_t = std::pair<int64_t,size_t>;
+            auto cmp = [](const pqdata_t& left,const pqdata_t& right) { return left.first > right.first;};
+            std::priority_queue<pqdata_t, std::vector<pqdata_t>, decltype(cmp) > pq(cmp);
+            for(size_t i=0;i<block_stats.blocks.size();i++) {
+                const auto& block = block_stats.blocks[i];
+                freedom[i] = block.freq;
+                dirty[i] = 0;
+                pq.emplace(freedom[i],i);
+            }
+
+            logger() << "(3) find the top-K most covering blocks" << std::endl;
+            size_t needed = num_entries;
+            size_t next = needed - 1;
+            {
+                boost::progress_display progress(needed);
+                while(needed != 0) {
+                    // (a) get top item
+                    auto item = pq.top(); pq.pop();
+                    auto block_id = item.second;
+                    if(dirty[block_id]) {
+                        pq.emplace(freedom[block_id],block_id);
+                        dirty[block_id] = 0;
+                        continue;
+                    }
+
+                    // (b) add to dict and adjust freedom of top item
+                    auto adjust = freedom[block_id];
+                    freedom[block_id] = freedom[block_id] - adjust;
+                    dictionary[block_id] = 1;
+                    auto& block = block_stats.blocks[block_id];
+
+                    // (c) add freedom of prefixes
+                    for(size_t p = block.num_prefixes;p != 0; p--) {
+                        auto p_id = block.prefix_ids[p];
+                        adjust = adjust * 2;
+                        auto padjust = freedom[p_id];
+                        freedom[p_id] = freedom[p_id] - adjust;
+                        if(dictionary[p_id] == 1) {
+                            dictionary[p_id] = 0;
+                            pq.emplace(freedom[p_id],p_id);
+                            adjust = adjust - padjust;
+                            needed = needed + 1;
+                        } else {
+                            dirty[p_id] = 1;
+                        }
+                    }
+                    needed = needed - 1;
+                    if(needed == next) {
+                        ++progress;
+                        next--;
+                    }
+                }
+            }
+
+            logger() << "(3) add blocks to dict in decreasing freq order" << std::endl;
+            using btype = typename block_stat_type::block_type;
+            std::vector<std::pair<int64_t,btype>> final_blocks;
+            for(size_t i=0;i<dictionary.size();i++) {
+                if(dictionary[i] == 1) {
+                    auto& block = block_stats.blocks[i];
+                    final_blocks.emplace_back(-1 * int64_t(block.freq),block);
+                }
+            }
+            std::sort(final_blocks.begin(),final_blocks.end());
+            for(auto& dict_entry : final_blocks) {
+                auto& block = dict_entry.second;
+                builder.append(block.entry,block.entry_len,block.freq);
+            }
+        }
+
+    };
+
+
 }
