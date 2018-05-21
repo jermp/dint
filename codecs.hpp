@@ -550,7 +550,7 @@ namespace ds2i {
                                      ptr != begin + std::min<uint64_t>(run_size, end - begin);
                                    ++ptr)
                 {
-                    if (*ptr == 1) {
+                    if (*ptr == 0) {
                         ++longest_run_size;
                     } else {
                         break;
@@ -567,7 +567,7 @@ namespace ds2i {
                     out.insert(out.end(), ptr, ptr + 2);
                     begin += std::min<uint64_t>(run_size, end - begin);
                 } else {
-                    for (uint32_t sub_block_size  = builder->entry_size();
+                    for (uint32_t sub_block_size  = builder->max_entry_size();
                                   sub_block_size != 0; sub_block_size /= 2)
                     {
                         uint32_t len = std::min<uint32_t>(sub_block_size, end - begin);
