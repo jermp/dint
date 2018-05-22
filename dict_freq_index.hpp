@@ -59,38 +59,38 @@ namespace ds2i {
                     for (auto const& plist: input)
                     {
                         size_t n = plist.docs.size();
-                        // if (n > MIN_SIZE)
-                        // {
-                        total_integers += n;
-                        if (!n) throw std::invalid_argument("List must be nonempty");
+                        if (n > MIN_SIZE)
+                        {
+                            total_integers += n;
+                            if (!n) throw std::invalid_argument("List must be nonempty");
 
-                        docs_gaps.reserve(n);
-                        freqs.reserve(n);
-                        auto docs_it = plist.docs.begin();
-                        auto freqs_it = plist.freqs.begin();
-                        uint32_t prev = -1;
-                        for (uint32_t i = 0; i < n; ++i) {
-                            docs_gaps.push_back(*docs_it - prev - 1);
-                            freqs.push_back(*freqs_it - 1);
-                            prev = *docs_it;
-                            ++docs_it;
-                            ++freqs_it;
+                            docs_gaps.reserve(n);
+                            freqs.reserve(n);
+                            auto docs_it = plist.docs.begin();
+                            auto freqs_it = plist.freqs.begin();
+                            uint32_t prev = -1;
+                            for (uint32_t i = 0; i < n; ++i) {
+                                docs_gaps.push_back(*docs_it - prev - 1);
+                                freqs.push_back(*freqs_it - 1);
+                                prev = *docs_it;
+                                ++docs_it;
+                                ++freqs_it;
+                            }
+                            assert(docs_gaps.size() == n);
+                            assert(freqs.size() == n);
+
+                            docs_blocks_stats.process(docs_gaps.data(), n);
+                            freqs_blocks_stats.process(freqs.data(), n);
+
+                            docs_gaps.clear();
+                            freqs.clear();
+                            ++processed_lists;
+
+                            if (processed_lists and processed_lists % 10000 == 0) {
+                                logger() << "processed " << processed_lists << " lists" << std::endl;
+                                logger() << "processed " << total_integers << " integers" << std::endl;
+                            }
                         }
-                        assert(docs_gaps.size() == n);
-                        assert(freqs.size() == n);
-
-                        docs_blocks_stats.process(docs_gaps.data(), n);
-                        freqs_blocks_stats.process(freqs.data(), n);
-
-                        docs_gaps.clear();
-                        freqs.clear();
-                        ++processed_lists;
-
-                        if (processed_lists and processed_lists % 10000 == 0) {
-                            logger() << "processed " << processed_lists << " lists" << std::endl;
-                            logger() << "processed " << total_integers << " integers" << std::endl;
-                        }
-                        // }
                     }
 
                     logger() << "processed " << processed_lists << " lists" << std::endl;
