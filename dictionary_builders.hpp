@@ -533,8 +533,7 @@ namespace ds2i {
                 {
                     auto const& block = *begin;
                     double saving = bpi(block.size(), block.freq(), total_integers);
-                    if (//block.size() == block_size and
-                       (saving > eps or (i == MAX_FRACTAL_STEPS - 1 and (id < num_entries))))
+                    if (saving > eps or (i == MAX_FRACTAL_STEPS - 1 and (id < num_entries)))
                     {
                         entry_type2 entry(std::vector<uint32_t>(), block.freq());
                         entry.first.reserve(block.size());

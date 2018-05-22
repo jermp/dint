@@ -97,10 +97,7 @@ void check(char const* collection_filename,
                     std::cerr << "Error at position " << j << "/" << n << ": got " << decoded[j] << " but expected " << expected << std::endl;
                 }
                 decoded[j] = 0; // re-init
-                // std::cerr << expected << " ";
             }
-            // std::cerr << std::endl;
-            // break;
         }
 
         ++sequence;
@@ -135,22 +132,22 @@ int main(int argc, char** argv) {
         }
     }
 
-    // check<dint>(collection_filename, encoded_data_filename, dictionary_filename);
+    check<dint>(collection_filename, encoded_data_filename, dictionary_filename);
 
-    if (false) {
-#define LOOP_BODY(R, DATA, T)                                   \
-        } else if (type == BOOST_PP_STRINGIZE(T)) {             \
-            check<BOOST_PP_CAT(T, )>                            \
-                (collection_filename, encoded_data_filename,    \
-                 dictionary_filename);                          \
-            /**/
+//     if (false) {
+// #define LOOP_BODY(R, DATA, T)                                   \
+//         } else if (type == BOOST_PP_STRINGIZE(T)) {             \
+//             check<BOOST_PP_CAT(T, )>                            \
+//                 (collection_filename, encoded_data_filename,    \
+//                  dictionary_filename);                          \
+//             /**/
 
-        BOOST_PP_SEQ_FOR_EACH(LOOP_BODY, _, CODECS);
-#undef LOOP_BODY
-    } else {
-        logger() << "ERROR: unknown type '"
-                 << type << "'" << std::endl;
-    }
+//         BOOST_PP_SEQ_FOR_EACH(LOOP_BODY, _, CODECS);
+// #undef LOOP_BODY
+//     } else {
+//         logger() << "ERROR: unknown type '"
+//                  << type << "'" << std::endl;
+//     }
 
     return 0;
 }

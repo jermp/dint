@@ -109,6 +109,31 @@ added 34492  1-int entries out of    695841 (4.95688%)
 | codewords for  2  ints  | 436771872 (39.982%)  |
 | codewords for  1  ints  | 280558950 (25.682%)  |
 
+Gov2.freqs DINT Statistics
+--------------------------
+
+added 1910 16-int entries out of 126356898 (0.00151159%)
+added 4803 8-int entries out of 87628676 (0.00548108%)
+added 4215 4-int entries out of 19874157 (0.0212084%)
+added 2589 2-int entries out of 938548 (0.275852%)
+added 12445 1-int entries out of 12445 (100%)
+
+| total ints      | ints covered by runs | ints covered by table | ints covered by exceptions |
+|----------------:|---------------------:|----------------------:|---------------------------:|
+| 5406586692      | 1387124080 (25.65%)  | 4019462612 (74.34%)   | 0  (0%)                    |
+
+| total codewords | codewords for runs   | codewords for table   | codewords for exceptions   |
+|----------------:|---------------------:|----------------------:|---------------------------:|
+| 768287504       | 12986016 (1.69%)     | 755301488 (98.30%)    | 0  (0%)                    |
+
+| total codewords         | 768287504            |
+|-------------------------|---------------------:|
+| codewords for 16+ ints  |  96587690 (12,571%)  |
+| codewords for  8  ints  | 141525081 (18,420%)  |
+| codewords for  4  ints  | 268456255 (34,942%)  |
+| codewords for  2  ints  | 214091682 (27,866%)  |
+| codewords for  1  ints  |  47626796 ( 6,199%)  |
+
 
 CC_News.docs DINT Statistics
 ----------------------------

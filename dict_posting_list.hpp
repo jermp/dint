@@ -36,21 +36,12 @@ namespace ds2i {
                     ((b + 1) * block_size <= n)
                     ? block_size : (n % block_size);
 
-                // subtract 1 from docs and frequencies
                 for (size_t i = 0; i < cur_block_size; ++i) {
                     uint32_t doc(*docs_it++);
                     docs_buf[i] = doc - last_doc - 1;
                     last_doc = doc;
                     freqs_buf[i] = *freqs_it++ - 1;
                 }
-
-                // subtract 1 from docs
-                // for (size_t i = 0; i < cur_block_size; ++i) {
-                //     uint32_t doc(*docs_it++);
-                //     docs_buf[i] = doc - last_doc - 1;
-                //     last_doc = doc;
-                //     freqs_buf[i] = *freqs_it++;
-                // }
 
                 *((uint32_t*)&out[begin_block_maxs + 4 * b]) = last_doc;
 
