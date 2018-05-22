@@ -298,6 +298,14 @@ namespace ds2i {
                 for (; i < capacity(); ++i) {
                     uint8_t const* ptr = reinterpret_cast<uint8_t const*>(get(i));
                     uint32_t entry_size = size(i);
+
+                    std::cout << "entry_size = " << entry_size << std::endl;
+                    uint32_t const* p = get(i);
+                    for (uint32_t k = 0; k < entry_size; ++k) {
+                        std::cout << *p << " ";
+                    }
+                    std::cout << std::endl;
+
                     uint64_t hash = hash_bytes64(byte_range(ptr, ptr + entry_size * sizeof(uint32_t)));
                     m_map[hash] = i;
                 }
