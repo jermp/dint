@@ -195,13 +195,39 @@ struct block_enc_stats {
             cur = exceptions_per_block[i];
         }
 
-        os << "POSTINGS = " << postings_encoded  << std::endl;
+        os << "RBO = \n";
+
+        struct rbo_entry {
+            size_t id;
+            size_t freq;
+            size_t predicted_freq;
+            bool operator<(const rbo_entry& other) {
+                if(freq == other.freq) return id < other.id;
+                return freq > other.freq;
+            }
+        };
+
+        std::vector<rbo_entry> rbo_list;
+        for(size_t i=dict.special_cases();i<dict_usage.size();i++) {
+            rbo_entry r;
+            r.id = i;
+            r.freq = dict_usage[i];
+            r.predicted_freq = dict_entry_freqs[i];
+            rbo_list.push_back(r);
+        }
+        std::sort(rbo_list.begin(),rbo_list.end());
+        for(size_t i=0;i<rbo_list.size();i++) {
+            os << "rbo," << i << "," << r.id << std::endl;
+        }
+
+        os << "\n\nPOSTINGS = " << postings_encoded  << std::endl;
         os << "BPI = " <<  std::setprecision(5) << double(total_bits) / double(postings_encoded) << std::endl;
         os << "TOTAL_NON_EXCEPTION_U16 = " << total_codes  << std::endl;
         os << "TOTAL_EXCEPTION_U16 = " << total_exception_codes_u16  << std::endl;
         os << "TOTAL_EXCEPTION_U32 = " << total_exception_codes_u32  << std::endl;
         os << "TOTAL_U16 = " << total_codes + total_exception_codes_u16 + (2 * total_exception_codes_u32)  << std::endl;
         os << "EXCEPTIONS BPI = " << double((total_exception_codes_u16 + (2 * total_exception_codes_u32)) * 16) / double(postings_encoded) << std::endl;
+
     }
 };
 
@@ -337,23 +363,23 @@ int main(int argc, const char** argv) {
     const uint32_t dict_entries = 65536;
     
     // // PDF
-    // {
-    //     using block_stat_type = ds2i::block_stats_full_stride_geom<max_entry_width>;
-    //     using dict_type = ds2i::dint_dict_builder_PDF<block_stat_type,dict_entries, max_entry_width>;
-    //     eval_dict<dict_type,block_stat_type,encoding_block_size>(input_basename,log_prefix);
-    // }
-    // // DSF
-    // {
-    //     using block_stat_type = ds2i::block_stats_full_stride_geom<max_entry_width>;
-    //     using dict_type = ds2i::dint_dict_builder_DSF<block_stat_type,dict_entries, max_entry_width>;
-    //     eval_dict<dict_type,block_stat_type,encoding_block_size>(input_basename,log_prefix);
-    // }
-    // SDF
     {
-        using block_stat_type = ds2i::block_stats_full_stride_linear<max_entry_width>;
-        using dict_type = ds2i::dint_dict_builder_SDF<block_stat_type,dict_entries, max_entry_width>;
+        using block_stat_type = ds2i::block_stats_full_stride_geom<max_entry_width>;
+        using dict_type = ds2i::dint_dict_builder_PDF<block_stat_type,dict_entries, max_entry_width>;
         eval_dict<dict_type,block_stat_type,encoding_block_size>(input_basename,log_prefix);
     }
+    // DSF
+    {
+        using block_stat_type = ds2i::block_stats_full_stride_geom<max_entry_width>;
+        using dict_type = ds2i::dint_dict_builder_DSF<block_stat_type,dict_entries, max_entry_width>;
+        eval_dict<dict_type,block_stat_type,encoding_block_size>(input_basename,log_prefix);
+    }
+    // SDF
+    // {
+    //     using block_stat_type = ds2i::block_stats_full_stride_linear<max_entry_width>;
+    //     using dict_type = ds2i::dint_dict_builder_SDF<block_stat_type,dict_entries, max_entry_width>;
+    //     eval_dict<dict_type,block_stat_type,encoding_block_size>(input_basename,log_prefix);
+    // }
 
     return 0;
 }
