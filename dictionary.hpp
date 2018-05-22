@@ -277,10 +277,13 @@ namespace ds2i {
                 m_offsets.push_back(m_table.size());
 
                 // [size, entry]
+                std::cout << "pusing an entry of size " << entry_size << std::endl;
                 m_table.push_back(entry_size);
                 for (uint32_t i = 0; i < entry_size; ++i, ++entry) {
                     m_table.push_back(*entry);
+                    std::cout << *entry << " ";
                 }
+                std::cout << std::endl;
 
                 ++m_size;
                 return true;
