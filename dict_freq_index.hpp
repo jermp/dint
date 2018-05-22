@@ -45,13 +45,13 @@ namespace ds2i {
 
                 // step 1. collect statistics
                 std::vector<uint32_t> docs_gaps;
-                // std::vector<uint32_t> freqs;
+                std::vector<uint32_t> freqs;
                 uint64_t processed_lists = 0;
                 uint64_t total_integers = 0;
 
                 for (uint32_t block_size = MAX_BLOCK_LEN; block_size != 0; block_size /= 2)
                 {
-                    blocks_statistics docs_blocks_stats(block_size);
+                    // blocks_statistics docs_blocks_stats(block_size);
                     blocks_statistics freqs_blocks_stats(block_size);
                     total_integers = 0;
                     processed_lists = 0;
@@ -64,26 +64,26 @@ namespace ds2i {
                             total_integers += n;
                             if (!n) throw std::invalid_argument("List must be nonempty");
 
-                            docs_gaps.reserve(n);
-                            // freqs.reserve(n);
-                            auto docs_it = plist.docs.begin();
-                            // auto freqs_it = plist.freqs.begin();
+                            // docs_gaps.reserve(n);
+                            freqs.reserve(n);
+                            // auto docs_it = plist.docs.begin();
+                            auto freqs_it = plist.freqs.begin();
                             uint32_t prev = -1;
                             for (uint32_t i = 0; i < n; ++i) {
-                                docs_gaps.push_back(*docs_it - prev - 1);
-                                // docs_gaps.push_back(*freqs_it - 1);
-                                prev = *docs_it;
-                                ++docs_it;
-                                // ++freqs_it;
+                                // docs_gaps.push_back(*docs_it - prev - 1);
+                                docs_gaps.push_back(*freqs_it - 1);
+                                // prev = *docs_it;
+                                // ++docs_it;
+                                ++freqs_it;
                             }
                             assert(docs_gaps.size() == n);
 
-                            docs_blocks_stats.process(docs_gaps.data(), n);
-                            // freqs_blocks_stats.process(freqs.data(), n);
-                            freqs_blocks_stats.process(plist.freqs.begin(), n);
+                            // docs_blocks_stats.process(docs_gaps.data(), n);
+                            freqs_blocks_stats.process(freqs.data(), n);
+                            // freqs_blocks_stats.process(plist.freqs.begin(), n);
 
-                            docs_gaps.clear();
-                            // freqs.clear();
+                            // docs_gaps.clear();
+                            freqs.clear();
                             ++processed_lists;
 
                             if (processed_lists and processed_lists % 10000 == 0) {
@@ -98,13 +98,13 @@ namespace ds2i {
 
                     // write blocks statistics to the disk
                     logger() << "Writing blocks statistics to the disk..." << std::endl;
-                    std::string docs_output_filename("./" + prefix_name + ".docs.blocks_stats." + std::to_string(block_size) + ".bin");
-                    docs_blocks_stats.sort_and_write(docs_output_filename);
+                    // std::string docs_output_filename("./" + prefix_name + ".docs.blocks_stats." + std::to_string(block_size) + ".bin");
+                    // docs_blocks_stats.sort_and_write(docs_output_filename);
                     std::string freqs_output_filename("./" + prefix_name + ".freqs.blocks_stats." + std::to_string(block_size) + ".bin");
                     freqs_blocks_stats.sort_and_write(freqs_output_filename);
                 }
 
-                // total_integers = 5406586692; // 19691599096 5406586692
+                total_integers = 5406586692; // 19691599096 5406586692
 
                 // step 2. build dictionary from statistics
 
