@@ -140,7 +140,6 @@ struct block_enc_stats {
         }
         os << "CODE WORD USAGE:\n";
         size_t total_bits = 0;
-        size_t exceptions_bits = 0;
         for(size_t i=0;i<dict_usage.size();i++) {
             int64_t encoded_nums = dict.size(i);
             int64_t shorts_used = 1;
@@ -148,7 +147,6 @@ struct block_enc_stats {
                 encoded_nums = 1;
                 shorts_used = 2;
                 if(i == 1) shorts_used = 3;
-                exceptions_bits += 16*(shorts_used-1);
             }
             size_t cur_bits = dict_usage[i] * shorts_used * 16;
             total_bits += cur_bits;
@@ -199,7 +197,6 @@ struct block_enc_stats {
 
         os << "POSTINGS = " << postings_encoded  << std::endl;
         os << "BPI = " <<  std::setprecision(5) << double(total_bits) / double(postings_encoded) << std::endl;
-        os << "EXCEPTIONS_BPI = " << double(exceptions_bits) / double(postings_encoded) << std::endl;
         os << "TOTAL_NON_EXCEPTION_U16 = " << total_codes  << std::endl;
         os << "TOTAL_EXCEPTION_U16 = " << total_exception_codes_u16  << std::endl;
         os << "TOTAL_EXCEPTION_U32 = " << total_exception_codes_u32  << std::endl;
@@ -338,19 +335,25 @@ int main(int argc, const char** argv) {
     const uint32_t encoding_block_size = 256;
     const uint32_t max_entry_width = 16;
     const uint32_t dict_entries = 65536;
-    using block_stat_type = ds2i::block_stats_full_stride_geom<max_entry_width>;
-
-    // PDF
-    {
-        using dict_type = ds2i::dint_dict_builder_PDF<block_stat_type,dict_entries, max_entry_width>;
-        eval_dict<dict_type,block_stat_type,encoding_block_size>(input_basename,log_prefix);
-    }
-    // DSF
-    {
-        using dict_type = ds2i::dint_dict_builder_DSF<block_stat_type,dict_entries, max_entry_width>;
-        eval_dict<dict_type,block_stat_type,encoding_block_size>(input_basename,log_prefix);
-    }
     
+    // // PDF
+    // {
+    //     using block_stat_type = ds2i::block_stats_full_stride_geom<max_entry_width>;
+    //     using dict_type = ds2i::dint_dict_builder_PDF<block_stat_type,dict_entries, max_entry_width>;
+    //     eval_dict<dict_type,block_stat_type,encoding_block_size>(input_basename,log_prefix);
+    // }
+    // // DSF
+    // {
+    //     using block_stat_type = ds2i::block_stats_full_stride_geom<max_entry_width>;
+    //     using dict_type = ds2i::dint_dict_builder_DSF<block_stat_type,dict_entries, max_entry_width>;
+    //     eval_dict<dict_type,block_stat_type,encoding_block_size>(input_basename,log_prefix);
+    // }
+    // SSF
+    {
+        using block_stat_type = ds2i::block_stats_full_stride_linear<max_entry_width>;
+        using dict_type = ds2i::dint_dict_builder_SSF<block_stat_type,dict_entries, max_entry_width>;
+        eval_dict<dict_type,block_stat_type,encoding_block_size>(input_basename,log_prefix);
+    }
 
     return 0;
 }
