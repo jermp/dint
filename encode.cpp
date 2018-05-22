@@ -58,37 +58,37 @@ void encode(std::string const& type,
     for (auto const& list: input)
     {
         uint32_t n = list.size();
-        if (n > MIN_SIZE)
-        {
-            buf.reserve(n);
-            uint32_t prev = docs ? -1 : 0;
-            uint32_t universe = 0;
-            for (auto b = list.begin(); b != list.end(); ++b) {
-                buf.push_back(*b - prev - 1);
-                if (docs) {
-                    prev = *b;
-                }
-                universe += buf.back();
+        // if (n > MIN_SIZE)
+        // {
+        buf.reserve(n);
+        uint32_t prev = docs ? -1 : 0;
+        uint32_t universe = 0;
+        for (auto b = list.begin(); b != list.end(); ++b) {
+            buf.push_back(*b - prev - 1);
+            if (docs) {
+                prev = *b;
             }
-            assert(buf.size() == n);
-
-            // std::cout << "list.back() = " << list.back() << std::endl;
-            // std::cout << "n = " << n << "; universe = " << universe << std::endl;
-
-            header::write(n, universe, output);
-            Encoder::encode(buf.data(), universe, n, output, &builder);
-            buf.clear();
-
-            ++num_processed_lists;
-            num_total_ints += n;
-
-            if (num_processed_lists % 1000 == 0) {
-                logger() << "encoded " << num_processed_lists << " lists" << std::endl;
-                logger() << "encoded " << num_total_ints << " integers" << std::endl;
-                logger() << "bits x integer: "
-                         << output.size() * sizeof(output[0]) * 8.0 / num_total_ints << std::endl;
-            }
+            universe += buf.back();
         }
+        assert(buf.size() == n);
+
+        // std::cout << "list.back() = " << list.back() << std::endl;
+        // std::cout << "n = " << n << "; universe = " << universe << std::endl;
+
+        header::write(n, universe, output);
+        Encoder::encode(buf.data(), universe, n, output, &builder);
+        buf.clear();
+
+        ++num_processed_lists;
+        num_total_ints += n;
+
+        if (num_processed_lists % 1000 == 0) {
+            logger() << "encoded " << num_processed_lists << " lists" << std::endl;
+            logger() << "encoded " << num_total_ints << " integers" << std::endl;
+            logger() << "bits x integer: "
+                     << output.size() * sizeof(output[0]) * 8.0 / num_total_ints << std::endl;
+        }
+        // }
     }
 
     double GiB_space = output.size() * 1.0 / GiB;
