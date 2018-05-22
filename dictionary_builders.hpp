@@ -109,7 +109,7 @@ namespace ds2i {
                 // (a) get top item
                 auto item = pq.top(); pq.pop();
                 auto cur_max_id = item.second;
-                if(freedom[cur_max_id] != item.first) {
+                if(freedom[cur_max_id] != item.first || dictionary[cur_max_id] == 1) {
                     // is the item 'dirty?'
                     continue;
                 }
