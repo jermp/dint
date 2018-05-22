@@ -16,7 +16,7 @@
 
 using namespace ds2i;
 
-template<typename Decoder, typename Dictionary>
+template<typename Decoder>
 void decode(std::string const& type,
             char const* encoded_data_filename,
             char const* dictionary_filename)
@@ -35,9 +35,9 @@ void decode(std::string const& type,
         logger() << "Error calling madvice: " << errno << std::endl;
     }
 
-    typename Dictionary dict;
+    dictionary dict;
     if (dictionary_filename) {
-        typename Dictionary::builder builder;
+        dictionary::builder builder;
         std::ifstream dictionary_file(dictionary_filename);
         builder.load(dictionary_file);
         builder.build(dict);
