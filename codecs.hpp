@@ -651,7 +651,7 @@ namespace ds2i {
     };
 
     typedef dint<dictionary> rect_dint;
-    typedef dint<compact_dictionary> compact_dint;
+    // typedef dint<compact_dictionary> compact_dint;
 
-    #define CODECS (interpolative)(optpfor)(varintg8iu)(qmx)(vbyte)(u32)(simple16)(streamvbyte)(maskedvbyte)(varintgb)(rect_dint)(compact_dint)
+    #define CODECS (interpolative)(optpfor)(varintg8iu)(qmx)(vbyte)(u32)(simple16)(streamvbyte)(maskedvbyte)(varintgb)(dint)(rect_dint)//(compact_dint)
 }
