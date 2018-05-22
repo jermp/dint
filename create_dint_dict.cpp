@@ -34,10 +34,10 @@ block_stat_type create_block_stats(std::string input_basename,dict_type type)
 }
 
 template<class block_stat_type,class dict_constructor_type>
-ds2i::dictionary::builder build_dict(block_stat_type& block_stats)
+ds2i::dictionary::builder build_dict(std::ostream& os,block_stat_type& block_stats)
 {
     ds2i::dictionary::builder dict_builder;
-    dict_constructor_type::build(dict_builder,block_stats);
+    dict_constructor_type::build(os,dict_builder,block_stats);
     dict_builder.prepare_for_encoding();
     return dict_builder;
 }
@@ -317,7 +317,7 @@ int main(int argc, const char** argv) {
         std::ofstream log_file(log_prefix + "-docs-" + dict_constructor_type::type());
 
         auto block_stats = create_block_stats<block_stat_type>(input_basename,dict_type::docs);
-        auto dict = build_dict<block_stat_type,dict_constructor_type>(block_stats);
+        auto dict = build_dict<block_stat_type,dict_constructor_type>(log_file,block_stats);
 
         dict.print_stats(log_file);
 
