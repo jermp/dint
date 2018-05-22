@@ -280,6 +280,9 @@ namespace ds2i {
                 // (c) adjust freedom of prefixes
                 for(size_t p = 0;p < num_prefix;p++) {
                     auto p_id = prefix_ids[p];
+                    os << "\tadjust_prefix_freedom(before_freedom=" << freedom[p_id] << ",prefix_id=" 
+                          << p_id << ",after_freedom=" << freedom[p_id] - adjust 
+                          << ") - " << block_stats.block_string(p_id) << std::endl;
                     freedom[p_id] -= adjust;
                     if(dictionary[p_id] == 1) {
                         dictionary[p_id] = 0;
@@ -292,6 +295,9 @@ namespace ds2i {
                 auto num_super = compute_superstring_ids(hash_id_map,block,super_ids,super_mult);
                 for(size_t s = 0;s < num_super;s++) {
                     auto s_id = super_ids[s];
+                    os << "\tadjust_super_freedom(before_freedom=" << freedom[s_id] << ",prefix_id=" 
+                          << s_id << ",after_freedom=" << freedom[s_id] - adjust/super_mult[s] 
+                          << ") - " << block_stats.block_string(s_id) << std::endl;
                     freedom[s_id] -= adjust/super_mult[s];
                     if(dictionary[s_id] == 1) {
                         dictionary[s_id] = 0;
