@@ -169,7 +169,7 @@ namespace ds2i {
     struct dint_dict_builder_SDF
     {
         static std::string type() {
-            return "PDF-" + std::to_string(num_entries) + "-" + std::to_string(entry_width);
+            return "SDF-" + std::to_string(num_entries) + "-" + std::to_string(entry_width);
         }
 
         template<class block_type>
@@ -247,14 +247,20 @@ namespace ds2i {
             std::vector<int64_t> super_ids(entry_width*2);
             std::vector<int64_t> super_mult(entry_width*2);
             std::unordered_map<uint64_t,uint64_t> hash_id_map;
+            hash_id_map.max_load_factor(0.05);
             using pqdata_t = std::pair<int64_t,size_t>;
             auto cmp = [](const pqdata_t& left,const pqdata_t& right) { return left.first < right.first;};
             std::priority_queue<pqdata_t, std::vector<pqdata_t>, decltype(cmp) > pq(cmp);
-            for(size_t i=0;i<block_stats.blocks.size();i++) {
-                const auto& block = block_stats.blocks[i];
-                hash_id_map[block.hash] = i;
-                freedom[i] = block.freq;
-                pq.emplace(freedom[i],i);
+
+            {
+                boost::progress_display progress(input.data_size());
+                for(size_t i=0;i<block_stats.blocks.size();i++) {
+                    const auto& block = block_stats.blocks[i];
+                    hash_id_map[block.hash] = i;
+                    freedom[i] = block.freq;
+                    pq.emplace(freedom[i],i);
+                    ++progress;
+                }
             }
 
             os << "(3) find the top-K most covering blocks" << std::endl;
