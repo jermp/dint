@@ -197,13 +197,14 @@ struct block_enc_stats {
             cur = exceptions_per_block[i];
         }
 
-        os << "\nBPI = " <<  std::setprecision(5) << double(total_bits) / double(postings_encoded) << std::endl;
-        os << "\nEXCEPTIONS_BPI = " << double(exceptions_bits) / double(postings_encoded) << std::endl;
-        os << "\nTOTAL_NON_EXCEPTION_U16 = " << total_codes  << std::endl;
-        os << "\nTOTAL_EXCEPTION_U16 = " << total_exception_codes_u16  << std::endl;
-        os << "\nTOTAL_EXCEPTION_U32 = " << total_exception_codes_u32  << std::endl;
-        os << "\nTOTAL_U16 = " << total_codes + total_exception_codes_u16 + (2 * total_exception_codes_u32)  << std::endl;
-        os << "\nEXCEPTIONS BPI = " << double(exceptions_bits) / double(postings_encoded) << std::endl;
+        os << "POSTINGS = " << postings_encoded  << std::endl;
+        os << "BPI = " <<  std::setprecision(5) << double(total_bits) / double(postings_encoded) << std::endl;
+        os << "EXCEPTIONS_BPI = " << double(exceptions_bits) / double(postings_encoded) << std::endl;
+        os << "TOTAL_NON_EXCEPTION_U16 = " << total_codes  << std::endl;
+        os << "TOTAL_EXCEPTION_U16 = " << total_exception_codes_u16  << std::endl;
+        os << "TOTAL_EXCEPTION_U32 = " << total_exception_codes_u32  << std::endl;
+        os << "TOTAL_U16 = " << total_codes + total_exception_codes_u16 + (2 * total_exception_codes_u32)  << std::endl;
+        os << "EXCEPTIONS BPI = " << double((total_exception_codes_u16 + (2 * total_exception_codes_u32)) * 16) / double(postings_encoded) << std::endl;
     }
 };
 
