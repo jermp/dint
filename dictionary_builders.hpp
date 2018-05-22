@@ -39,17 +39,17 @@ namespace ds2i {
             os << "(2) find the top-K most covering blocks" << std::endl;
             using btype = typename block_stats_type::block_type;
             auto coverage_cmp = [](const btype& left,const btype& right) {
-                return (left.freq < right.freq);
+                return (left.freq > right.freq);
             };
             std::priority_queue<btype,std::vector<btype>,decltype(coverage_cmp)> pq(coverage_cmp);
             {
                 boost::progress_display progress(block_stats.blocks.size());
                 for(const auto& block : block_stats.blocks) {
                     ++progress;
-                    if(pq.size() < num_entries-1) {
+                    if(pq.size() < num_entries) {
                         pq.push(block);
                     } else {
-                        if( coverage_cmp(pq.top(),block) ) {
+                        if( coverage_cmp(block,pq.top()) ) {
                             pq.pop();
                             pq.push(block);
                         }
@@ -206,7 +206,7 @@ namespace ds2i {
             uint64_t buf[entry_width];
             size_t num_super = 0;
             auto entry_len = block.entry_len;
-            for(size_t i=0;i<entry_len;i++) {
+            for(size_t i=0;i<entry_width;i++) {
                 buf[i] = block.entry[i%entry_len];
             }
 
