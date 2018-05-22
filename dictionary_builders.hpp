@@ -118,6 +118,8 @@ namespace ds2i {
                         pq.emplace(freedom[block_id],block_id);
                         continue;
                     }
+                    std::cout << "dequeue_and_add_to_dict(freedom=" << freedom[block_id] << "id=" 
+                              << block_id << ") - " << block_stats.block_string(block_id) << std::endl;
 
                     // (b) add to dict and adjust freedom of top item
                     auto adjust = freedom[block_id];
@@ -131,8 +133,12 @@ namespace ds2i {
                         auto p_id = block.prefix_ids[p-1];
                         adjust = adjust * 2;
                         auto padjust = freedom[p_id];
+                        std::cout << "adjust_prefix_freedom(before_freedom=" << freedom[block_id] << "prefix_id=" 
+                              << p_id << "after_freedom=" << freedom[p_id] - adjust 
+                              << ") - " << block_stats.block_string(p_id) << std::endl;
                         freedom[p_id] = freedom[p_id] - adjust;
                         if(dictionary[p_id] == 1) {
+                            std::cout << "prefix was in dict -> remove and re-add to queue" << std::endl;
                             dictionary[p_id] = 0;
                             adjust = adjust - padjust;
                             needed = needed + 1;
