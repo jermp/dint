@@ -147,21 +147,21 @@ int main(int argc, char** argv) {
 
     logger() << cmd << std::endl;
 
-    decode<dint>(type, encoded_data_filename, dictionary_filename);
+    // decode<dint>(type, encoded_data_filename, dictionary_filename);
 
-//     if (false) {
-// #define LOOP_BODY(R, DATA, T)                                          \
-//         } else if (type == BOOST_PP_STRINGIZE(T)) {                    \
-//             decode<BOOST_PP_CAT(T, )>                                  \
-//                 (type, encoded_data_filename, dictionary_filename);    \
-//             /**/
+    if (false) {
+#define LOOP_BODY(R, DATA, T)                                          \
+        } else if (type == BOOST_PP_STRINGIZE(T)) {                    \
+            decode<BOOST_PP_CAT(T, )>                                  \
+                (type, encoded_data_filename, dictionary_filename);    \
+            /**/
 
-//         BOOST_PP_SEQ_FOR_EACH(LOOP_BODY, _, CODECS);
-// #undef LOOP_BODY
-//     } else {
-//         logger() << "ERROR: unknown type '"
-//                  << type << "'" << std::endl;
-//     }
+        BOOST_PP_SEQ_FOR_EACH(LOOP_BODY, _, CODECS);
+#undef LOOP_BODY
+    } else {
+        logger() << "ERROR: unknown type '"
+                 << type << "'" << std::endl;
+    }
 
     return 0;
 }
