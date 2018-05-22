@@ -530,12 +530,13 @@ namespace ds2i {
         std::vector<uint64_t> codewords_distr;  // 0:16+; 1:8; 2:4; 3:2; 4:1
     };
 
+    template<typename Dictionary>
     struct dint {
 
         static void encode(uint32_t const* in,
                            uint32_t /*universe*/, uint32_t n,
                            std::vector<uint8_t>& out,
-                           dictionary::builder const* builder)
+                           Dictionary::builder const* builder)
         {
             uint32_t const* begin = in;
             uint32_t const* end = begin + n;
@@ -595,7 +596,7 @@ namespace ds2i {
         static uint8_t const* decode(uint8_t const* in,
                                      uint32_t* out,
                                      uint32_t /*universe*/, size_t n,
-                                     dictionary const* dict
+                                     Dictionary const* dict
                                      // ,
                                      // dint_statistics& stats
                                      )
@@ -649,5 +650,8 @@ namespace ds2i {
         }
     };
 
-    #define CODECS (interpolative)(optpfor)(varintg8iu)(qmx)(vbyte)(u32)(simple16)(streamvbyte)(maskedvbyte)(varintgb)(dint)
+    typedef dint<dictionary> rect_dint;
+    typedef dint<compact_dictionary> compact_dint;
+
+    #define CODECS (interpolative)(optpfor)(varintg8iu)(qmx)(vbyte)(u32)(simple16)(streamvbyte)(maskedvbyte)(varintgb)(rect_dint)(compact_dint)
 }

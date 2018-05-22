@@ -45,7 +45,7 @@ namespace ds2i {
 
                 // step 1. collect statistics
                 std::vector<uint32_t> docs_gaps;
-                std::vector<uint32_t> freqs;
+                // std::vector<uint32_t> freqs;
                 uint64_t processed_lists = 0;
                 uint64_t total_integers = 0;
 
@@ -65,24 +65,25 @@ namespace ds2i {
                             if (!n) throw std::invalid_argument("List must be nonempty");
 
                             docs_gaps.reserve(n);
-                            freqs.reserve(n);
+                            // freqs.reserve(n);
                             auto docs_it = plist.docs.begin();
-                            auto freqs_it = plist.freqs.begin();
+                            // auto freqs_it = plist.freqs.begin();
                             uint32_t prev = -1;
                             for (uint32_t i = 0; i < n; ++i) {
                                 docs_gaps.push_back(*docs_it - prev - 1);
-                                docs_gaps.push_back(*freqs_it - 1);
+                                // docs_gaps.push_back(*freqs_it - 1);
                                 prev = *docs_it;
                                 ++docs_it;
-                                ++freqs_it;
+                                // ++freqs_it;
                             }
                             assert(docs_gaps.size() == n);
 
                             docs_blocks_stats.process(docs_gaps.data(), n);
-                            freqs_blocks_stats.process(freqs.data(), n);
+                            // freqs_blocks_stats.process(freqs.data(), n);
+                            freqs_blocks_stats.process(plist.freqs.begin(), n);
 
                             docs_gaps.clear();
-                            freqs.clear();
+                            // freqs.clear();
                             ++processed_lists;
 
                             if (processed_lists and processed_lists % 10000 == 0) {
@@ -114,7 +115,7 @@ namespace ds2i {
                 // DictionaryBuilder::build(m_docs_dict_builder, docs_percentages, total_integers, "docs");
                 std::ofstream docs_dictionary_file("./" + prefix_name + ".dictionary.docs");
                 m_docs_dict_builder.write(docs_dictionary_file);
-
+                docs_dictionary_file.close();
 
                 logger() << "Building dictionary for freqs..." << std::endl;
                 DictionaryBuilder::build(m_freqs_dict_builder, total_integers, "./" + prefix_name + ".freqs");
@@ -123,6 +124,7 @@ namespace ds2i {
                 // DictionaryBuilder::build(m_freqs_dict_builder, freqs_percentages, total_integers, "freqs");
                 std::ofstream freqs_dictionary_file("./" + prefix_name + ".dictionary.freqs");
                 m_freqs_dict_builder.write(freqs_dictionary_file);
+                freqs_dictionary_file.close();
 
                 m_docs_dict_builder.prepare_for_encoding();
                 m_freqs_dict_builder.prepare_for_encoding();
