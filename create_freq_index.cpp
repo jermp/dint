@@ -84,13 +84,13 @@ void create_collection(InputCollection const& input,
     progress_logger plog("Encoded");
     logger() << "Encoding..." << std::endl;
     for (auto const& plist: input) {
-        if (plist.docs.size() > MIN_SIZE) {
+        // if (plist.docs.size() > MIN_SIZE) {
             uint64_t freqs_sum = std::accumulate(plist.freqs.begin(),
                                                  plist.freqs.end(), uint64_t(0));
             builder.add_posting_list(plist.docs.size(), plist.docs.begin(),
                                      plist.freqs.begin(), freqs_sum);
             plog.done_sequence(plist.docs.size());
-        }
+        // }
     }
 
     plog.log();
