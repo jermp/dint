@@ -533,8 +533,9 @@ namespace ds2i {
                 {
                     auto const& block = *begin;
                     double saving = bpi(block.size(), block.freq(), total_integers);
-                    // std::cout << saving << std::endl;
-                    if (saving > eps or (i == MAX_FRACTAL_STEPS - 1 and (id < num_entries))) {
+                    if (//block.size() == block_size and
+                       (saving > eps or (i == MAX_FRACTAL_STEPS - 1 and (id < num_entries))))
+                    {
                         entry_type2 entry(std::vector<uint32_t>(), block.freq());
                         entry.first.reserve(block.size());
                         for (uint32_t x: block) {
@@ -569,6 +570,8 @@ namespace ds2i {
                 for (auto const& x: candidates[i])
                 {
                     auto const& block = x.first;
+                    assert(block.size() == MAX_BLOCK_LEN >> i);
+
                     uint64_t freq = x.second;
                     double cost_saving = bpi(block.size(), freq, total_integers);
                     if (i != 4 and cost_saving < eps) break;
@@ -597,10 +600,12 @@ namespace ds2i {
                             uint8_t const* b = reinterpret_cast<uint8_t const*>(&block[begin]);
                             uint8_t const* e = b + std::min<uint64_t>(block_size, block.size() - begin) * sizeof(uint32_t);
                             uint64_t hash = hash_bytes64(byte_range(b, e));
-                            uint32_t id = map[hash];
-                            // std::cout << "decreasing " << candidates[j][id - id_lowerbounds[j]].second << " by " << freq << std::endl;
-                            candidates[j][id - id_lowerbounds[j]].second -= freq;
-                            assert(candidates[j][id - id_lowerbounds[j]].second >= 0);
+                            auto it = map.find(hash);
+                            if (it != map.end()) {
+                                uint32_t id = map[hash];
+                                candidates[j][id - id_lowerbounds[j]].second -= freq;
+                                assert(candidates[j][id - id_lowerbounds[j]].second >= 0);
+                            }
                         }
                     }
                 }

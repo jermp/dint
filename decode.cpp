@@ -45,7 +45,7 @@ void decode(std::string const& type,
 
     const static uint64_t MAX_SIZE = 50000000; // ensure enough space for the largest sequence
     std::vector<uint32_t> decoded;
-    decoded.resize(MAX_SIZE);
+    decoded.resize(MAX_SIZE, 0);
 
     logger() << "decoding..." << std::endl;
 
