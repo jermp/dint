@@ -86,7 +86,7 @@ namespace ds2i {
         }
 
         template<class block_stat_type>
-        static void build(std::ostream& os,ictionary::builder& builder,block_stat_type& block_stats)
+        static void build(std::ostream& os,dictionary::builder& builder,block_stat_type& block_stats)
         {
             os << "(1) init dictionary" << std::endl;
             builder.init(num_entries, entry_width,type());
