@@ -93,7 +93,6 @@ namespace ds2i {
 
             logger() << "(2) preparing initial estimates" << std::endl;
             std::vector<int64_t> freedom(block_stats.blocks.size());
-            std::vector<int64_t> predicted_freq(block_stats.blocks.size());
             std::vector<uint8_t> dictionary(block_stats.blocks.size());
             using pqdata_t = std::pair<int64_t,size_t>;
             auto cmp = [](const pqdata_t& left,const pqdata_t& right) { return left.first < right.first;};
@@ -106,51 +105,40 @@ namespace ds2i {
 
             logger() << "(3) find the top-K most covering blocks" << std::endl;
             size_t needed = num_entries;
-            size_t next = needed - 1;
-            {
-                //boost::progress_display progress(needed);
-                while(needed != 0) {
-                    // (a) get top item
-                    auto item = pq.top(); pq.pop();
-                    auto block_id = item.second;
-                    if(freedom[block_id] != item.first) {
-                        // is the item 'dirty?'
-                        pq.emplace(freedom[block_id],block_id);
-                        continue;
-                    }
-                    std::cout << "needed = " << needed << " - dequeue_and_add_to_dict(freedom=" << freedom[block_id] << ",id=" 
-                              << block_id << ") - " << block_stats.block_string(block_id) << std::endl;
-
-                    // (b) add to dict and adjust freedom of top item
-                    auto adjust = freedom[block_id];
-                    predicted_freq[block_id] = adjust;
-                    //freedom[block_id] = freedom[block_id] - adjust;
-                    dictionary[block_id] = 1;
-                    auto& block = block_stats.blocks[block_id];
-
-                    // (c) add freedom of prefixes
-                    for(size_t p = block.num_prefixes;p != 0; p--) {
-                        auto p_id = block.prefix_ids[p-1];
-                        adjust = adjust * 2;
-                        auto padjust = freedom[p_id];
-                        std::cout << "\tadjust_prefix_freedom(before_freedom=" << freedom[block_id] << ",prefix_id=" 
-                              << p_id << ",after_freedom=" << freedom[p_id] - adjust 
-                              << ") - " << block_stats.block_string(p_id) << std::endl;
-                        freedom[p_id] = freedom[p_id] - adjust;
-                        if(dictionary[p_id] == 1) {
-                            std::cout << "\tprefix was in dict -> remove and re-add to queue" << std::endl;
-                            dictionary[p_id] = 0;
-                            adjust = adjust - padjust;
-                            needed = needed + 1;
-                        }
-                        pq.emplace(freedom[p_id],p_id);
-                    }
-                    needed = needed - 1;
-                    if(needed == next) {
-                        //++progress;
-                        next--;
-                    }
+            while(needed != 0) {
+                // (a) get top item
+                auto item = pq.top(); pq.pop();
+                auto cur_max_id = item.second;
+                if(freedom[cur_max_id] != item.first) {
+                    // is the item 'dirty?'
+                    continue;
                 }
+                std::cout << "needed = " << needed << " - dequeue_and_add_to_dict(freedom=" << freedom[cur_max_id] << ",id=" 
+                          << cur_max_id << ") - " << block_stats.block_string(cur_max_id) << std::endl;
+
+                // (b) add to dict and adjust freedom of top item
+                auto adjust = freedom[cur_max_id];
+                dictionary[cur_max_id] = 1;
+                auto& block = block_stats.blocks[cur_max_id];
+
+                // (c) add freedom of prefixes
+                for(size_t p = block.num_prefixes;p != 0; p--) {
+                    auto p_id = block.prefix_ids[p-1];
+                    adjust = adjust * 2;
+                    auto padjust = freedom[p_id];
+                    std::cout << "\tadjust_prefix_freedom(before_freedom=" << freedom[block_id] << ",prefix_id=" 
+                          << p_id << ",after_freedom=" << freedom[p_id] - adjust 
+                          << ") - " << block_stats.block_string(p_id) << std::endl;
+                    freedom[p_id] = freedom[p_id] - adjust;
+                    if(dictionary[p_id] == 1) {
+                        std::cout << "\tprefix was in dict -> remove and re-add to queue" << std::endl;
+                        dictionary[p_id] = 0;
+                        adjust = adjust - padjust;
+                        needed = needed + 1;
+                    }
+                    pq.emplace(freedom[p_id],p_id);
+                }
+                needed = needed - 1;
             }
 
             logger() << "(3) add blocks to dict in decreasing freq order" << std::endl;
@@ -159,7 +147,7 @@ namespace ds2i {
             for(size_t i=0;i<dictionary.size();i++) {
                 if(dictionary[i] == 1) {
                     auto& block = block_stats.blocks[i];
-                    final_blocks.emplace_back(-1 * predicted_freq[i],block);
+                    final_blocks.emplace_back(-1 * freedom[i],block);
                 }
             }
             std::sort(final_blocks.begin(),final_blocks.end());
