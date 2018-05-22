@@ -293,6 +293,35 @@ encoding_stats encode_lists(ds2i::dictionary::builder& dict,std::string input_ba
 }
 
 
+template<class dict_constructor_type,class block_stat_type,uint32_t encoding_block_size>
+void eval_dict(std::string input_basename,std::string log_prefix)
+{
+    {
+        std::ofstream log_file(log_prefix + "-docs-" + dict_constructor_type::type());
+
+        auto block_stats = create_block_stats<block_stat_type>(input_basename,dict_type::docs);
+        auto dict = build_dict<block_stat_type,dict_constructor_type>(log_file,block_stats);
+
+        dict.print_stats(log_file);
+
+        auto enc_stats = encode_lists(dict,input_basename,dict_type::docs,encoding_block_size);
+
+        enc_stats.print(log_file,dict);
+    }
+    {
+        std::ofstream log_file(log_prefix + "-freqs-" + dict_constructor_type::type());
+
+        auto block_stats = create_block_stats<block_stat_type>(input_basename,dict_type::freqs);
+        auto dict = build_dict<block_stat_type,dict_constructor_type>(log_file,block_stats);
+
+        dict.print_stats(log_file);
+
+        auto enc_stats = encode_lists(dict,input_basename,dict_type::freqs,encoding_block_size);
+
+        enc_stats.print(log_file,dict);
+    }
+}
+
 int main(int argc, const char** argv) {
 
     if (argc < 3) {
@@ -313,64 +342,15 @@ int main(int argc, const char** argv) {
 
     // PDF
     {
-        using dict_constructor_type = ds2i::dint_dict_builder_PDF<block_stat_type,dict_entries, max_entry_width>;
-
-        std::ofstream log_file(log_prefix + "-docs-" + dict_constructor_type::type());
-
-        auto block_stats = create_block_stats<block_stat_type>(input_basename,dict_type::docs);
-        auto dict = build_dict<block_stat_type,dict_constructor_type>(log_file,block_stats);
-
-        dict.print_stats(log_file);
-
-        auto enc_stats = encode_lists(dict,input_basename,dict_type::docs,encoding_block_size);
-
-        enc_stats.print(log_file,dict);
+        using dict_type = ds2i::dint_dict_builder_PDF<block_stat_type,dict_entries, max_entry_width>;
+        eval_dict<dict_type,block_stat_type,encoding_block_size>(input_basename,log_prefix);
     }
+    // DSF
     {
-        using dict_constructor_type = ds2i::dint_dict_builder_PDF<block_stat_type,dict_entries, max_entry_width>;
-
-        std::ofstream log_file(log_prefix + "-freqs-" + dict_constructor_type::type());
-
-        auto block_stats = create_block_stats<block_stat_type>(input_basename,dict_type::freqs);
-        auto dict = build_dict<block_stat_type,dict_constructor_type>(log_file,block_stats);
-
-        dict.print_stats(log_file);
-
-        auto enc_stats = encode_lists(dict,input_basename,dict_type::freqs,encoding_block_size);
-
-        enc_stats.print(log_file,dict);
+        using dict_type = ds2i::dint_dict_builder_DSF<block_stat_type,dict_entries, max_entry_width>;
+        eval_dict<dict_type,block_stat_type,encoding_block_size>(input_basename,log_prefix);
     }
-
-
-    // // DSF
-    // {
-    //     using dict_constructor_type = ds2i::dint_dict_builder_DSF<block_stat_type,dict_entries, max_entry_width>;
-
-    //     std::ofstream log_file(log_prefix + "-docs-" + dict_constructor_type::type());
-
-    //     auto block_stats = create_block_stats<block_stat_type>(input_basename,dict_type::docs);
-    //     auto dict = build_dict<block_stat_type,dict_constructor_type>(block_stats);
-
-    //     dict.print_stats(log_file);
-
-    //     auto enc_stats = encode_lists(dict,input_basename,dict_type::docs,encoding_block_size);
-
-    //     enc_stats.print(log_file,dict);
-    // }
-    // {
-    //     using dict_constructor_type = ds2i::dint_dict_builder_DSF<block_stat_type,dict_entries, max_entry_width>;
-
-    //     std::ofstream log_file(log_prefix + "-freqs-" + dict_constructor_type::type());
-
-    //     auto block_stats = create_block_stats<block_stat_type>(input_basename,dict_type::freqs);
-    //     auto dict = build_dict<block_stat_type,dict_constructor_type>(block_stats);
-
-    //     dict.print_stats(log_file);
-
-    //     auto enc_stats = encode_lists(dict,input_basename,dict_type::freqs,encoding_block_size);
-
-    //     enc_stats.print(log_file,dict);
-    // }
+    
 
     return 0;
 }
