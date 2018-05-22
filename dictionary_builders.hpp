@@ -108,7 +108,7 @@ namespace ds2i {
             size_t needed = num_entries;
             size_t next = needed - 1;
             {
-                boost::progress_display progress(needed);
+                //boost::progress_display progress(needed);
                 while(needed != 0) {
                     // (a) get top item
                     auto item = pq.top(); pq.pop();
@@ -118,13 +118,13 @@ namespace ds2i {
                         pq.emplace(freedom[block_id],block_id);
                         continue;
                     }
-                    std::cout << "dequeue_and_add_to_dict(freedom=" << freedom[block_id] << "id=" 
+                    std::cout << "needed = " << needed << " - dequeue_and_add_to_dict(freedom=" << freedom[block_id] << ",id=" 
                               << block_id << ") - " << block_stats.block_string(block_id) << std::endl;
 
                     // (b) add to dict and adjust freedom of top item
                     auto adjust = freedom[block_id];
                     predicted_freq[block_id] = adjust;
-                    freedom[block_id] = freedom[block_id] - adjust;
+                    //freedom[block_id] = freedom[block_id] - adjust;
                     dictionary[block_id] = 1;
                     auto& block = block_stats.blocks[block_id];
 
@@ -133,12 +133,12 @@ namespace ds2i {
                         auto p_id = block.prefix_ids[p-1];
                         adjust = adjust * 2;
                         auto padjust = freedom[p_id];
-                        std::cout << "adjust_prefix_freedom(before_freedom=" << freedom[block_id] << "prefix_id=" 
-                              << p_id << "after_freedom=" << freedom[p_id] - adjust 
+                        std::cout << "\tadjust_prefix_freedom(before_freedom=" << freedom[block_id] << ",prefix_id=" 
+                              << p_id << ",after_freedom=" << freedom[p_id] - adjust 
                               << ") - " << block_stats.block_string(p_id) << std::endl;
                         freedom[p_id] = freedom[p_id] - adjust;
                         if(dictionary[p_id] == 1) {
-                            std::cout << "prefix was in dict -> remove and re-add to queue" << std::endl;
+                            std::cout << "\tprefix was in dict -> remove and re-add to queue" << std::endl;
                             dictionary[p_id] = 0;
                             adjust = adjust - padjust;
                             needed = needed + 1;
@@ -147,7 +147,7 @@ namespace ds2i {
                     }
                     needed = needed - 1;
                     if(needed == next) {
-                        ++progress;
+                        //++progress;
                         next--;
                     }
                 }

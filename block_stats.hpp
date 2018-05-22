@@ -40,10 +40,13 @@ namespace ds2i {
             const auto& b = blocks[id];
 
             std::string prefix_ids = "[";
-            for(int i=0;i<b.num_prefixes-1;i++) {
-                prefix_ids += std::to_string(b.prefix_ids[i]) + ",";
+            if(b.num_prefixes) {
+                for(int i=0;i<b.num_prefixes-1;i++) {
+                    prefix_ids += std::to_string(b.prefix_ids[i]) + ",";
+                }
+                prefix_ids += std::to_string(b.prefix_ids[b.num_prefixes-1]);
             }
-            prefix_ids += std::to_string(b.prefix_ids[b.num_prefixes-1]) + "]";
+            prefix_ids +=  "]";
 
             std::string entry_str = "[";
             for(int i=0;i<b.entry_len-1;i++) {
