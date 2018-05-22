@@ -227,6 +227,9 @@ namespace ds2i {
 
         struct builder {
 
+            builder()
+            {}
+
             void init(uint32_t capacity, uint32_t max_entry_size) {
                 m_size = reserved;
                 m_capacity = capacity;
@@ -237,27 +240,34 @@ namespace ds2i {
                 }
             }
 
-            builder() {
-                init(0, 0);
-            }
-
             builder(uint32_t capacity, uint32_t max_entry_size) {
                 init(capacity, max_entry_size);
             }
 
             void write(std::ofstream& dictionary_file) const {
-                dictionary_file.write(reinterpret_cast<char const*>(&m_capacity), sizeof(uint32_t));
+                uint32_t offsets_size = m_offsets.size();
+                uint32_t table_size = m_table.size();
+                dictionary_file.write(reinterpret_cast<char const*>(&m_size), sizeof(uint32_t));
+                dictionary_file.write(reinterpret_cast<char const*>(&m_max_entry_size), sizeof(uint32_t));
+                dictionary_file.write(reinterpret_cast<char const*>(&offsets_size), sizeof(uint32_t));
+                dictionary_file.write(reinterpret_cast<char const*>(&table_size), sizeof(uint32_t));
                 dictionary_file.write(reinterpret_cast<char const*>(m_offsets.data()), m_offsets.size() * sizeof(uint32_t));
                 dictionary_file.write(reinterpret_cast<char const*>(m_table.data()), m_table.size() * sizeof(uint32_t));
             }
 
             void load(std::ifstream& dictionary_file) {
-                uint32_t capacity;
-                dictionary_file.read(reinterpret_cast<char*>(&capacity), sizeof(uint32_t));
-                init(capacity, 0);
-                dictionary_file.read(reinterpret_cast<char*>(m_offsets.data()), m_offsets.size() * sizeof(uint32_t));
-                dictionary_file.read(reinterpret_cast<char*>(m_table.data()), m_table.size() * sizeof(uint32_t));
-                m_size = m_capacity;
+                uint32_t num_entries, max_entry_size, offsets_size, table_size;
+                dictionary_file.read(reinterpret_cast<char*>(&num_entries), sizeof(uint32_t));
+                dictionary_file.read(reinterpret_cast<char*>(&max_entry_size), sizeof(uint32_t));
+                dictionary_file.read(reinterpret_cast<char*>(&offsets_size), sizeof(uint32_t));
+                dictionary_file.read(reinterpret_cast<char*>(&table_size), sizeof(uint32_t));
+                m_size = num_entries;
+                m_capacity = num_entries;
+                m_max_entry_size = max_entry_size;
+                m_table.resize(table_size);
+                m_offsets.resize(offsets_size);
+                dictionary_file.read(reinterpret_cast<char*>(m_offsets.data()), offsets_size * sizeof(uint32_t));
+                dictionary_file.read(reinterpret_cast<char*>(m_table.data()), table_size * sizeof(uint32_t));
             }
 
             bool full() {
@@ -275,39 +285,42 @@ namespace ds2i {
                 }
 
                 m_offsets.push_back(m_table.size());
+                // std::cout << "m_offsets.size() = " << m_offsets.size() << std::endl;
 
                 // [size, entry]
-                std::cout << "pusing an entry of size " << entry_size << std::endl;
+                // std::cout << "pusing an entry of size " << entry_size << std::endl;
                 m_table.push_back(entry_size);
                 for (uint32_t i = 0; i < entry_size; ++i, ++entry) {
                     m_table.push_back(*entry);
-                    std::cout << *entry << " ";
+                    // std::cout << *entry << " ";
                 }
-                std::cout << std::endl;
+                // std::cout << "table size = " << m_table.size() << std::endl;
 
                 ++m_size;
                 return true;
             }
 
             void prepare_for_encoding() {
-                logger() << "building mapping for encoding " << std::endl;
+                logger() << m_size << " entries in the dictionary" << std::endl;
+                // logger() << "building mapping for encoding " << std::endl;
                 std::vector<uint32_t> run(256, 0);
                 uint8_t const* ptr = reinterpret_cast<uint8_t const*>(run.data());
-                uint32_t i = 0;
+                uint32_t i = 1;
                 for (uint32_t n = 256; n != 8; n /= 2, ++i) {
                     uint64_t hash = hash_bytes64(byte_range(ptr, ptr + n * sizeof(uint32_t)));
                     m_map[hash] = i;
                 }
-                for (; i < capacity(); ++i) {
+                for (; i < m_size; ++i) {
                     uint8_t const* ptr = reinterpret_cast<uint8_t const*>(get(i));
                     uint32_t entry_size = size(i);
 
-                    std::cout << "entry_size = " << entry_size << std::endl;
-                    uint32_t const* p = get(i);
-                    for (uint32_t k = 0; k < entry_size; ++k) {
-                        std::cout << *p << " ";
-                    }
-                    std::cout << std::endl;
+                    // std::cout << "entry_size = " << entry_size << std::endl;
+                    // uint32_t const* p = get(i);
+                    // for (uint32_t k = 0; k < entry_size; ++k) {
+                    //     std::cout << *p << " ";
+                    //     ++p;
+                    // }
+                    // std::cout << std::endl;
 
                     uint64_t hash = hash_bytes64(byte_range(ptr, ptr + entry_size * sizeof(uint32_t)));
                     m_map[hash] = i;
@@ -333,12 +346,16 @@ namespace ds2i {
                 return m_capacity;
             }
 
+            uint32_t size() const {
+                return m_size;
+            }
+
             uint32_t max_entry_size() const {
                 return m_max_entry_size;
             }
 
             void build(dictionary& dict) {
-                std::swap(m_capacity, dict.m_capacity);
+                std::swap(m_size, dict.m_size);
                 dict.m_offsets.steal(m_offsets);
                 dict.m_table.steal(m_table);
                 builder().swap(*this);
@@ -353,6 +370,19 @@ namespace ds2i {
                 m_map.swap(other.m_map);
             }
 
+            // void print() {
+            //     for (uint32_t i = reserved; i < capacity(); ++i) {
+            //         uint32_t entry_size = size(i);
+            //         std::cout << "entry_size = " << entry_size << std::endl;
+            //         uint32_t const* p = get(i);
+            //         for (uint32_t k = 0; k < entry_size; ++k) {
+            //             std::cout << *p << " ";
+            //             ++p;
+            //         }
+            //         std::cout << std::endl;
+            //     }
+            // }
+
         private:
             uint32_t m_size;
             uint32_t m_capacity;
@@ -364,24 +394,24 @@ namespace ds2i {
             std::unordered_map<uint64_t, uint32_t> m_map;
 
             uint32_t const* get(uint32_t i) const {
-                assert(i < capacity());
+                assert(i < size());
                 uint32_t offset = m_offsets[i];
                 return &m_table[offset + 1]; // skip size
             }
 
             uint32_t size(uint32_t i) const {
-                assert(i < capacity());
+                assert(i < size());
                 return m_table[m_offsets[i]];
             }
         };
 
         dictionary()
-            : m_capacity(0)
+            : m_size(0)
         {}
 
         uint32_t copy(uint32_t i, uint32_t* out) const
         {
-            assert(i < capacity());
+            assert(i < size());
             uint32_t offset = m_offsets[i];
             uint32_t size = m_table[offset];
             uint32_t const* ptr = &m_table[offset + 1];
@@ -389,12 +419,12 @@ namespace ds2i {
             return size;
         }
 
-        size_t capacity() const {
-            return m_capacity;
+        size_t size() const {
+            return m_size;
         }
 
         void swap(dictionary& other) {
-            std::swap(m_capacity, other.m_capacity);
+            std::swap(m_size, other.m_size);
             m_offsets.swap(other.m_offsets);
             m_table.swap(other.m_table);
         }
@@ -403,14 +433,14 @@ namespace ds2i {
         void map(Visitor& visit)
         {
             visit
-                (m_capacity, "m_capacity")
+                (m_size, "m_size")
                 (m_offsets, "m_offsets")
                 (m_table, "m_table")
                 ;
         }
 
     private:
-        uint32_t m_capacity;
+        uint32_t m_size;
         succinct::mapper::mappable_vector<uint32_t> m_offsets;
         succinct::mapper::mappable_vector<uint32_t> m_table;
     };
