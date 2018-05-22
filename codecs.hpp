@@ -13,7 +13,6 @@
 #include "succinct/util.hpp"
 #include "util.hpp"
 #include "dictionary.hpp"
-#include "compact_dictionary.hpp"
 
 namespace ds2i {
 
@@ -531,13 +530,12 @@ namespace ds2i {
         std::vector<uint64_t> codewords_distr;  // 0:16+; 1:8; 2:4; 3:2; 4:1
     };
 
-    template<typename Dictionary>
     struct dint {
 
         static void encode(uint32_t const* in,
                            uint32_t /*universe*/, uint32_t n,
                            std::vector<uint8_t>& out,
-                           typename Dictionary::builder const* builder
+                           dictionary::builder const* builder
                            )
         {
             uint32_t const* begin = in;
@@ -598,7 +596,7 @@ namespace ds2i {
         static uint8_t const* decode(uint8_t const* in,
                                      uint32_t* out,
                                      uint32_t /*universe*/, size_t n,
-                                     Dictionary const* dict
+                                     dictionary const* dict
                                      // ,
                                      // dint_statistics& stats
                                      )

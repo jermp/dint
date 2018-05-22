@@ -14,9 +14,6 @@
 #include "mixed_block.hpp"
 #include "dict_freq_index.hpp"
 
-#include "dictionary.hpp"
-#include "compact_dictionary.hpp"
-
 namespace ds2i {
 
     typedef freq_index<compact_elias_fano,
@@ -44,14 +41,10 @@ namespace ds2i {
     typedef block_freq_index<ds2i::vbyte_block> block_vbyte_index;
     typedef block_freq_index<ds2i::simple16_block> block_simple16_index;
 
-    typedef dict_freq_index<ds2i::dictionary,
-                            ds2i::dint_dictionary_builder<65536, 16>,
-                            ds2i::dint_block<ds2i::dictionary>> block_rect_dint_index;
-
-    typedef dict_freq_index<ds2i::compact_dictionary,
-                            ds2i::dint_dictionary_builder<65536, 16>,
-                            ds2i::dint_block<ds2i::compact_dictionary>> block_compact_dint_index;
+    // DINT codec
+    typedef dict_freq_index<ds2i::dint_dictionary_builder<65536, 16>,
+                            ds2i::dint_block<ds2i::dictionary>> block_dint_index;
 }
 
-#define DS2I_INDEX_TYPES (ef)(single)(uniform)(opt)(block_optpfor)(block_varint)(block_interpolative)(block_mixed)(block_qmx)(block_u32)(block_vbyte)(block_simple16)(block_rect_dint)(block_compact_dint)
+#define DS2I_INDEX_TYPES (ef)(single)(uniform)(opt)(block_optpfor)(block_varint)(block_interpolative)(block_mixed)(block_qmx)(block_u32)(block_vbyte)(block_simple16)(block_dint)
 #define DS2I_BLOCK_INDEX_TYPES (block_optpfor)(block_varint)(block_interpolative)(block_qmx)(block_mixed)

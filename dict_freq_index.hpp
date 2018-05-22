@@ -12,8 +12,7 @@
 
 namespace ds2i {
 
-    template<typename Dictionary,
-             typename DictionaryBuilder,
+    template<typename DictionaryBuilder,
              typename Encoder>
     struct dict_freq_index {
 
@@ -218,7 +217,6 @@ namespace ds2i {
             std::swap(m_size, other.m_size);
             m_endpoints.swap(other.m_endpoints);
             m_lists.swap(other.m_lists);
-
             m_docs_dict.swap(other.m_docs_dict);
             m_freqs_dict.swap(other.m_freqs_dict);
         }
@@ -232,7 +230,6 @@ namespace ds2i {
                 (m_num_docs, "m_num_docs")
                 (m_endpoints, "m_endpoints")
                 (m_lists, "m_lists")
-
                 (m_docs_dict, "m_docs_dict")
                 (m_freqs_dict, "m_freqs_dict")
                 ;
@@ -244,8 +241,7 @@ namespace ds2i {
         size_t m_num_docs;
         succinct::bit_vector m_endpoints;
         succinct::mapper::mappable_vector<uint8_t> m_lists;
-
-        Dictionary m_docs_dict;
-        Dictionary m_freqs_dict;
+        dictionary m_docs_dict;
+        dictionary m_freqs_dict;
     };
 }
