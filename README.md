@@ -46,7 +46,7 @@ Gov2 Decoding Time (ns x int)
 
 | Encoder           | docs        | freqs       |
 |:------------------|------------:|------------:|
-| Interpolative     | 7.51723     | 8.08594     |
+| Interpolative     | 8.32194     | 8.08594     |
 | OptPFOR           | 0.88902     | 0.74642     |
 | VarintG8IU        | 0.43187     | 0.43020     |
 | QMX               | 0.75280     | 0.74732     |
@@ -58,6 +58,7 @@ Gov2 Decoding Time (ns x int)
 | VarintGB          | 0.55312     | 0.51268     |
 | DINT*             | 0.70945     | 0.42871     |
 | DINT**            | 0.58482     | 0.39663     |
+| DINT***           | 1.33705     | 0.94880     |
 
 CC_News Decoding Time (ns x int)
 --------------------------------
@@ -77,21 +78,18 @@ CC_News Decoding Time (ns x int)
 | DINT*             | 0.87670     | 0.64105     |
 | DINT**            | 0.75852     | 0.47938     |
 
-DINT*  uses rectangular dictionaries of 2^16 x 16 x 4 bytes = 4 MiB
-DINT** uses rectangular dictionaries of 2^16 x  8 x 4 bytes = 2 MiB
+- DINT*   uses rectangular dictionaries of 2^16 x 16 x 4 bytes = 4 MiB
+- DINT**  uses rectangular dictionaries of 2^16 x  8 x 4 bytes = 2 MiB
+- DINT*** uses packed dictionaries: 1.371 MiB for the docs; 0.591 MiB for the freqs.
 
 Gov2.docs DINT Statistics
 -------------------------
 
-added  4847 16-int entries out of 156569293 (0.00309575%)
-
-added  6456  8-int entries out of 200793248 (0.00321525%)
-
-added 12654  4-int entries out of 121968050 (0.0103748%)
-
-added  7087  2-int entries out of  21792274 (0.0325207%)
-
-added 34492  1-int entries out of    695841 (4.95688%)
+-  4847 16-int entries out of 156569293 (0.00309575%)
+-  6456  8-int entries out of 200793248 (0.00321525%)
+- 12654  4-int entries out of 121968050 (0.0103748%)
+-  7087  2-int entries out of  21792274 (0.0325207%)
+- 34492  1-int entries out of    695841 (4.95688%)
 
 | total ints      | ints covered by runs | ints covered by table | ints covered by exceptions |
 |----------------:|---------------------:|----------------------:|---------------------------:|
@@ -109,44 +107,15 @@ added 34492  1-int entries out of    695841 (4.95688%)
 | codewords for  2  ints  | 436771872 (39.982%)  |
 | codewords for  1  ints  | 280558950 (25.682%)  |
 
-Gov2.freqs DINT Statistics
---------------------------
-
-added 1910 16-int entries out of 126356898 (0.00151159%)
-added 4803 8-int entries out of 87628676 (0.00548108%)
-added 4215 4-int entries out of 19874157 (0.0212084%)
-added 2589 2-int entries out of 938548 (0.275852%)
-added 12445 1-int entries out of 12445 (100%)
-
-| total ints      | ints covered by runs | ints covered by table | ints covered by exceptions |
-|----------------:|---------------------:|----------------------:|---------------------------:|
-| 5406586692      | 1387124080 (25.65%)  | 4019462612 (74.34%)   | 0  (0%)                    |
-
-| total codewords | codewords for runs   | codewords for table   | codewords for exceptions   |
-|----------------:|---------------------:|----------------------:|---------------------------:|
-| 768287504       | 12986016 (1.69%)     | 755301488 (98.30%)    | 0  (0%)                    |
-
-| total codewords         | 768287504            |
-|-------------------------|---------------------:|
-| codewords for 16+ ints  |  96587690 (12,571%)  |
-| codewords for  8  ints  | 141525081 (18,420%)  |
-| codewords for  4  ints  | 268456255 (34,942%)  |
-| codewords for  2  ints  | 214091682 (27,866%)  |
-| codewords for  1  ints  |  47626796 ( 6,199%)  |
-
 
 CC_News.docs DINT Statistics
 ----------------------------
 
-added  4847 16-int entries out of 680415119 (0.000712359%)
-
-added 10423  8-int entries out of 870845771 (0.00119688%)
-
-added 14955  4-int entries out of 490138856 (0.00305118%)
-
-added  9135  2-int entries out of  67162184 (0.0136014%)
-
-added 26176  1-int entries out of    833660 (3.13989%)
+-  4847 16-int entries out of 680415119 (0.000712359%)
+- 10423  8-int entries out of 870845771 (0.00119688%)
+- 14955  4-int entries out of 490138856 (0.00305118%)
+-  9135  2-int entries out of  67162184 (0.0136014%)
+- 26176  1-int entries out of    833660 (3.13989%)
 
 | total ints      | ints covered by runs | ints covered by table | ints covered by exceptions |
 |----------------:|---------------------:|----------------------:|---------------------------:|
