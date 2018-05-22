@@ -326,7 +326,7 @@ namespace ds2i {
                 return m_max_entry_size;
             }
 
-            void build(compact_dictionary& dict) {
+            void build(dictionary& dict) {
                 std::swap(m_capacity, dict.m_capacity);
                 dict.m_offsets.steal(m_offsets);
                 dict.m_table.steal(m_table);
@@ -364,7 +364,7 @@ namespace ds2i {
             }
         };
 
-        compact_dictionary()
+        dictionary()
             : m_capacity(0)
         {}
 
@@ -382,7 +382,7 @@ namespace ds2i {
             return m_capacity;
         }
 
-        void swap(compact_dictionary& other) {
+        void swap(dictionary& other) {
             std::swap(m_capacity, other.m_capacity);
             m_offsets.swap(other.m_offsets);
             m_table.swap(other.m_table);
