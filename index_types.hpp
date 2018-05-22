@@ -14,6 +14,9 @@
 #include "mixed_block.hpp"
 #include "dict_freq_index.hpp"
 
+#include "dictionary.hpp"
+#include "compact_dictionary.hpp"
+
 namespace ds2i {
 
     typedef freq_index<compact_elias_fano,

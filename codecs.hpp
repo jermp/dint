@@ -13,6 +13,7 @@
 #include "succinct/util.hpp"
 #include "util.hpp"
 #include "dictionary.hpp"
+#include "compact_dictionary.hpp"
 
 namespace ds2i {
 
