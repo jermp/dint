@@ -331,7 +331,7 @@ int main(int argc, const char** argv) {
         std::ofstream log_file(log_prefix + "-freqs-" + dict_constructor_type::type());
 
         auto block_stats = create_block_stats<block_stat_type>(input_basename,dict_type::freqs);
-        auto dict = build_dict<block_stat_type,dict_constructor_type>(block_stats);
+        auto dict = build_dict<block_stat_type,dict_constructor_type>(log_file,block_stats);
 
         dict.print_stats(log_file);
 
