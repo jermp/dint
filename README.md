@@ -6,16 +6,16 @@ Gov2 Space (bpi)
 
 | Encoder           | docs              | freqs            |
 |:------------------|------------------:|-----------------:|
-| Interpolative     |  3.9932           |  3.4735          |
-| OptPFOR           |  3.5859           |  2.9141          |
-| VarintG8IU        |  9.2124           |  9.0087          |
-| QMX               |  3.5031           |  3.0636          |
-| VByte             |  8.2653           |  8.0202          |
+| Interpolative     |  2.50672          |  2.09706         |
+| OptPFOR           |  2.99748          |  2.29313         |
+| VarintG8IU        |  9.21201          |  9.00871         |
+| QMX               |  3.76381          |  3.016           |
+| VByte             |  8.26401          |  8.02            |
 | Uncompressed      | 32.0004           | 32.0003          |
-| Simple16          |  3.5154           |  2.9305          |
-| StreamVByte       | 10.1676           | 10.0070          |
-| MaskedVByte       |  8.2653           |  8.0202          |
-| VarintGB          | 10.1676           | 10.0070          |
+| Simple16          |  3.36379          |  2.62227         |
+| StreamVByte       | 10.1672           | 10.0069          |
+| MaskedVByte       |  8.26401          |  8.02            |
+| VarintGB          | 10.1672           | 10.0069          |
 | DINT*  (actual)   |  3.2332           |  2.2739          |
 | DINT*  (estimated)|  3.7467 (+15.88%) |  2.6341 (+15.84%)|
 | DINT** (actual)   |  3.5112           |  2.5285          |
@@ -46,7 +46,7 @@ Gov2 Decoding Time (ns x int)
 
 | Encoder           | docs        | freqs       |
 |:------------------|------------:|------------:|
-| Interpolative     | 8.32194     | 8.08594     |
+| Interpolative     | 7.51723     | 8.08594     |
 | OptPFOR           | 0.88902     | 0.74642     |
 | VarintG8IU        | 0.43187     | 0.43020     |
 | QMX               | 0.75280     | 0.74732     |
