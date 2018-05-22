@@ -536,7 +536,7 @@ namespace ds2i {
         static void encode(uint32_t const* in,
                            uint32_t /*universe*/, uint32_t n,
                            std::vector<uint8_t>& out,
-                           Dictionary::builder const* builder)
+                           typename Dictionary::builder const* builder)
         {
             uint32_t const* begin = in;
             uint32_t const* end = begin + n;
