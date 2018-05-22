@@ -348,10 +348,10 @@ int main(int argc, const char** argv) {
     //     using dict_type = ds2i::dint_dict_builder_DSF<block_stat_type,dict_entries, max_entry_width>;
     //     eval_dict<dict_type,block_stat_type,encoding_block_size>(input_basename,log_prefix);
     // }
-    // SSF
+    // SDF
     {
         using block_stat_type = ds2i::block_stats_full_stride_linear<max_entry_width>;
-        using dict_type = ds2i::dint_dict_builder_SSF<block_stat_type,dict_entries, max_entry_width>;
+        using dict_type = ds2i::dint_dict_builder_SDF<block_stat_type,dict_entries, max_entry_width>;
         eval_dict<dict_type,block_stat_type,encoding_block_size>(input_basename,log_prefix);
     }
 

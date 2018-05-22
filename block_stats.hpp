@@ -254,6 +254,7 @@ namespace ds2i {
                             hash *= m;
                             hash ^= key;
                         }
+                        auto itr = block_map.find(hash);
                         if(itr != block_map.end()) {
                             auto block_idx = itr->second;
                             blocks[block_idx].freq++;
