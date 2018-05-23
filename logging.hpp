@@ -14,10 +14,11 @@ namespace src = boost::log::sources;
 namespace sinks = boost::log::sinks;
 namespace keywords = boost::log::keywords;
 
+typedef sinks::synchronous_sink< sinks::text_file_backend > file_sink;
+
 namespace ds2i {
 
-template<class t_log>
-t_log start_log(std::string filename)
+boost::shared_ptr<file_sink> start_log(std::string filename)
 {
     return logging::add_file_log
     (
