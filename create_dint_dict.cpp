@@ -76,6 +76,73 @@ struct encoding_stats {
         if(num_postings == block_size) exceptions_per_block[exceptions]++;
     }
 
+    void print_usage_rbo(double p) {
+        // (1) create lists to compare
+        struct rbo_stat_type {
+            int orig_id;
+            size_t freq;
+        };
+        std::vector<rbo_stat_type> list;
+        for(size_t i=dict.special_cases();i<dict.capacity();i++) {
+            rbo_stat_type r;
+            r.orig_id = i - dict.special_cases() + 1;
+            r.freq = code_usage[i];
+            list.push_back(r);
+        }
+        auto freq_cmp = [](const auto& a,const auto& b) {
+            if(a.freq == b.freq) return a.orig_id < b.orig_id;
+            return a.freq > b.freq;
+        };
+        std::sort(list.begin(),list.end(),freq_cmp);
+        std::vector<int> A;
+        std::vector<int> B;
+        for(size_t i=0;i<list.size();i++) {
+            A.push_back(list[i].orig_id);
+            B.push_back(i+1);
+        }
+        // (2) perform rbo based on ammoffat code
+        double weight = 1.0 - p;
+        double rbo_min = 0.0;
+        uint64_t overlap = 0;
+        double contrib = 0;
+        std::unordered_set<int> seen_A;
+        std::unordered_set<int> seen_B;
+        size_t n = 1;
+        for(;n<=A.size();n++) {
+            if (A[n-1]==B[n-1]) overlap++;
+            else {
+                overlap += seen_A.count(A[n-1]);
+                overlap += seen_B.count(B[n-1]);
+            }
+            seen_A.insert(A[n-1]);
+            seen_B.insert(B[n-1]);
+            contrib = weight*overlap/double(n);
+            rbo_min += contrib;
+            weight *= p;
+        }
+        auto max_overlap = overlap;
+        auto rbo_max = rbo_min;
+        const double EPSILON = 1e-15;
+        while (weight>EPSILON) {
+            n++;
+            contrib = weight*overlap/double(n);
+            rbo_min += contrib;
+            if (max_overlap==n-1) {
+                // both new elements must be the same novel one
+                max_overlap += 1;
+            } else {
+                // two new elements can be assumed, both ones that
+                // appeared already in the other list
+                max_overlap += 2;
+            }
+            rbo_max += weight*max_overlap/double(n);
+            // prepare for the next pair of imaginary values
+		    weight *= p;
+        }
+        boost::format rbofmt("\t rbo(p = %1$.5f) = %2$.6f + %3$.6f (n=%4d, nrows=%5d)");
+        DS2I_LOG << rbofmt % p % rbo_min % (rbo_max-rbo_min) % A.size() % n;
+    }
+
     void print() {
         DS2I_LOG << "(1) dictionary contents:";
         dict.print();
@@ -117,7 +184,13 @@ struct encoding_stats {
             DS2I_LOG << fmt %  l % exceptions_per_block[l] % percentage;
         }
 
-        DS2I_LOG << "(5) overall stats:";
+        DS2I_LOG << "(5) RBO stats:";
+        auto P = {0.7, 0.8, 0.9, 0.95, 0.99, 0.999, 0.999, 0.999};
+        for(auto p : P) {
+            print_usage_rbo(p);
+        }
+
+        DS2I_LOG << "(6) overall stats:";
 
         DS2I_LOG << "\tblock_size = " << block_size;
         DS2I_LOG << "\tencoded blocks = " << total_blocks;
