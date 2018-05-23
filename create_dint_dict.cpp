@@ -47,7 +47,7 @@ struct encoding_stats {
     encoding_stats(ds2i::dictionary::builder& dict_,size_t block_size_)
         : dict(dict_) , block_size(block_size_)
     {
-        code_usage.resize(dict.capacity()+1);
+        code_usage.resize(dict.capacity());
         codes_per_block.resize(block_size*4);
         exceptions_per_block.resize(block_size*4);
     }
