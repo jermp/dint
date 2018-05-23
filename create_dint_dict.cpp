@@ -14,7 +14,6 @@
 #include "logging.hpp"
 
 using namespace ds2i;
-using ds2i::logger;
 
 
 template<class block_stat_type>
@@ -45,7 +44,7 @@ ds2i::dictionary::builder build_dict(block_stat_type& block_stats)
 
 void encode_lists(ds2i::dictionary::builder& dict,std::string input_basename,dict_type type,size_t block_size)
 {
-    logger() << "encoding lists" << std::endl;
+    DS2I_LOG << "encoding lists" << std::endl;
     //encoding_stats stats(dict);
 
     std::string file_name = input_basename + ".docs";

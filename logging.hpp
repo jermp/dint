@@ -42,8 +42,7 @@ void start_logging_to_file(std::string filename)
 	    );
 }
 
-template<class t_log>
-void stop_logging_to_file(t_log& file_sink)
+void stop_logging_to_file()
 {
     boost::log::core::get()->remove_all_sinks();
     boost::log::core::get()->add_global_attribute("TimeStamp", boost::log::attributes::local_clock());

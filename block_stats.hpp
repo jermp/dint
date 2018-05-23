@@ -65,7 +65,7 @@ namespace ds2i {
         }
 
         block_stats_full_stride_geom(binary_collection& input,bool compute_gaps) {
-            logger() << "creating block stats" << std::endl;
+            DS2I_LOG << "creating block stats" << std::endl;
             std::unordered_map<uint32_t,uint64_t> block_map;
             block_map.max_load_factor(0.1);
             boost::progress_display progress(input.data_size());
@@ -81,7 +81,7 @@ namespace ds2i {
             std::ifstream in(file_name.c_str());
             uint64_t num_blocks;
             in.read(reinterpret_cast<char*>(&num_blocks), sizeof(uint64_t));
-            logger() << "reading block stats (num_blocks = " << num_blocks << ")" << std::endl;
+            DS2I_LOG << "reading block stats (num_blocks = " << num_blocks << ")" << std::endl;
             blocks.resize(num_blocks);
             auto block_data = reinterpret_cast<char*>(blocks.data());
             in.read(block_data, num_blocks * sizeof(block_type));
@@ -146,7 +146,7 @@ namespace ds2i {
         }
 
         void try_to_store(std::string file_name) {
-            logger() << "writing block stats" << std::endl;
+            DS2I_LOG << "writing block stats" << std::endl;
             std::ofstream out(file_name.c_str());
             if(out) {
                 uint64_t num_blocks = blocks.size();
@@ -203,7 +203,7 @@ namespace ds2i {
         }
 
         block_stats_full_stride_linear(binary_collection& input,bool compute_gaps) {
-            logger() << "creating block stats" << std::endl;
+            DS2I_LOG << "creating block stats" << std::endl;
             std::unordered_map<uint32_t,uint64_t> block_map;
             block_map.max_load_factor(0.1);
             boost::progress_display progress(input.data_size());
@@ -219,7 +219,7 @@ namespace ds2i {
             std::ifstream in(file_name.c_str());
             uint64_t num_blocks;
             in.read(reinterpret_cast<char*>(&num_blocks), sizeof(uint64_t));
-            logger() << "reading block stats (num_blocks = " << num_blocks << ")" << std::endl;
+            DS2I_LOG << "reading block stats (num_blocks = " << num_blocks << ")" << std::endl;
             blocks.resize(num_blocks);
             auto block_data = reinterpret_cast<char*>(blocks.data());
             in.read(block_data, num_blocks * sizeof(block_type));
@@ -275,7 +275,7 @@ namespace ds2i {
         }
 
         void try_to_store(std::string file_name) {
-            logger() << "writing block stats" << std::endl;
+            DS2I_LOG << "writing block stats" << std::endl;
             std::ofstream out(file_name.c_str());
             if(out) {
                 uint64_t num_blocks = blocks.size();
