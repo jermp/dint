@@ -42,10 +42,10 @@ ds2i::dictionary::builder build_dict(std::ostream& os,block_stat_type& block_sta
     return dict_builder;
 }
 
-encoding_stats encode_lists(ds2i::dictionary::builder& dict,std::string input_basename,dict_type type,size_t block_size)
+void encode_lists(ds2i::dictionary::builder& dict,std::string input_basename,dict_type type,size_t block_size)
 {
     logger() << "encoding lists" << std::endl;
-    encoding_stats stats(dict);
+    //encoding_stats stats(dict);
 
     std::string file_name = input_basename + ".docs";
     if(type == dict_type::freqs) file_name = input_basename + ".freqs";
@@ -84,7 +84,6 @@ encoding_stats encode_lists(ds2i::dictionary::builder& dict,std::string input_ba
         }
         progress += n+1;
     }
-    return stats;
 }
 
 
