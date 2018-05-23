@@ -57,7 +57,7 @@ struct encoding_stats {
         total_postings += num_postings;
         total_codes_u16 += num_codes;
         size_t exceptions = 0;
-        for(size_t i=0;i<n;i++) {
+        for(size_t i=0;i<num_codes;i++) {
             uint16_t code_word = codes[i];
             code_usage[code_word]++;
             if(code_word == 0) {
@@ -94,8 +94,8 @@ struct encoding_stats {
                 << " len = " << std::setw(3) << l
                 << " num_codes = " << std::setw(10) << len_stats[l]
                 << " num_postings = " << std::setw(10) << num_postings
-                << " perct. of codes = " << std::setw(6) << std::precision(4) << percent_codes
-                << " perct. of postings = " << std::setw(6) << std::precision(4) << percent_postings;
+                << " perct. of codes = " << std::setw(6) << std::setprecision(4) << percent_codes
+                << " perct. of postings = " << std::setw(6) << std::setprecision(4) << percent_postings;
         }
 
 
@@ -106,8 +106,8 @@ struct encoding_stats {
             DS2I_LOG << "\t"
                 << " codes = " << std::setw(3) << l
                 << " blocks = " << std::setw(10) << codes_per_block[l]
-                << " bpi = " << std::setw(6) << std::precision(4) << double(l) / double(block_size) * 100
-                << " perct. of blocks = " << std::setw(6) << std::precision(4) << percentage;
+                << " bpi = " << std::setw(6) << std::setprecision(4) << double(l) / double(block_size) * 100
+                << " perct. of blocks = " << std::setw(6) << std::setprecision(4) << percentage;
         }
 
 
@@ -118,7 +118,7 @@ struct encoding_stats {
             DS2I_LOG << "\t"
                 << " codes = " << std::setw(3) << l
                 << " blocks = " << std::setw(10) << exceptions_per_block[l]
-                << " perct. of blocks = " << std::setw(6) << std::precision(4) << percentage;
+                << " perct. of blocks = " << std::setw(6) << std::setprecision(4) << percentage;
         }
 
         DS2I_LOG << "(5) overall stats:";
