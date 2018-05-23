@@ -113,6 +113,8 @@ struct encoding_stats {
 		        DS2I_LOG << "Duplicate value at line " << n;
 	        }
 
+            std::cout << "A["<<n-1<<"] = " << A[n-1] << " B["<<n-1<<"] = " << B[n-1];
+
             if (A[n-1]==B[n-1]) overlap++;
             else {
                 overlap += seen_A.count(A[n-1]);
