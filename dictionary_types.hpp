@@ -151,17 +151,17 @@ namespace ds2i {
             for(size_t i=0;i<dictionary.size();i++) {
                 if(dictionary[i] == 1) {
                     auto& block = block_stats.blocks[i];
-                    final_blocks.emplace_back(-1 * freedom[i],block);
+                    final_blocks.emplace_back(freedom[i],block);
                 }
             }
-            auto cmp = [](const auto& a,const auto& b) {
+            auto final_cmp = [](const auto& a,const auto& b) {
                 return a.first > b.first || 
                     (!(a.first < b.first) && a.second.entry_len > b.second.entry_len);
             };
-            std::sort(final_blocks.begin(),final_blocks.end(),cmp);
+            std::sort(final_blocks.begin(),final_blocks.end(),final_cmp);
             for(auto& dict_entry : final_blocks) {
                 auto& block = dict_entry.second;
-                builder.append(block.entry,block.entry_len,uint64_t(dict_entry.first * -1));
+                builder.append(block.entry,block.entry_len,uint64_t(dict_entry.first));
             }
         }
     };
