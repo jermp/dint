@@ -83,7 +83,7 @@ struct encoding_stats {
             auto code_len = dict.size(i);
             len_stats[code_len] += code_usage[i];
         }
-        boost::format fmtl("\t len = %1$3d num_codes = %2$10d num_postings = %3$10d percent. codes = %4$3.2f percent. postings = %5$3.2f");
+        boost::format fmtl("\t len = %1$3d #codes = %2$10d #postings = %3$10d \%%codes = %4$3.2f %%postings = %5$3.2f");
         for(size_t l=0;l<len_stats.size();l++) {
             size_t num_postings = l * code_usage[l];
             double percent_codes = double(len_stats[l])

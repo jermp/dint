@@ -191,14 +191,14 @@ namespace ds2i {
                     len_stats[size(i)]++;
                 }
                 DS2I_LOG << " LEN DIST = ";
-                boost::format fmt("\t   code = %1$6d len = %2$3d  percent = %3$3.2f");
+                boost::format fmt("\t   len = %1$3d count = %2$5d percent = %3$4.2f");
                 for(size_t i=0;i<len_stats.size();i++) {
                     if(len_stats[i] != 0) {
                         DS2I_LOG << fmt % i % len_stats[i] % (double(len_stats[i]) / double(m_size) * 100);
                     }
                 }
                 DS2I_LOG << " CONTENT = ";
-                boost::format fmt2("\t   code = %1$6d freq = %2$10d  entr = %3");
+                boost::format fmt2("\t   code = %1$6d freq = %2$10d entry = %3%");
                 for(size_t i=0;i<m_size;i++) {
                     DS2I_LOG << fmt2 % i % freq(i) %  entry_string(i);
                 }
