@@ -62,7 +62,7 @@ namespace ds2i {
             std::vector<std::pair<int64_t,btype>> final_blocks;
             while(!pq.empty()) {
                 auto& block = pq.top();
-                final_blocks.emplace_back(-1 * int64_t(block.freq),block);
+                final_blocks.emplace_back(block.freq,block);
                 pq.pop();
             }
             // if estimated freq is the same we prefer longer entries
