@@ -48,7 +48,7 @@ namespace ds2i {
     	static std::string type() {
     		return "geometric";
     	}
-    	
+
     	template<class bm_type>
     	static size_t update_stats(const std::vector<uint32_t>& buf,bm_type& block_map) {
     		auto b = buf.data();
@@ -116,6 +116,7 @@ namespace ds2i {
             in.read(block_data, num_blocks * sizeof(block_type));
         }
 
+        template<class t_list>
     	void process_list(bm_type& block_map,t_list& list,bool compute_gaps) {
     		thread_local std::vector<uint32_t> buf(max_entry_width);
             size_t n = list.size();

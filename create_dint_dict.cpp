@@ -124,8 +124,8 @@ int main(int argc, const char** argv) {
     
     // DSF
     {
-        using block_stat_type = ds2i::block_stats_full_stride_geom<max_entry_width>;
-        using dict_type = ds2i::dint_dict_builder_DSF<block_stat_type,dict_entries, max_entry_width>;
+        using block_stat_type = ds2i::blokc_statistics<max_entry_width,ds2i::stats_geometric>;
+        using dict_type = ds2i::dint_dict_type_DSF<block_stat_type,dict_entries, max_entry_width>;
         eval_dict<dict_type,block_stat_type,encoding_block_size>(input_basename,log_prefix);
     }
     // // // PDF
