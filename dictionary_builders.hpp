@@ -589,12 +589,15 @@ namespace ds2i {
                         for (uint32_t begin = 0; begin < block.size(); begin += block_size) {
                             uint8_t const* b = reinterpret_cast<uint8_t const*>(&block[begin]);
                             uint8_t const* e = b + std::min<uint64_t>(block_size, block.size() - begin) * sizeof(uint32_t);
+                            assert(std::min<uint64_t>(block_size, block.size() - begin) == block_size);
                             uint64_t hash = hash_bytes64(byte_range(b, e));
                             auto it = map.find(hash);
                             if (it != map.end()) {
                                 uint32_t id = map[hash];
-                                candidates[j][id - id_lowerbounds[j]].second -= freq;
-                                assert(candidates[j][id - id_lowerbounds[j]].second >= 0);
+                                // std::cout << "decreasing " << candidates[j][id - id_lowerbounds[j]].second << " by " << freq << std::endl;
+                                if (candidates[j][id - id_lowerbounds[j]].second >= freq) {
+                                    candidates[j][id - id_lowerbounds[j]].second -= freq;
+                                }
                             }
                         }
                     }

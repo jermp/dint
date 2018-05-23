@@ -100,7 +100,7 @@ namespace ds2i {
                     freqs_blocks_stats.sort_and_write(freqs_output_filename, total_integers);
                 }
 
-                // uint64_t total_integers = 20150335440; // 20150335440 5880709592 - 19691599096 5406586692
+                // uint64_t total_integers = 5880709592; // 20150335440 5880709592 - 19691599096 5406586692
 
                 // step 2. build dictionary from statistics
 

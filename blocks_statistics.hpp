@@ -121,6 +121,7 @@ namespace ds2i {
             // free memory
             logger() << "releasing memory..." << std::endl;
             std::unordered_map<uint64_t, value_type>().swap(m_map);
+            logger() << "DONE" << std::endl;
         }
 
         uint64_t bytes_per_block() const {
