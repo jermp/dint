@@ -18,7 +18,7 @@ typedef sinks::synchronous_sink< sinks::text_file_backend > file_sink;
 
 namespace ds2i {
 
-boost::shared_ptr<file_sink> start_log(std::string filename)
+boost::shared_ptr<file_sink> start_logging(std::string filename)
 {
     return logging::add_file_log
     (
@@ -29,7 +29,7 @@ boost::shared_ptr<file_sink> start_log(std::string filename)
 }
 
 template<class t_log>
-void stop_log(t_log& file_sink)
+void stop_logging(t_log& file_sink)
 {
 	logging::core::get()->remove_sink(file_sink);
 	file_sink.reset();
