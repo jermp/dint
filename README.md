@@ -78,8 +78,8 @@ CC_News Decoding Time (ns x int)
 | DINT*             | 0.87670     | 0.64105     |
 | DINT**            | 0.75852     | 0.47938     |
 
-- DINT*   uses rectangular dictionaries of 2^16 x 16 x 4 bytes = 4 MiB
-- DINT**  uses rectangular dictionaries of 2^16 x  8 x 4 bytes = 2 MiB
+- DINT*   uses rectangular dictionaries of 2^16 x (16 + 1) x 4 bytes = 4.25 MiB
+- DINT**  uses rectangular dictionaries of 2^16 x ( 8 + 1) x 4 bytes = 2.25 MiB
 - DINT*** uses packed dictionaries: 1.371 MiB for the docs; 0.591 MiB for the freqs.
 
 Gov2.docs DINT Statistics

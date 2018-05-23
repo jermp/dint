@@ -607,6 +607,26 @@ namespace ds2i {
                             }
                         }
                     }
+
+                    // for (uint32_t block_size = block.size() / 2; block_size != 0; block_size /= 2)
+                    // {
+                    //     for (uint32_t begin = 0; begin < block.size(); begin += block_size)
+                    //     {
+                    //         uint32_t len = std::min<uint64_t>(block_size, block.size() - begin);
+                    //         if (is_power_of_two(len)) {
+                    //             uint8_t const* b = reinterpret_cast<uint8_t const*>(&block[begin]);
+                    //             uint8_t const* e = b + len * sizeof(uint32_t);
+                    //             uint64_t hash = hash_bytes64(byte_range(b, e));
+                    //             auto it = map.find(hash);
+                    //             if (it != map.end()) {
+                    //                 uint32_t id = map[hash];
+                    //                 uint32_t j = index(len);
+                    //                 candidates[j][id - id_lowerbounds[j]].second -= freq;
+                    //                 assert(candidates[j][id - id_lowerbounds[j]].second >= 0);
+                    //             }
+                    //         }
+                    //     }
+                    // }
                 }
 
                 logger() << "covering " << total_coverage << "% of integers "

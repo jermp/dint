@@ -46,7 +46,6 @@ namespace ds2i {
                 std::vector<uint32_t> freqs;
                 uint64_t processed_lists = 0;
                 uint64_t total_integers = 0;
-
                 for (uint32_t block_size = MAX_BLOCK_LEN; block_size != 0; block_size /= 2)
                 {
                     blocks_statistics docs_blocks_stats(block_size);
@@ -96,12 +95,12 @@ namespace ds2i {
 
                     logger() << "Writing blocks statistics to the disk..." << std::endl;
                     std::string docs_output_filename("./" + prefix_name + ".docs.blocks_stats." + std::to_string(block_size) + ".bin");
-                    docs_blocks_stats.sort_and_write(docs_output_filename);
+                    docs_blocks_stats.sort_and_write(docs_output_filename, total_integers);
                     std::string freqs_output_filename("./" + prefix_name + ".freqs.blocks_stats." + std::to_string(block_size) + ".bin");
-                    freqs_blocks_stats.sort_and_write(freqs_output_filename);
+                    freqs_blocks_stats.sort_and_write(freqs_output_filename, total_integers);
                 }
 
-                // uint64_t total_integers = 5406586692; // 19691599096 5406586692
+                // uint64_t total_integers = 20150335440; // 20150335440 5880709592 - 19691599096 5406586692
 
                 // step 2. build dictionary from statistics
 

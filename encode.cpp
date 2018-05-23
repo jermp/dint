@@ -58,8 +58,8 @@ void encode(std::string const& type,
     for (auto const& list: input)
     {
         uint32_t n = list.size();
-        if (n > MIN_SIZE)
-        {
+        // if (n > MIN_SIZE)
+        // {
             buf.reserve(n);
             uint32_t prev = docs ? -1 : 0;
             uint32_t universe = 0;
@@ -82,13 +82,13 @@ void encode(std::string const& type,
             ++num_processed_lists;
             num_total_ints += n;
 
-            if (num_processed_lists % 1000 == 0) {
+            if (num_processed_lists % 5000 == 0) {
                 logger() << "encoded " << num_processed_lists << " lists" << std::endl;
                 logger() << "encoded " << num_total_ints << " integers" << std::endl;
                 logger() << "bits x integer: "
                          << output.size() * sizeof(output[0]) * 8.0 / num_total_ints << std::endl;
             }
-        }
+        // }
     }
 
     double GiB_space = output.size() * 1.0 / GiB;

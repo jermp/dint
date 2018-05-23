@@ -21,23 +21,51 @@ namespace ds2i {
 
         void process(uint32_t const* begin, uint64_t n)
         {
+            // uint8_t const* b = reinterpret_cast<uint8_t const*>(begin);
+            // uint8_t const* e = b + n * sizeof(uint32_t);
+            // while (b != e) {
+            //     size_t num_bytes = std::min<uint64_t>(bytes_per_block(), e - b);
+            //     uint64_t hash = hash_bytes64(byte_range(b, b + num_bytes));
+
+            //     auto it = m_map.find(hash);
+            //     if (it == m_map.end()) {
+
+            //         value_type pair(1, std::vector<uint32_t>());
+            //         auto& block = pair.second;
+            //         uint64_t m = std::min<uint64_t>(block_size(), num_bytes / sizeof(uint32_t));
+            //         block.reserve(m);
+            //         auto ptr = reinterpret_cast<uint32_t const*>(b);
+            //         while (block.size() < m) {
+            //             block.push_back(*ptr);
+            //             ++ptr;
+            //         }
+            //         m_map[hash] = std::move(pair);
+
+            //         if (m_map.size() % 1000000 == 0) {
+            //             logger() << m_map.size() << " distinct blocks of size " << block_size() << std::endl;
+            //         }
+
+            //     } else {
+            //         (*it).second.first += 1;
+            //     }
+
+            //     b += num_bytes;
+            // }
+
             uint8_t const* b = reinterpret_cast<uint8_t const*>(begin);
             uint8_t const* e = b + n * sizeof(uint32_t);
-            while (b != e) {
-                size_t num_bytes = std::min<uint64_t>(bytes_per_block(), e - b);
-                uint64_t hash = hash_bytes64(byte_range(b, b + num_bytes));
-
+            uint64_t bytes = bytes_per_block();
+            while (e - b >= bytes) { // ignore block tail
+                uint64_t hash = hash_bytes64(byte_range(b, b + bytes));
                 auto it = m_map.find(hash);
-                if (it == m_map.end()) {
-
+                if (it == m_map.end())
+                {
                     value_type pair(1, std::vector<uint32_t>());
                     auto& block = pair.second;
-                    uint64_t m = std::min<uint64_t>(block_size(), num_bytes / sizeof(uint32_t));
-                    block.reserve(m);
+                    block.reserve(block_size());
                     auto ptr = reinterpret_cast<uint32_t const*>(b);
-                    while (block.size() < m) {
-                        block.push_back(*ptr);
-                        ++ptr;
+                    while (block.size() < block_size()) {
+                        block.push_back(*ptr++);
                     }
                     m_map[hash] = std::move(pair);
 
@@ -49,21 +77,24 @@ namespace ds2i {
                     (*it).second.first += 1;
                 }
 
-                b += num_bytes;
+                b += bytes;
             }
         }
 
-        void sort_and_write(std::string const& output_filename)
+        void sort_and_write(std::string const& output_filename,
+                            uint64_t total_integers, double eps = 0.0001)
         {
             std::vector<value_type> freq_blocks;
             freq_blocks.reserve(m_map.size());
             for (auto& pair: m_map) {
-                value_type p(pair.second.first, std::vector<uint32_t>());
-                p.second.swap(pair.second.second);
-                freq_blocks.push_back(std::move(p));
+                if (bpi(block_size(), pair.second.first, total_integers) > eps) { // cost pruning
+                    value_type p(pair.second.first, std::vector<uint32_t>());
+                    p.second.swap(pair.second.second);
+                    freq_blocks.push_back(std::move(p));
+                }
             }
 
-            logger() << "sorting by decreasing freq..." << std::endl;
+            logger() << "sorting " << freq_blocks.size() << " blocks by decreasing freq..." << std::endl;
             std::sort(freq_blocks.begin(), freq_blocks.end(),
                       [](value_type const& x, value_type const& y) {
                             return x.first > y.first;
