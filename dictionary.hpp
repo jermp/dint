@@ -179,7 +179,7 @@ namespace ds2i {
                 return m_type;
             }
 
-            void print_stats() {
+            void print() {
                 DS2I_LOG << "type = " << type();
                 DS2I_LOG << " size = " << m_size;
                 DS2I_LOG << " special_cases = " << m_reserved;

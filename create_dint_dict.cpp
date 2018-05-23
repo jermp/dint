@@ -79,7 +79,7 @@ struct encoding_stats {
         DS2I_LOG << "(2) code lens distribution:";
         std::vector<uint64_t> len_stats(512);
         for(size_t i=0;i<code_usage.size();i++) {
-            code_len = dict.size(i);
+            auto code_len = dict.size(i);
             len_stats[code_len] += code_usage[i];
         }
         for(size_t l=0;l<len_stats.size();l++) {
@@ -89,11 +89,11 @@ struct encoding_stats {
             double percent_postings = double(num_postings)
                 / double(total_postings) * 100;
             if(l <= 1) num_postings = code_usage[l];
-            if(len_stats[i] == 0) continue;
+            if(len_stats[l] == 0) continue;
             DS2I_LOG << "\t"
-                << " len = " << std::setw(3) l
-                << " num_codes = " << std::setw(10) len_stats[l]
-                << " num_postings = " << std::setw(10) num_postings
+                << " len = " << std::setw(3) << l
+                << " num_codes = " << std::setw(10) << len_stats[l]
+                << " num_postings = " << std::setw(10) << num_postings
                 << " perct. of codes = " << std::setw(6) << std::precision(4) << percent_codes
                 << " perct. of postings = " << std::setw(6) << std::precision(4) << percent_postings;
         }
@@ -104,8 +104,8 @@ struct encoding_stats {
             if(codes_per_block[l] == 0) continue;
             double percentage = double(codes_per_block[l]) / double(total_blocks) * 100;
             DS2I_LOG << "\t"
-                << " codes = " << std::setw(3) l
-                << " blocks = " << std::setw(10) codes_per_block[l]
+                << " codes = " << std::setw(3) << l
+                << " blocks = " << std::setw(10) << codes_per_block[l]
                 << " bpi = " << std::setw(6) << std::precision(4) << double(l) / double(block_size) * 100
                 << " perct. of blocks = " << std::setw(6) << std::precision(4) << percentage;
         }
@@ -116,8 +116,8 @@ struct encoding_stats {
             if(exceptions_per_block[l] == 0) continue;
             double percentage = double(exceptions_per_block[l]) / double(total_blocks) * 100;
             DS2I_LOG << "\t"
-                << " codes = " << std::setw(3) l
-                << " blocks = " << std::setw(10) exceptions_per_block[l]
+                << " codes = " << std::setw(3) << l
+                << " blocks = " << std::setw(10) << exceptions_per_block[l]
                 << " perct. of blocks = " << std::setw(6) << std::precision(4) << percentage;
         }
 
@@ -143,9 +143,9 @@ struct encoding_stats {
     size_t total_codes_u16 = 0;
     size_t total_exceptions_u16 = 0;
     size_t total_exceptions_u32 = 0;
-    size_t block_size = 0;
 
     ds2i::dictionary::builder& dict;
+    size_t block_size = 0;
 };
 
 void encode_lists(ds2i::dictionary::builder& dict,std::string input_basename,dict_type type,size_t block_size)
