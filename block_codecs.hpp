@@ -437,17 +437,10 @@ namespace ds2i {
         static const uint64_t block_size = constants::block_size;
         static const uint64_t overflow = 512;
 
-        struct stats_type {
-          size_t written_codes;
-          size_t written_exceptions;
-        };
-
-        static stats_type encode(dictionary::builder& builder,
+        static size_t encode(dictionary::builder& builder,
                            uint32_t const *in,size_t n,uint32_t* out)
         {
-            stats_type stats;
-            stats.written_codes = 0;
-            stats.written_exceptions = 0;
+            size_t written_codes = 0;
 
             uint32_t const* begin = in;
             uint32_t const* end = begin + n;
@@ -475,7 +468,7 @@ namespace ds2i {
                 }
 
                 if (table_index < dictionary::reserved) {
-                    out[stats.written_codes++] = table_index;
+                    out[written_codes++] = table_index;
                     begin += std::min<uint64_t>(run_size, end - begin);
                 } else {
                     for (uint32_t sub_block_size  = builder.entry_size();
@@ -484,26 +477,29 @@ namespace ds2i {
                     {
                         table_index = builder.lookup(begin, sub_block_size);
                         if (table_index != dictionary::invalid_index) {
-                            out[stats.written_codes++] = table_index;
+                            out[written_codes++] = table_index;
                             begin += sub_block_size; // can be >= end
                             break;
                         }
                     }
 
                     if (table_index == dictionary::invalid_index) {
+                        uint32_t exception = *begin;
                         // pattern was not found, thus we have an exception
                         // and leave it uncompressed
-                        if(*begin <= std::numeric_limits<uint16_t>::max()) {
-                          out[stats.written_codes++] = 0;
+                        if(exception <= std::numeric_limits<uint16_t>::max()) {
+                          out[written_codes++] = 0;
+                          out[written_codes++] = uint16_t(exception);
                         } else {
-                          out[stats.written_codes++] = 1;
+                          out[written_codes++] = 1;
+                          out[written_codes++] = uint16_t(exception>>16);
+                          out[written_codes++] = uint16_t(exception&0xFFFF);
                         }
-                        stats.written_exceptions++;
                         begin += 1;
                     }
                 }
             }
-            return stats;
+            return written_codes;
         }
 
         static uint8_t const* decode(dictionary const* dict,
