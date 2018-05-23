@@ -142,6 +142,7 @@ struct encoding_stats {
     size_t total_codes_u16 = 0;
     size_t total_exceptions_u16 = 0;
     size_t total_exceptions_u32 = 0;
+    size_t total_full_blocks = 0;
 
     ds2i::dictionary::builder& dict;
     size_t block_size = 0;
