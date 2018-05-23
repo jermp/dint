@@ -54,7 +54,10 @@ struct encoding_stats {
 
     void update(const std::vector<uint16_t>& codes,size_t num_codes,size_t num_postings) {
         total_blocks++;
-        if(num_postings == block_size) codes_per_block[num_codes]++;
+        if(num_postings == block_size) {
+            codes_per_block[num_codes]++;
+            total_full_blocks++;
+        }
         total_postings += num_postings;
         total_codes_u16 += num_codes;
         size_t exceptions = 0;
@@ -100,8 +103,8 @@ struct encoding_stats {
         boost::format fmtd("\t codes = %1$3d blocks = %2$12d bpi = %3$4.3f percent = %4$3.2f");
         for(size_t l=0;l<codes_per_block.size();l++) {
             if(codes_per_block[l] == 0) continue;
-            double bpi = double(l) / double(block_size) * 100;
-            double percentage = double(codes_per_block[l]) / double(total_blocks) * 100;
+            double bpi = double(l*16) / double(block_size);
+            double percentage = double(codes_per_block[l]) / double(total_full_blocks) * 100;
             DS2I_LOG << fmtd % l % codes_per_block[l] % bpi % percentage;
         }
 
@@ -110,7 +113,7 @@ struct encoding_stats {
         boost::format fmt("\t codes = %1$6d blocks = %2$12d  percent = %3$5.2f");
         for(size_t l=0;l<exceptions_per_block.size();l++) {
             if(exceptions_per_block[l] == 0) continue;
-            double percentage = double(exceptions_per_block[l]) / double(total_blocks) * 100;
+            double percentage = double(exceptions_per_block[l]) / double(total_full_blocks) * 100;
             DS2I_LOG << fmt %  l % exceptions_per_block[l] % percentage;
         }
 
@@ -118,6 +121,9 @@ struct encoding_stats {
 
         DS2I_LOG << "\tblock_size = " << block_size;
         DS2I_LOG << "\tencoded blocks = " << total_blocks;
+        DS2I_LOG << "\tencoded full blocks = " << total_full_blocks;
+        double percent_full = double(total_full_blocks)/double(total_blocks)*100;
+        DS2I_LOG << "\tpercent full blocks = " << boost::format("%1$/3.2f") % percent_full;
         DS2I_LOG << "\tencoded postings = " << total_postings;
         DS2I_LOG << "\ttotal u16 codes (inc. exceptions) = " << total_codes_u16;
         DS2I_LOG << "\ttotal u16 exceptions = " << total_exceptions_u16;
