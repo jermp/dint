@@ -22,7 +22,7 @@ namespace ds2i {
              uint32_t num_entries = 65536,
              uint32_t entry_width = 16
              >
-    struct dint_dict_strategy_DSF
+    struct dint_dict_type_DSF
     {
         static std::string type() {
             return "DSF-" + std::to_string(num_entries) + "-" + std::to_string(entry_width);

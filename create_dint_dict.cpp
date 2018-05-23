@@ -8,7 +8,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/progress.hpp>
 
-#include "dictionary_builders.hpp"
+#include "dictionary_types.hpp"
 #include "block_statistics.hpp"
 #include "block_codecs.hpp"
 
