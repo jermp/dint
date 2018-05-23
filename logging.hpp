@@ -14,6 +14,7 @@ namespace src = boost::log::sources;
 namespace sinks = boost::log::sinks;
 namespace keywords = boost::log::keywords;
 
+namespace ds2i {
 
 auto start_log(std::string filename) -> decltype(logging::add_file_log)
 {
@@ -25,9 +26,11 @@ auto start_log(std::string filename) -> decltype(logging::add_file_log)
     );
 }
 
-template<t_log>
+template<class t_log>
 void stop_log(t_log& file_sink)
 {
 	logging::core::get()->remove_sink(file_sink);
 	file_sink.reset();
+}
+
 }
