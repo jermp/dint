@@ -4,6 +4,7 @@
 #include "dictionary.hpp"
 #include "heap.hpp"
 #include "hash_utils.hpp"
+#include "model_build_utils.hpp"
 
 #include <unordered_map>
 

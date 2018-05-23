@@ -1,6 +1,7 @@
 #pragma once
 
 #include "hash_utils.hpp"
+#include "model_build_utils.hpp"
 
 #include <fstream>
 #include <unordered_map>
@@ -55,7 +56,7 @@ namespace ds2i {
             uint8_t const* b = reinterpret_cast<uint8_t const*>(begin);
             uint8_t const* e = b + n * sizeof(uint32_t);
             uint64_t bytes = bytes_per_block();
-            while (e - b >= bytes) { // ignore block tail
+            while (b < e) { // ignore block tail
                 uint64_t hash = hash_bytes64(byte_range(b, b + bytes));
                 auto it = m_map.find(hash);
                 if (it == m_map.end())
