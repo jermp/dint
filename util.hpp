@@ -14,7 +14,7 @@
 #include <sys/resource.h>
 
 #include "succinct/broadword.hpp"
-#include "logging.hpp   "
+#include "logging.hpp"
 
 #define DS2I_LIKELY(x) __builtin_expect(!!(x), 1)
 #define DS2I_UNLIKELY(x) __builtin_expect(!!(x), 0)
