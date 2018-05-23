@@ -139,7 +139,7 @@ struct encoding_stats {
             // prepare for the next pair of imaginary values
 		    weight *= p;
         }
-        boost::format rbofmt("\t rbo(p = %1$.5f) = %2$.6f + %3$.6f (n=%4d, nrows=%5d)");
+        boost::format rbofmt("\t rbo(p = %1$.5f) = %2$.6f + %3$.6f (n=%4$7d, nrows=%5$7d)");
         DS2I_LOG << rbofmt % p % rbo_min % (rbo_max-rbo_min) % A.size() % n;
     }
 
