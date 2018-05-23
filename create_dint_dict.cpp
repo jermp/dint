@@ -123,7 +123,7 @@ struct encoding_stats {
         DS2I_LOG << "\tencoded blocks = " << total_blocks;
         DS2I_LOG << "\tencoded full blocks = " << total_full_blocks;
         double percent_full = double(total_full_blocks)/double(total_blocks)*100;
-        DS2I_LOG << "\tpercent full blocks = " << boost::format("%1$/3.2f") % percent_full;
+        DS2I_LOG << "\tpercent full blocks = " << boost::format("%1$3.2f") % percent_full;
         DS2I_LOG << "\tencoded postings = " << total_postings;
         DS2I_LOG << "\ttotal u16 codes (inc. exceptions) = " << total_codes_u16;
         DS2I_LOG << "\ttotal u16 exceptions = " << total_exceptions_u16;
