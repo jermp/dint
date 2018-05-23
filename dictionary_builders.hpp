@@ -10,12 +10,6 @@
 
 namespace ds2i {
 
-    namespace util {
-        double cost(uint32_t block_size, uint32_t block_frequency) {
-            return block_frequency * (48.0 * block_size - 16.0);
-        }
-    }
-
     template<uint32_t num_entries, uint32_t entry_width>
     struct dint_dictionary_builder
     {
@@ -23,10 +17,6 @@ namespace ds2i {
 
         // <block, index into the frequency array>
         // typedef std::pair<std::vector<uint32_t>, uint32_t> entry_type;
-
-        static double bpi(uint32_t block_size, uint32_t block_frequency, uint64_t total_integers) {
-            return util::cost(block_size, block_frequency) / total_integers;
-        };
 
         // struct bpi_comparator {
         //     bpi_comparator()
