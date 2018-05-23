@@ -30,7 +30,7 @@ namespace ds2i {
     void update_entry(const uint32_t* entry,size_t n,bm_type& block_map)
     {
     	using b_type = typename bm_type::value_type;
-    	auto hash = hash_u32(b,size_u32);
+    	auto hash = hash_u32(entry,n);
 		auto itr = block_map.find(hash);
 		if(itr != block_map.end())
 			itr->freq++;
@@ -38,8 +38,8 @@ namespace ds2i {
 			b_type new_block;
 			new_block.hash = hash;
 			new_block.freq = 1;
-			new_block.entry_len = size_u32;
-			std::copy(b,b+size_u32,new_block.entry);
+			new_block.entry_len = n;
+			std::copy(b,b+n,new_block.entry);
 			block_map[hash] = new_block;
 		}
     }
