@@ -16,7 +16,8 @@ namespace keywords = boost::log::keywords;
 
 namespace ds2i {
 
-auto start_log(std::string filename) -> decltype(logging::add_file_log)
+template<class t_log>
+t_log start_log(std::string filename)
 {
     return logging::add_file_log
     (
