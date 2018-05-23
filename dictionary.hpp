@@ -8,6 +8,8 @@
 #include "hash_utils.hpp"
 #include "util.hpp"
 
+#include <boost/format.hpp>
+
 namespace ds2i {
 
     struct dictionary {
@@ -181,24 +183,24 @@ namespace ds2i {
 
             void print() {
                 DS2I_LOG << "type = " << type();
-                DS2I_LOG << " size = " << m_size;
-                DS2I_LOG << " special_cases = " << m_reserved;
+                DS2I_LOG << "     size = " << m_size;
+                DS2I_LOG << "     special_cases = " << m_reserved;
 
                 std::vector<uint32_t> len_stats(257);
                 for(size_t i=0;i<m_size;i++) {
                     len_stats[size(i)]++;
                 }
                 DS2I_LOG << " LEN DIST = ";
+                boost::format fmt("\t   code = %1$6d len = %2$3d  percent = %3$3.2f");
                 for(size_t i=0;i<len_stats.size();i++) {
                     if(len_stats[i] != 0) {
-                        DS2I_LOG << "\t" << std::setw(4) << i << " = " << std::setw(6) << len_stats[i];
+                        DS2I_LOG << fmt % i % len_stats[i] % (double(len_stats[i]) / double(m_size) * 100);
                     }
                 }
-                DS2I_LOG << " CONTENT = " << m_reserved;
+                DS2I_LOG << " CONTENT = ";
+                boost::format fmt2("\t   code = %1$6d freq = %2$10d  entr = %3");
                 for(size_t i=0;i<m_size;i++) {
-                    DS2I_LOG << "\t" << std::setw(5) << i
-                        << " freq = " << std::setw(15) << freq(i)
-                        << " entry = " << entry_string(i);
+                    DS2I_LOG << fmt2 % i % freq(i) %  entry_string(i);
                 }
             }
 

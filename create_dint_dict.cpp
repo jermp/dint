@@ -7,6 +7,7 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/progress.hpp>
+#include <boost/format.hpp>
 
 #include "dictionary_types.hpp"
 #include "block_statistics.hpp"
@@ -53,7 +54,7 @@ struct encoding_stats {
 
     void update(const std::vector<uint16_t>& codes,size_t num_codes,size_t num_postings) {
         total_blocks++;
-        codes_per_block[num_codes]++;
+        if(num_postings == block_size) codes_per_block[num_codes]++;
         total_postings += num_postings;
         total_codes_u16 += num_codes;
         size_t exceptions = 0;
@@ -82,56 +83,48 @@ struct encoding_stats {
             auto code_len = dict.size(i);
             len_stats[code_len] += code_usage[i];
         }
+        boost::format fmtl("\t len = %1$3d num_codes = %2$10d num_postings = %3$10d percent. codes = %4$3.2f percent. postings = %5$3.2f");
         for(size_t l=0;l<len_stats.size();l++) {
             size_t num_postings = l * code_usage[l];
             double percent_codes = double(len_stats[l])
                 / double(total_codes_u16-total_exceptions_u32) * 100;
-            double percent_postings = double(num_postings)
-                / double(total_postings) * 100;
             if(l <= 1) num_postings = code_usage[l];
             if(len_stats[l] == 0) continue;
-            DS2I_LOG << "\t"
-                << " len = " << std::setw(3) << l
-                << " num_codes = " << std::setw(10) << len_stats[l]
-                << " num_postings = " << std::setw(10) << num_postings
-                << " perct. of codes = " << std::setw(6) << std::setprecision(4) << percent_codes
-                << " perct. of postings = " << std::setw(6) << std::setprecision(4) << percent_postings;
+            double percent_postings = double(num_postings)
+                / double(total_postings) * 100;
+            DS2I_LOG << fmtl % l % len_stats[l] % num_postings % percent_codes % percent_postings;
         }
 
 
         DS2I_LOG << "(3) codes per block distribution:";
+        boost::format fmtd("\tcodes = %1$3d blocks = %2$10d bpi = %3$2.3f percent = %4$3.2f");
         for(size_t l=0;l<codes_per_block.size();l++) {
             if(codes_per_block[l] == 0) continue;
+            double bpi = double(l) / double(block_size) * 100;
             double percentage = double(codes_per_block[l]) / double(total_blocks) * 100;
-            DS2I_LOG << "\t"
-                << " codes = " << std::setw(3) << l
-                << " blocks = " << std::setw(10) << codes_per_block[l]
-                << " bpi = " << std::setw(6) << std::setprecision(4) << double(l) / double(block_size) * 100
-                << " perct. of blocks = " << std::setw(6) << std::setprecision(4) << percentage;
+            DS2I_LOG << fmtd % l % codes_per_block[l] % bpi % percentage;
         }
 
 
         DS2I_LOG << "(4) exceptions per block distribution:";
+        boost::format fmt("\tcodes = %1$6d blocks = %2$6d  percent = %3$5.2f");
         for(size_t l=0;l<exceptions_per_block.size();l++) {
             if(exceptions_per_block[l] == 0) continue;
             double percentage = double(exceptions_per_block[l]) / double(total_blocks) * 100;
-            DS2I_LOG << "\t"
-                << " codes = " << std::setw(3) << l
-                << " blocks = " << std::setw(10) << exceptions_per_block[l]
-                << " perct. of blocks = " << std::setw(6) << std::setprecision(4) << percentage;
+            DS2I_LOG << fmt %  l % exceptions_per_block[l] % percentage;
         }
 
         DS2I_LOG << "(5) overall stats:";
 
-        DS2I_LOG << "block_size = " << block_size;
-        DS2I_LOG << "encoded blocks = " << total_blocks;
-        DS2I_LOG << "encoded postings = " << total_postings;
-        DS2I_LOG << "total u16 codes (inc. exceptions) = " << total_codes_u16;
-        DS2I_LOG << "total u16 exceptions = " << total_exceptions_u16;
-        DS2I_LOG << "total u32 exceptions = " << total_exceptions_u32;
-        DS2I_LOG << "BPI = " << double(total_codes_u16*16)/double(total_codes_u16);
+        DS2I_LOG << "\tblock_size = " << block_size;
+        DS2I_LOG << "\tencoded blocks = " << total_blocks;
+        DS2I_LOG << "\tencoded postings = " << total_postings;
+        DS2I_LOG << "\ttotal u16 codes (inc. exceptions) = " << total_codes_u16;
+        DS2I_LOG << "\ttotal u16 exceptions = " << total_exceptions_u16;
+        DS2I_LOG << "\ttotal u32 exceptions = " << total_exceptions_u32;
+        DS2I_LOG << "\tBPI = " << double(total_codes_u16*16)/double(total_postings);
         auto except_bits = total_exceptions_u16*16+total_exceptions_u32*32;
-        DS2I_LOG << "EXCEPTION BPI = " << double(except_bits)/double(total_postings)*100;
+        DS2I_LOG << "\tEXCEPTION BPI = " << double(except_bits)/double(total_postings);
     }
 
     std::vector<uint32_t> codes_per_block;
@@ -151,7 +144,7 @@ struct encoding_stats {
 void encode_lists(ds2i::dictionary::builder& dict,std::string input_basename,dict_type type,size_t block_size)
 {
     DS2I_LOG << "encoding lists";
-    
+
     encoding_stats stats(dict,block_size);
 
     std::string file_name = input_basename + ".docs";
@@ -233,7 +226,7 @@ int main(int argc, const char** argv) {
     const uint32_t encoding_block_size = 256;
     const uint32_t max_entry_width = 16;
     const uint32_t dict_entries = 65536;
-    
+
     // DSF
     {
         using block_stat_type = ds2i::block_statistics<max_entry_width,ds2i::stats_geometric>;

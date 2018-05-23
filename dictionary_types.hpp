@@ -67,8 +67,7 @@ namespace ds2i {
             }
             // if estimated freq is the same we prefer longer entries
             auto cmp = [](const auto& a,const auto& b) {
-                return a.first > b.first || 
-                    (!(a.first < b.first) && a.second.entry_len > b.second.entry_len);
+                return a.first > b.first || ((a.first == b.first) && a.second.entry_len > b.second.entry_len);
             };
             std::sort(final_blocks.begin(),final_blocks.end(),cmp);
             for(auto& dict_entry : final_blocks) {
@@ -117,7 +116,7 @@ namespace ds2i {
                     // is the item 'dirty?'
                     continue;
                 }
-                // os << "needed = " << needed << " - dequeue_and_add_to_dict(freedom=" << freedom[cur_max_id] << ",id=" 
+                // os << "needed = " << needed << " - dequeue_and_add_to_dict(freedom=" << freedom[cur_max_id] << ",id="
                 //           << cur_max_id << ") - " << block_stats.block_string(cur_max_id) << std::endl;
 
                 // (b) add to dict and adjust freedom of top item
@@ -130,8 +129,8 @@ namespace ds2i {
                     auto p_id = block.prefix_ids[p-1];
                     adjust = adjust * 2;
                     auto padjust = freedom[p_id];
-                    // os << "\tadjust_prefix_freedom(before_freedom=" << freedom[p_id] << ",prefix_id=" 
-                    //       << p_id << ",after_freedom=" << freedom[p_id] - adjust 
+                    // os << "\tadjust_prefix_freedom(before_freedom=" << freedom[p_id] << ",prefix_id="
+                    //       << p_id << ",after_freedom=" << freedom[p_id] - adjust
                     //       << ") - " << block_stats.block_string(p_id) << std::endl;
                     freedom[p_id] = freedom[p_id] - adjust;
                     if(dictionary[p_id] == 1) {
@@ -155,8 +154,7 @@ namespace ds2i {
                 }
             }
             auto final_cmp = [](const auto& a,const auto& b) {
-                return a.first > b.first || 
-                    (!(a.first < b.first) && a.second.entry_len > b.second.entry_len);
+                return a.first > b.first || ((a.first == b.first) && a.second.entry_len > b.second.entry_len);
             };
             std::sort(final_blocks.begin(),final_blocks.end(),final_cmp);
             for(auto& dict_entry : final_blocks) {
@@ -258,7 +256,7 @@ namespace ds2i {
         //                 // is the item 'dirty?'
         //                 continue;
         //             }
-        //             os << "needed = " << needed << " - dequeue_and_add_to_dict(freedom=" << freedom[cur_max_id] << ",id=" 
+        //             os << "needed = " << needed << " - dequeue_and_add_to_dict(freedom=" << freedom[cur_max_id] << ",id="
         //                       << cur_max_id << ") - " << block_stats.block_string(cur_max_id) << std::endl;
 
         //             // (b) add to dict and adjust freedom of top item
