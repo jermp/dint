@@ -92,22 +92,27 @@ template<class dict_constructor_type,class block_stat_type,uint32_t encoding_blo
 void eval_dict(std::string input_basename,std::string log_prefix)
 {
     {
-        auto log = ds2i::start_logging(log_prefix + "-docs-" + dict_constructor_type::type());
-        auto block_stats = create_block_stats<block_stat_type>(input_basename,dict_type::docs);
-        auto dict = build_dict<block_stat_type,dict_constructor_type>(block_stats);
-        encode_lists(dict,input_basename,dict_type::docs,encoding_block_size);
-        stop_logging(log);
+	    DS2I_LOG << "test";
+        ds2i::start_logging_to_file(log_prefix + "-docs-" + dict_constructor_type::type());
+	    DS2I_LOG << "test2";
+	    auto block_stats = create_block_stats<block_stat_type>(input_basename,dict_type::docs);
+        //auto dict = build_dict<block_stat_type,dict_constructor_type>(block_stats);
+        //encode_lists(dict,input_basename,dict_type::docs,encoding_block_size);
+        stop_logging_to_file();
+	    DS2I_LOG << "test3";
+	exit(-1);
     }
     {
-        auto log = ds2i::start_logging(log_prefix + "-freqs-" + dict_constructor_type::type());
+        ds2i::start_logging_to_file(log_prefix + "-freqs-" + dict_constructor_type::type());
         auto block_stats = create_block_stats<block_stat_type>(input_basename,dict_type::freqs);
         auto dict = build_dict<block_stat_type,dict_constructor_type>(block_stats);
         encode_lists(dict,input_basename,dict_type::freqs,encoding_block_size);
-        stop_logging(log);
+        stop_logging_to_file();
     }
 }
 
 int main(int argc, const char** argv) {
+    ds2i::init_logging();
 
     if (argc < 3) {
         std::cerr << "Usage: " << argv[0] << ":\n"

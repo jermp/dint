@@ -37,22 +37,6 @@ namespace ds2i {
         return (x > 1) ? succinct::broadword::msb(x - 1) + 1 : 0;
     }
 
-    inline std::ostream& logger()
-    {
-        time_t t = std::time(nullptr);
-        // XXX(ot): put_time unsupported in g++ 4.7
-        // return std::cerr
-        //     <<  std::put_time(std::localtime(&t), "%F %T")
-        //     << ": ";
-        std::locale loc;
-        const std::time_put<char>& tp =
-            std::use_facet<std::time_put<char>>(loc);
-        const char *fmt = "%F %T";
-        tp.put(std::cerr, std::cerr, ' ',
-               std::localtime(&t), fmt, fmt + strlen(fmt));
-        return std::cerr << ": ";
-    }
-
     inline double get_time_usecs() {
         timeval tv;
         gettimeofday(&tv, NULL);
