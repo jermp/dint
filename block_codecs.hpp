@@ -438,7 +438,7 @@ namespace ds2i {
         static const uint64_t overflow = 512;
 
         static size_t encode(dictionary::builder& builder,
-                           uint32_t const *in,size_t n,uint32_t* out)
+                           uint32_t const *in,size_t n,uint16_t* out)
         {
             size_t written_codes = 0;
 
