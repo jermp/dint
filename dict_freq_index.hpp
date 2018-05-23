@@ -83,7 +83,7 @@ namespace ds2i {
                             freqs.clear();
                             ++processed_lists;
 
-                            if (processed_lists and processed_lists % 10000 == 0) {
+                            if (processed_lists and processed_lists % 100000 == 0) {
                                 logger() << "processed " << processed_lists << " lists" << std::endl;
                                 logger() << "processed " << total_integers << " integers" << std::endl;
                             }

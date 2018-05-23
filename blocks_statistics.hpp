@@ -115,9 +115,7 @@ namespace ds2i {
                 uint32_t freq = freq_blocks[i].first;
                 out.write(reinterpret_cast<char const*>(&size), bytes);
                 out.write(reinterpret_cast<char const*>(&freq), bytes);
-                for (auto x: block) {
-                    out.write(reinterpret_cast<char const*>(&x), bytes);
-                }
+                out.write(reinterpret_cast<char const*>(block.data()), size * bytes);
             }
 
             // free memory
