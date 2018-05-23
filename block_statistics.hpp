@@ -86,7 +86,8 @@ namespace ds2i {
         }
 
     	block_statistics(binary_collection& input,bool compute_gaps) {
-            DS2I_LOG << "creating block stats";
+            DS2I_LOG << "creating block stats (type = " << type() 
+                     << ") - MIN_SIZE_THRES = " << MIN_SIZE_THRES;
             bm_type block_map;
             block_map.max_load_factor(0.01);
             boost::progress_display progress(input.data_size());
@@ -115,6 +116,7 @@ namespace ds2i {
             blocks.resize(num_blocks);
             auto block_data = reinterpret_cast<char*>(blocks.data());
             in.read(block_data, num_blocks * sizeof(block_type));
+            DS2I_LOG << "done reading stats from disk";
         }
 
         template<class t_list>
@@ -143,6 +145,7 @@ namespace ds2i {
                 uint64_t num_blocks = blocks.size();
                 out.write(reinterpret_cast<char const*>(&num_blocks), sizeof(uint64_t));
                 out.write(reinterpret_cast<char const*>(blocks.data()), num_blocks* sizeof(block_type));
+                DS2I_LOG << "done writing stats to disk";
             } else {
             	DS2I_LOG << "cannot write block stats. collection directory not writeable";
             }
