@@ -11,6 +11,7 @@
 #include "dictionary_types.hpp"
 #include "block_statistics.hpp"
 #include "block_codecs.hpp"
+#include "logging.hpp"
 
 using namespace ds2i;
 using ds2i::logger;
@@ -91,16 +92,18 @@ template<class dict_constructor_type,class block_stat_type,uint32_t encoding_blo
 void eval_dict(std::string input_basename,std::string log_prefix)
 {
     {
-        std::ofstream log_file(log_prefix + "-docs-" + dict_constructor_type::type());
+        auto log = ds2i::start_logging(log_prefix + "-docs-" + dict_constructor_type::type());
         auto block_stats = create_block_stats<block_stat_type>(input_basename,dict_type::docs);
-        auto dict = build_dict<block_stat_type,dict_constructor_type>(log_file,block_stats);
+        auto dict = build_dict<block_stat_type,dict_constructor_type>(block_stats);
         encode_lists(dict,input_basename,dict_type::docs,encoding_block_size);
+        stop_logging(log);
     }
     {
-        std::ofstream log_file(log_prefix + "-freqs-" + dict_constructor_type::type());
+        auto log = ds2i::start_logging(log_prefix + "-freqs-" + dict_constructor_type::type());
         auto block_stats = create_block_stats<block_stat_type>(input_basename,dict_type::freqs);
-        auto dict = build_dict<block_stat_type,dict_constructor_type>(log_file,block_stats);
+        auto dict = build_dict<block_stat_type,dict_constructor_type>(block_stats);
         encode_lists(dict,input_basename,dict_type::freqs,encoding_block_size);
+        stop_logging(log);
     }
 }
 

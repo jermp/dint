@@ -29,14 +29,14 @@ namespace ds2i {
         }
 
         template<class block_stat_type>
-        static void build(std::ostream& os,dictionary::builder& builder,block_stat_type& block_stats)
+        static void build(dictionary::builder& builder,block_stat_type& block_stats)
         {
             // (1) init dictionary
-            os << "(1) init dictionary" << std::endl;
+            std::cout << "(1) init dictionary" << std::endl;
             builder.init(num_entries, entry_width,type());
 
             // (2) find the top-K most covering blocks
-            os << "(2) find the top-K most covering blocks" << std::endl;
+            std::cout << "(2) find the top-K most covering blocks" << std::endl;
             using btype = typename block_stats_type::block_type;
             auto coverage_cmp = [](const btype& left,const btype& right) {
                 return (left.freq > right.freq);
@@ -57,7 +57,7 @@ namespace ds2i {
                 }
             }
 
-            os << "(3) add blocks to dict in decreasing freq order" << std::endl;
+            std::cout << "(3) add blocks to dict in decreasing freq order" << std::endl;
             std::vector<std::pair<int64_t,btype>> final_blocks;
             while(!pq.empty()) {
                 auto& block = pq.top();
