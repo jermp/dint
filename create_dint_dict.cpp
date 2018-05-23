@@ -113,8 +113,6 @@ struct encoding_stats {
 		        DS2I_LOG << "ERROR: Duplicate value at line " << n;
 	        }
 
-            // std::cout << "A["<<n-1<<"] = " << A[n-1] << " B["<<n-1<<"] = " << B[n-1];
-
             if (A[n-1]==B[n-1]) overlap++;
             else {
                 overlap += seen_B.count(A[n-1]);
@@ -124,13 +122,6 @@ struct encoding_stats {
             seen_B.insert(B[n-1]);
             contrib = weight*double(overlap)/double(n);
             rbo_min += contrib;
-
-            // DS2I_LOG << "n=" << n
-            //     << " weight=" << weight
-            //     << " overlap=" << overlap
-            //     << " contrib=" << contrib
-            //     << " rbo_min=" << rbo_min;
-
             weight *= p;
         }
         auto max_overlap = overlap;
@@ -152,8 +143,8 @@ struct encoding_stats {
             // prepare for the next pair of imaginary values
 		    weight *= p;
         }
-        boost::format rbofmt("\t rbo(p = %1$.5f) = %2$.6f + %3$.6f (n=%4$7d, nrows=%5$7d)");
-        DS2I_LOG << rbofmt % p % rbo_min % (rbo_max-rbo_min) % A.size() % n;
+        boost::format rbofmt("\t rbo(p = %1$.5f) = %2$.6f + %3$.6f (n=%4$7d, d=%5$7d)");
+        DS2I_LOG << rbofmt % p % rbo_min % (rbo_max-rbo_min) % A.size() % (n-1);
     }
 
     void print() {
@@ -198,7 +189,7 @@ struct encoding_stats {
         }
 
         DS2I_LOG << "(5) RBO stats:";
-        auto P = {0.7, 0.8, 0.9, 0.95, 0.99, 0.999, 0.999, 0.999};
+        auto P = {0.7, 0.8, 0.9, 0.95, 0.99, 0.999, 0.999, 0.9999, 0.99999};
         for(auto p : P) {
             print_usage_rbo(p);
         }
