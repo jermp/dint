@@ -108,7 +108,6 @@ namespace ds2i {
             uint32_t num_blocks = freq_blocks.size();
             std::streamsize bytes = sizeof(uint32_t);
             out.write(reinterpret_cast<char const*>(&num_blocks), bytes);
-
             for (uint64_t i = 0; i < freq_blocks.size(); ++i) {
                 auto const& block = freq_blocks[i].second;
                 uint32_t size = block.size();
@@ -117,10 +116,11 @@ namespace ds2i {
                 out.write(reinterpret_cast<char const*>(&freq), bytes);
                 out.write(reinterpret_cast<char const*>(block.data()), size * bytes);
             }
+            out.close();
 
             // free memory
+            logger() << "releasing memory..." << std::endl;
             std::unordered_map<uint64_t, value_type>().swap(m_map);
-            out.close();
         }
 
         uint64_t bytes_per_block() const {
