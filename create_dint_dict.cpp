@@ -110,26 +110,26 @@ struct encoding_stats {
         size_t n = 1;
         for(;n<=A.size();n++) {
             if (seen_A.count(A[n-1]) == 1 || seen_B.count(B[n-1]) == 1) {
-		        DS2I_LOG << "Duplicate value at line " << n;
+		        DS2I_LOG << "ERROR: Duplicate value at line " << n;
 	        }
 
-            std::cout << "A["<<n-1<<"] = " << A[n-1] << " B["<<n-1<<"] = " << B[n-1];
+            // std::cout << "A["<<n-1<<"] = " << A[n-1] << " B["<<n-1<<"] = " << B[n-1];
 
             if (A[n-1]==B[n-1]) overlap++;
             else {
-                overlap += seen_A.count(A[n-1]);
-                overlap += seen_B.count(B[n-1]);
+                overlap += seen_B.count(A[n-1]);
+                overlap += seen_A.count(B[n-1]);
             }
             seen_A.insert(A[n-1]);
             seen_B.insert(B[n-1]);
             contrib = weight*double(overlap)/double(n);
             rbo_min += contrib;
 
-            DS2I_LOG << "n=" << n
-                << " weight=" << weight
-                << " overlap=" << overlap
-                << " contrib=" << contrib
-                << " rbo_min=" << rbo_min;
+            // DS2I_LOG << "n=" << n
+            //     << " weight=" << weight
+            //     << " overlap=" << overlap
+            //     << " contrib=" << contrib
+            //     << " rbo_min=" << rbo_min;
 
             weight *= p;
         }
