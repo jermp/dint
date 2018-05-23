@@ -64,7 +64,12 @@ namespace ds2i {
                 final_blocks.emplace_back(-1 * int64_t(block.freq),block);
                 pq.pop();
             }
-            std::sort(final_blocks.begin(),final_blocks.end());
+            // if estimated freq is the same we prefer longer entries
+            auto cmp = [](const auto& a,const auto& b) {
+                return a.first > b.first || 
+                    (!(a.first < b.first) && a.second.entry_len > b.second.entry_len);
+            }
+            std::sort(final_blocks.begin(),final_blocks.end(),cmp);
             for(auto& dict_entry : final_blocks) {
                 auto& block = dict_entry.second;
                 builder.append(block.entry,block.entry_len,block.freq);
