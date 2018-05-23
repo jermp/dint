@@ -71,7 +71,7 @@ namespace ds2i {
             }
 
             void prepare_for_encoding() {
-                logger() << "building mapping for encoding " << std::endl;
+                DS2I_LOG << "building mapping for encoding " << std::endl;
                 std::vector<uint32_t> run(256, 1);
                 uint8_t const* ptr = reinterpret_cast<uint8_t const*>(run.data());
                 uint32_t i = 0;
