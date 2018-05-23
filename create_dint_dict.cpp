@@ -109,6 +109,10 @@ struct encoding_stats {
         std::unordered_set<int> seen_B;
         size_t n = 1;
         for(;n<=A.size();n++) {
+            if (seen_A.count(A[n-1]) == 1 || seen_B.count(B[n-1]) == 1) {
+		        DS2I_LOG << "Duplicate value at line " << n;
+	        }
+
             if (A[n-1]==B[n-1]) overlap++;
             else {
                 overlap += seen_A.count(A[n-1]);
@@ -116,8 +120,15 @@ struct encoding_stats {
             }
             seen_A.insert(A[n-1]);
             seen_B.insert(B[n-1]);
-            contrib = weight*overlap/double(n);
+            contrib = weight*double(overlap)/double(n);
             rbo_min += contrib;
+
+            DS2I_LOG << "n=" << n
+                << " weight=" << weight
+                << " overlap=" << overlap
+                << " contrib=" << contrib
+                << " rbo_min=" << rbo_min;
+
             weight *= p;
         }
         auto max_overlap = overlap;
