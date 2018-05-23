@@ -34,12 +34,13 @@ if (UNIX)
 endif()
 
 # set(Boost_USE_STATIC_LIBS ON)
-find_package(Boost COMPONENTS iostreams unit_test_framework filesystem system log log_setup REQUIRED)
+find_package(Boost COMPONENTS iostreams unit_test_framework filesystem system log log_setup date_time chrono REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 link_directories(${Boost_LIBRARY_DIRS})
 
 # stxxl
 add_definitions(-DSTXXL_VERBOSE_LEVEL=-10) # suppress messages to stdout
+add_definitions(-DBOOST_LOG_DYN_LINK)
 add_subdirectory(stxxl)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${STXXL_CXX_FLAGS}")
 include_directories(${STXXL_INCLUDE_DIRS})
@@ -49,6 +50,7 @@ include_directories(${DS2I_SOURCE_DIR})
 
 add_subdirectory(succinct EXCLUDE_FROM_ALL)
 add_subdirectory(FastPFor EXCLUDE_FROM_ALL)
+
 
 add_executable(create_freq_index create_freq_index.cpp)
 target_link_libraries(create_freq_index
