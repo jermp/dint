@@ -70,7 +70,7 @@ struct encoding_stats {
                 exceptions++;
             }
         }
-        exceptions_per_block[exceptions]++;
+        if(num_postings == block_size) exceptions_per_block[exceptions]++;
     }
 
     void print() {
@@ -83,7 +83,7 @@ struct encoding_stats {
             auto code_len = dict.size(i);
             len_stats[code_len] += code_usage[i];
         }
-        boost::format fmtl("\t len = %1$3d #codes = %2$10d #postings = %3$10d \%%codes = %4$3.2f %%postings = %5$3.2f");
+        boost::format fmtl("\t len = %1$3d #codes = %2$11d #postings = %3$11d \%%codes = %4$4.2f %%postings = %5$4.2f");
         for(size_t l=0;l<len_stats.size();l++) {
             size_t num_postings = l * code_usage[l];
             double percent_codes = double(len_stats[l])
@@ -97,7 +97,7 @@ struct encoding_stats {
 
 
         DS2I_LOG << "(3) codes per block distribution:";
-        boost::format fmtd("\tcodes = %1$3d blocks = %2$10d bpi = %3$2.3f percent = %4$3.2f");
+        boost::format fmtd("\t codes = %1$3d blocks = %2$12d bpi = %3$4.3f percent = %4$3.2f");
         for(size_t l=0;l<codes_per_block.size();l++) {
             if(codes_per_block[l] == 0) continue;
             double bpi = double(l) / double(block_size) * 100;
@@ -107,7 +107,7 @@ struct encoding_stats {
 
 
         DS2I_LOG << "(4) exceptions per block distribution:";
-        boost::format fmt("\tcodes = %1$6d blocks = %2$6d  percent = %3$5.2f");
+        boost::format fmt("\t codes = %1$6d blocks = %2$12d  percent = %3$5.2f");
         for(size_t l=0;l<exceptions_per_block.size();l++) {
             if(exceptions_per_block[l] == 0) continue;
             double percentage = double(exceptions_per_block[l]) / double(total_blocks) * 100;
