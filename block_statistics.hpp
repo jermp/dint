@@ -11,7 +11,7 @@ const size_t MIN_SIZE_THRES = 256;
 
 namespace ds2i {
     namespace util {
-        bool is_power_of_two(uint64_t x) {
+        constexpr bool is_power_of_two(uint64_t x) {
             return (x & (x - 1)) == 0;
         }
     }
@@ -29,17 +29,17 @@ namespace ds2i {
     template<class bm_type>
     void update_entry(const uint32_t* entry,size_t n,bm_type& block_map)
     {
-    	using b_type = typename bm_type::value_type;
+    	using b_type = typename bm_type::value_type::second_type;
     	auto hash = hash_u32(entry,n);
 		auto itr = block_map.find(hash);
 		if(itr != block_map.end())
-			itr->freq++;
+			itr->second.freq++;
 		else {
 			b_type new_block;
 			new_block.hash = hash;
 			new_block.freq = 1;
 			new_block.entry_len = n;
-			std::copy(b,b+n,new_block.entry);
+			std::copy(entry,entry+n,new_block.entry);
 			block_map[hash] = new_block;
 		}
     }
@@ -50,7 +50,7 @@ namespace ds2i {
     	}
 
     	template<class bm_type>
-    	static size_t update_stats(const std::vector<uint32_t>& buf,bm_type& block_map) {
+    	static void update_stats(const std::vector<uint32_t>& buf,bm_type& block_map) {
     		auto b = buf.data();
     		for(size_t size_u32=1;size_u32<=buf.size();size_u32*=2) {
     			update_entry(b,size_u32,block_map);
