@@ -84,8 +84,22 @@ namespace ds2i {
              >
     struct dint_dict_type_PDF
     {
+        using hash_map = std::unordered_map<uint64_t,uint64_t>;
+
         static std::string type() {
             return "PDF-" + std::to_string(num_entries) + "-" + std::to_string(entry_width);
+        }
+
+        template<class block_type>
+        static size_t compute_prefix_ids(const hash_map& hash_id_map,const block_type& block,std::vector<int64_t>& prefix_ids)
+        {
+            size_t num_prefixes = 0;
+    		for(size_t size_u32=1;size_u32<block.entry_len;size_u32*=2) {
+                auto hash = hash_u32(block.entry,size_u32);
+                auto itr = hash_id_map.find(hash);
+                prefix_ids[num_prefixes++] = itr->second;
+    		}
+            return num_prefixes;
         }
 
         template<class block_stat_type>
@@ -100,14 +114,19 @@ namespace ds2i {
             using pqdata_t = std::pair<int64_t,size_t>;
             auto cmp = [](const pqdata_t& left,const pqdata_t& right) { return left.first < right.first;};
             std::priority_queue<pqdata_t, std::vector<pqdata_t>, decltype(cmp) > pq(cmp);
+            hash_map hash_id_map;
+            hash_id_map.max_load_factor(0.05);
+            hash_id_map.reserve(block_stats.blocks.size());
             for(size_t i=0;i<block_stats.blocks.size();i++) {
                 const auto& block = block_stats.blocks[i];
+                if(block.entry_len < entry_width) hash_id_map[block.hash] = i;
                 freedom[i] = block.freq;
                 pq.emplace(freedom[i],i);
             }
 
             DS2I_LOG << "(3) find the top-K most covering blocks";
             size_t needed = num_entries;
+            std::vector<int64_t> prefix_ids(entry_width);
             while(needed != 0) {
                 // (a) get top item
                 auto item = pq.top(); pq.pop();
@@ -116,8 +135,6 @@ namespace ds2i {
                     // is the item 'dirty?'
                     continue;
                 }
-                // os << "needed = " << needed << " - dequeue_and_add_to_dict(freedom=" << freedom[cur_max_id] << ",id="
-                //           << cur_max_id << ") - " << block_stats.block_string(cur_max_id) << std::endl;
 
                 // (b) add to dict and adjust freedom of top item
                 auto adjust = freedom[cur_max_id];
@@ -125,16 +142,13 @@ namespace ds2i {
                 auto& block = block_stats.blocks[cur_max_id];
 
                 // (c) add freedom of prefixes
-                for(size_t p = block.num_prefixes;p != 0; p--) {
-                    auto p_id = block.prefix_ids[p-1];
+                auto num_prefixes = compute_prefix_ids(hash_id_map,block,prefix_ids);
+                for(size_t p = num_prefixes;p != 0; p--) {
+                    auto p_id = prefix_ids[p-1];
                     adjust = adjust * 2;
                     auto padjust = freedom[p_id];
-                    // os << "\tadjust_prefix_freedom(before_freedom=" << freedom[p_id] << ",prefix_id="
-                    //       << p_id << ",after_freedom=" << freedom[p_id] - adjust
-                    //       << ") - " << block_stats.block_string(p_id) << std::endl;
                     freedom[p_id] = freedom[p_id] - adjust;
                     if(dictionary[p_id] == 1) {
-                        // os << "\tprefix was in dict -> remove and re-add to queue" << std::endl;
                         dictionary[p_id] = 0;
                         adjust = adjust - padjust;
                         needed = needed + 1;
