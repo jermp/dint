@@ -140,6 +140,8 @@ namespace ds2i {
                 auto adjust = freedom[cur_max_id];
                 dictionary[cur_max_id] = 1;
                 auto& block = block_stats.blocks[cur_max_id];
+                DS2I_LOG << "\tADD TO DICT with freedom = " << adjust << " - " 
+                    << block_stats.block_string(cur_max_id);
 
                 // (c) add freedom of prefixes
                 auto num_prefixes = compute_prefix_ids(hash_id_map,block,prefix_ids);
@@ -147,8 +149,12 @@ namespace ds2i {
                     auto p_id = prefix_ids[p-1];
                     adjust = adjust * 2;
                     auto padjust = freedom[p_id];
+                    DS2I_LOG << "\t\tadjust freedom " << freedom[p_id] << " -> " 
+                        << freedom[p_id] - adjust << " - "
+                        << block_stats.block_string(p_id);
                     freedom[p_id] = freedom[p_id] - adjust;
                     if(dictionary[p_id] == 1) {
+                        DS2I_LOG << "remove from dict " << p_id;
                         dictionary[p_id] = 0;
                         adjust = adjust - padjust;
                         needed = needed + 1;

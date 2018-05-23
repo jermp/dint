@@ -151,6 +151,22 @@ namespace ds2i {
             }
         }
 
+        std::string block_string(size_t id) const {
+            const auto& b = blocks[id];
+            std::string entry_str = "[";
+            for(int i=0;i<b.entry_len-1;i++) {
+                entry_str += std::to_string(b.entry[i]) + ",";
+            }
+            entry_str += std::to_string(b.entry[b.entry_len-1]) + "]";
+
+            std::string str = "<id="  + std::to_string(id)
+                + ",hash=" + std::to_string(b.hash)
+                + ",freq=" + std::to_string(b.freq)
+                + ",len=" + std::to_string(b.entry_len)
+                + ",entry=" + entry_str + ">";
+            return str;
+        }
+
     	std::vector<block_type> blocks;
     };
 
