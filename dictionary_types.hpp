@@ -158,7 +158,7 @@ namespace ds2i {
                 needed = needed - 1;
             }
 
-            DS2I_LOG << "(4) add blocks to dict in decreasing freq order" << std::endl;
+            DS2I_LOG << "(4) add blocks to dict in decreasing freq order";
             using btype = typename block_stat_type::block_type;
             std::vector<std::pair<int64_t,btype>> final_blocks;
             for(size_t i=0;i<dictionary.size();i++) {
