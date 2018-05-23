@@ -42,10 +42,10 @@ namespace ds2i {
             void build_model(InputCollection const& input)
             {
                 // step 2. build dictionary from statistics
-                DS2I_LOG << "Building dictionary for docs..." << std::endl;
+                DS2I_LOG << "Building dictionary for docs...";
                 DictBuilder::build(m_docs_dict_builder,input,dict_type::docs);
 
-                DS2I_LOG << "Building dictionary for freqs..." << std::endl;
+                DS2I_LOG << "Building dictionary for freqs...";
                 DictBuilder::build(m_freqs_dict_builder,input,dict_type::freqs);
 
                 m_docs_dict_builder.prepare_for_encoding();

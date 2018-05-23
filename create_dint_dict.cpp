@@ -44,7 +44,7 @@ ds2i::dictionary::builder build_dict(block_stat_type& block_stats)
 
 void encode_lists(ds2i::dictionary::builder& dict,std::string input_basename,dict_type type,size_t block_size)
 {
-    DS2I_LOG << "encoding lists" << std::endl;
+    DS2I_LOG << "encoding lists";
     //encoding_stats stats(dict);
 
     std::string file_name = input_basename + ".docs";
@@ -91,15 +91,11 @@ template<class dict_constructor_type,class block_stat_type,uint32_t encoding_blo
 void eval_dict(std::string input_basename,std::string log_prefix)
 {
     {
-	    DS2I_LOG << "test";
         ds2i::start_logging_to_file(log_prefix + "-docs-" + dict_constructor_type::type());
-	    DS2I_LOG << "test2";
 	    auto block_stats = create_block_stats<block_stat_type>(input_basename,dict_type::docs);
-        //auto dict = build_dict<block_stat_type,dict_constructor_type>(block_stats);
-        //encode_lists(dict,input_basename,dict_type::docs,encoding_block_size);
+        auto dict = build_dict<block_stat_type,dict_constructor_type>(block_stats);
+        encode_lists(dict,input_basename,dict_type::docs,encoding_block_size);
         stop_logging_to_file();
-	    DS2I_LOG << "test3";
-	exit(-1);
     }
     {
         ds2i::start_logging_to_file(log_prefix + "-freqs-" + dict_constructor_type::type());

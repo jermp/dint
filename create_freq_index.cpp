@@ -82,7 +82,7 @@ void create_collection(InputCollection const& input,
                        const char* output_filename, bool check,
                        std::string const& seq_type)
 {
-    DS2I_LOG << "Processing " << input.num_docs() << " documents" << std::endl;
+    DS2I_LOG << "Processing " << input.num_docs() << " documents";
     double tick = get_time_usecs();
     double user_tick = get_user_time_usecs();
 
@@ -90,7 +90,7 @@ void create_collection(InputCollection const& input,
     build_model(input, builder);
 
     progress_logger plog("Encoded");
-    DS2I_LOG << "Encoding..." << std::endl;
+    DS2I_LOG << "Encoding...";
     for (auto const& plist: input) {
         if (plist.docs.size() > MIN_SIZE) {
             uint64_t freqs_sum = std::accumulate(plist.freqs.begin(),
@@ -107,7 +107,7 @@ void create_collection(InputCollection const& input,
     double elapsed_secs = (get_time_usecs() - tick) / 1000000;
     double user_elapsed_secs = (get_user_time_usecs() - user_tick) / 1000000;
     DS2I_LOG << seq_type << " collection built in "
-             << elapsed_secs << " seconds" << std::endl;
+             << elapsed_secs << " seconds";
 
     stats_line()
         ("type", seq_type)
@@ -163,7 +163,7 @@ int main(int argc, const char** argv) {
         BOOST_PP_SEQ_FOR_EACH(LOOP_BODY, _, DS2I_INDEX_TYPES);
 #undef LOOP_BODY
     } else {
-        DS2I_LOG << "ERROR: Unknown type " << type << std::endl;
+        DS2I_LOG << "ERROR: Unknown type " << type;
     }
 
     return 0;

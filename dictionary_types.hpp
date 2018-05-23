@@ -6,6 +6,7 @@
 #include "dictionary.hpp"
 #include "heap.hpp"
 #include "hash_utils.hpp"
+#include "util.hpp"
 
 #include <unordered_map>
 #include <queue>
@@ -32,11 +33,11 @@ namespace ds2i {
         static void build(dictionary::builder& builder,block_stat_type& block_stats)
         {
             // (1) init dictionary
-            std::cout << "(1) init dictionary" << std::endl;
+            DS2I_LOG << "(1) init dictionary";
             builder.init(num_entries, entry_width,type());
 
             // (2) find the top-K most covering blocks
-            std::cout << "(2) find the top-K most covering blocks" << std::endl;
+            DS2I_LOG << "(2) find the top-K most covering blocks";
             using btype = typename block_stats_type::block_type;
             auto coverage_cmp = [](const btype& left,const btype& right) {
                 return (left.freq > right.freq);
@@ -57,7 +58,7 @@ namespace ds2i {
                 }
             }
 
-            std::cout << "(3) add blocks to dict in decreasing freq order" << std::endl;
+            DS2I_LOG << "(3) add blocks to dict in decreasing freq order";
             std::vector<std::pair<int64_t,btype>> final_blocks;
             while(!pq.empty()) {
                 auto& block = pq.top();

@@ -71,7 +71,7 @@ namespace ds2i {
             }
 
             void prepare_for_encoding() {
-                DS2I_LOG << "building mapping for encoding " << std::endl;
+                DS2I_LOG << "building mapping for encoding ";
                 std::vector<uint32_t> run(256, 1);
                 uint8_t const* ptr = reinterpret_cast<uint8_t const*>(run.data());
                 uint32_t i = 0;
@@ -179,28 +179,27 @@ namespace ds2i {
                 return m_type;
             }
 
-            std::ostream& print_stats(std::ostream& os) {
-                os << "type = " << type() << std::endl;
-                os << " size = " << m_size << std::endl;
-                os << " special_cases = " << m_reserved << std::endl;
+            void print_stats() {
+                DS2I_LOG << "type = " << type();
+                DS2I_LOG << " size = " << m_size;
+                DS2I_LOG << " special_cases = " << m_reserved;
 
                 std::vector<uint32_t> len_stats(257);
                 for(size_t i=0;i<m_size;i++) {
                     len_stats[size(i)]++;
                 }
-                os << " LEN DIST = " << std::endl;
+                DS2I_LOG << " LEN DIST = ";
                 for(size_t i=0;i<len_stats.size();i++) {
                     if(len_stats[i] != 0) {
-                        os << "\t" << std::setw(4) << i << " = " << std::setw(6) << len_stats[i] << std::endl;
+                        DS2I_LOG << "\t" << std::setw(4) << i << " = " << std::setw(6) << len_stats[i];
                     }
                 }
-                os << " CONTENT = " << m_reserved << std::endl;
+                DS2I_LOG << " CONTENT = " << m_reserved;
                 for(size_t i=0;i<m_size;i++) {
-                    os << "\t" << std::setw(5) << i
+                    DS2I_LOG << "\t" << std::setw(5) << i
                         << " freq = " << std::setw(15) << freq(i)
-                        << " entry = " << entry_string(i) << std::endl;
+                        << " entry = " << entry_string(i);
                 }
-                return os;
             }
 
         private:

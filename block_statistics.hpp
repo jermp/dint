@@ -2,6 +2,7 @@
 
 #include "binary_collection.hpp"
 #include "hash_utils.hpp"
+#include "util.hpp"
 
 #include <boost/progress.hpp>
 
@@ -85,7 +86,7 @@ namespace ds2i {
         }
 
     	block_statistics(binary_collection& input,bool compute_gaps) {
-            std::cout << "creating block stats" << std::endl;
+            DS2I_LOG << "creating block stats";
             bm_type block_map;
             block_map.max_load_factor(0.01);
             boost::progress_display progress(input.data_size());
@@ -96,21 +97,21 @@ namespace ds2i {
                 process_list(block_map,list,compute_gaps);
             }
 
-            std::cout << "serializing stats" << std::endl;
+            DS2I_LOG << "serializing stats";
             blocks.resize(block_map.size());
             auto block_selector = [](auto& pair){return pair.second;};
             std::transform(block_map.begin(), block_map.end(),blocks.begin(), block_selector);
-            std::cout << "sort by freq" << std::endl;
+            DS2I_LOG << "sort by freq";
             auto freq_cmp = [](const auto& a,const auto& b) {return a.freq > b.freq;};
             std::sort(blocks.begin(),blocks.end(),freq_cmp);
-            std::cout << "done creating stats" << std::endl;
+            DS2I_LOG << "done creating stats";
     	}
 
         block_statistics(std::string file_name) {
             std::ifstream in(file_name.c_str());
             uint64_t num_blocks;
             in.read(reinterpret_cast<char*>(&num_blocks), sizeof(uint64_t));
-            std::cout << "reading block stats (num_blocks = " << num_blocks << ")" << std::endl;
+            DS2I_LOG << "reading block stats (num_blocks = " << num_blocks << ")";
             blocks.resize(num_blocks);
             auto block_data = reinterpret_cast<char*>(blocks.data());
             in.read(block_data, num_blocks * sizeof(block_type));
@@ -138,12 +139,12 @@ namespace ds2i {
         void try_to_store(std::string file_name) {
             std::ofstream out(file_name.c_str());
             if(out) {
-            	std::cout << "writing block stats" << std::endl;
+            	DS2I_LOG << "writing block stats";
                 uint64_t num_blocks = blocks.size();
                 out.write(reinterpret_cast<char const*>(&num_blocks), sizeof(uint64_t));
                 out.write(reinterpret_cast<char const*>(blocks.data()), num_blocks* sizeof(block_type));
             } else {
-            	std::cout << "cannot write block stats. collection directory not writeable" << std::endl;
+            	DS2I_LOG << "cannot write block stats. collection directory not writeable";
             }
         }
 
