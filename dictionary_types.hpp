@@ -68,7 +68,7 @@ namespace ds2i {
             auto cmp = [](const auto& a,const auto& b) {
                 return a.first > b.first || 
                     (!(a.first < b.first) && a.second.entry_len > b.second.entry_len);
-            }
+            };
             std::sort(final_blocks.begin(),final_blocks.end(),cmp);
             for(auto& dict_entry : final_blocks) {
                 auto& block = dict_entry.second;
