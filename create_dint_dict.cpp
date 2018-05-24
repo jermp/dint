@@ -18,10 +18,10 @@ using namespace ds2i;
 
 
 template<class block_stat_type>
-block_stat_type create_block_stats(std::string input_basename,dict_type type)
+block_stat_type create_block_stats(std::string input_basename,dint_data_type type)
 {
     std::string file_name = input_basename + ".docs";
-    if(type == dict_type::freqs) file_name = input_basename + ".freqs";
+    if(type == dint_data_type::freqs) file_name = input_basename + ".freqs";
 
     std::string block_stats_file = file_name + "." + block_stat_type::type();
     if( boost::filesystem::exists(block_stats_file) ) {
@@ -35,16 +35,17 @@ block_stat_type create_block_stats(std::string input_basename,dict_type type)
 }
 
 template<class block_stat_type,class dict_constructor_type>
-ds2i::dictionary::builder build_dict(block_stat_type& block_stats)
+typename dict_constructor_type::builder_type build_dict(block_stat_type& block_stats)
 {
-    ds2i::dictionary::builder dict_builder;
+    typename dict_constructor_type::builder_type dict_builder;
     dict_constructor_type::build(dict_builder,block_stats);
     dict_builder.prepare_for_encoding();
     return dict_builder;
 }
 
+template<class t_builder>
 struct encoding_stats {
-    encoding_stats(ds2i::dictionary::builder& dict_,size_t block_size_)
+    encoding_stats(t_builder& dict_,size_t block_size_)
         : dict(dict_) , block_size(block_size_)
     {
         code_usage.resize(dict.capacity());
@@ -52,7 +53,7 @@ struct encoding_stats {
         exceptions_per_block.resize(block_size*4);
     }
 
-    void update(const std::vector<uint16_t>& codes,size_t num_codes,size_t num_postings) {
+    void update(const uint16_t* codes,size_t num_codes,size_t num_postings) {
         total_blocks++;
         if(num_postings == block_size) {
             codes_per_block[num_codes]++;
@@ -221,15 +222,16 @@ struct encoding_stats {
     size_t total_exceptions_u32 = 0;
     size_t total_full_blocks = 0;
 
-    ds2i::dictionary::builder& dict;
+    t_builder& dict;
     size_t block_size = 0;
 };
 
-void encode_lists(ds2i::dictionary::builder& dict,std::string input_basename,dict_type type,size_t block_size)
+template<class t_builder>
+void encode_lists(t_builder& dict,std::string input_basename,dict_type type,size_t block_size)
 {
     DS2I_LOG << "encoding lists";
 
-    encoding_stats stats(dict,block_size);
+    encoding_stats<t_builder> stats(dict,block_size);
 
     std::string file_name = input_basename + ".docs";
     if(type == dict_type::freqs) file_name = input_basename + ".freqs";
@@ -238,7 +240,7 @@ void encode_lists(ds2i::dictionary::builder& dict,std::string input_basename,dic
 
     boost::progress_display progress(input.data_size());
     std::vector<uint32_t> buf(block_size);
-    std::vector<uint16_t> output(block_size*4);
+    std::vector<uint8_t> output;
     size_t first = true;
     for (auto const& list: input) {
         if(type == dict_type::docs && first) {
@@ -251,22 +253,24 @@ void encode_lists(ds2i::dictionary::builder& dict,std::string input_basename,dic
         size_t full_blocks = n / block_size;
         size_t left = n % block_size;
         for(size_t i=0;i<full_blocks;i++) {
+            output.resize(0);
             for(size_t j=0;j<block_size;j++) {
                 buf[j] = *itr - prev;
                 if(type == dict_type::docs) prev = *itr;
                 ++itr;
             }
-            size_t written_codes = dint_block::encode(dict,buf.data(),block_size,output.data());
-            stats.update(output,written_codes,block_size);
+            size_t written_codes = dint_block::encode(dict,buf.data(),block_size,output);
+            stats.update(reinterpret_cast<uint16_t const*>(output.data()),written_codes,block_size);
         }
         if(left) {
+            output.resize(0);
             for(size_t j=0;j<left;j++) {
                 buf[j] = *itr - prev;
                 if(type == dict_type::docs) prev = *itr;
                 ++itr;
             }
-            size_t written_codes = dint_block::encode(dict,buf.data(),left,output.data());
-            stats.update(output,written_codes,left);
+            size_t written_codes = dint_block::encode(dict,buf.data(),left,output);
+            stats.update(reinterpret_cast<uint16_t const*>(output.data()),written_codes,left);
         }
         progress += n+1;
     }
@@ -279,14 +283,14 @@ void eval_dict(std::string input_basename,std::string log_prefix)
 {
     {
         ds2i::start_logging_to_file(log_prefix + "-docs-" + dict_constructor_type::type());
-	    auto block_stats = create_block_stats<block_stat_type>(input_basename,dict_type::docs);
+	    auto block_stats = create_block_stats<block_stat_type>(input_basename,dint_data_type::docs);
         auto dict = build_dict<block_stat_type,dict_constructor_type>(block_stats);
         encode_lists(dict,input_basename,dict_type::docs,encoding_block_size);
         stop_logging_to_file();
     }
     {
         ds2i::start_logging_to_file(log_prefix + "-freqs-" + dict_constructor_type::type());
-        auto block_stats = create_block_stats<block_stat_type>(input_basename,dict_type::freqs);
+        auto block_stats = create_block_stats<block_stat_type>(input_basename,dint_data_type::freqs);
         auto dict = build_dict<block_stat_type,dict_constructor_type>(block_stats);
         encode_lists(dict,input_basename,dict_type::freqs,encoding_block_size);
         stop_logging_to_file();

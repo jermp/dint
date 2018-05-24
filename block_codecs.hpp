@@ -435,9 +435,10 @@ namespace ds2i {
         static const uint64_t block_size = constants::block_size;
         static const uint64_t overflow = 512;
 
-        static size_t encode(dictionary::builder const* builder,
+        template<class t_dict>
+        static size_t encode(const t_dict& builder,
                            uint32_t const *in,
-                           uint32_t /*sum_of_values*/, size_t n,
+                           size_t n,
                            std::vector<uint8_t>& out)
         {
             size_t written_codes = 0;
@@ -467,18 +468,19 @@ namespace ds2i {
                     ++index;
                 }
 
-                if (index < dictionary::reserved) {
-                    auto ptr = reinterpret_cast<uint8_t const*>(&index);
+                if (index < t_dict::reserved) {
+                    uint16_t codeword = index;
+                    auto ptr = reinterpret_cast<uint8_t const*>(&codeword);
                     out.insert(out.end(), ptr, ptr + 2);
                     written_codes++;
                     begin += std::min<uint64_t>(run_size, end - begin);
                 } else {
-                    for (uint32_t sub_block_size  = builder->max_entry_size();
+                    for (uint32_t sub_block_size  = builder.max_entry_size();
                                   sub_block_size != 0; sub_block_size /= 2)
                     {
                         uint32_t len = std::min<uint32_t>(sub_block_size, end - begin);
-                        index = builder->lookup(begin, len);
-                        if (index != dictionary::invalid_index) {
+                        index = builder.lookup(begin, len);
+                        if (index != t_dict::invalid_index) {
                             auto ptr = reinterpret_cast<uint8_t const*>(&index);
                             out.insert(out.end(), ptr, ptr + 2);
                             written_codes++;
@@ -487,17 +489,15 @@ namespace ds2i {
                         }
                     }
 
-                    if (index == dictionary::invalid_index) {
+                    if (index == t_dict::invalid_index) {
                         uint32_t exception = *begin;
                         if(exception <= std::numeric_limits<uint16_t>::max()) {
-                          out.insert(out.end(), 0);
                           out.insert(out.end(), 0);
                           uint16_t exception_u16 = exception;
                           auto ptr = reinterpret_cast<uint8_t const*>(&exception_u16);
                           out.insert(out.end(), ptr, ptr + 2);
                           written_codes += 2;
                         } else {
-                          out.insert(out.end(), 0);
                           out.insert(out.end(), 1);
                           auto ptr = reinterpret_cast<uint8_t const*>(&exception);
                           out.insert(out.end(), ptr, ptr + 4);
@@ -510,24 +510,25 @@ namespace ds2i {
             return written_codes;
         }
 
-        static uint8_t const* decode(dictionary const* dict,
+        template<class t_dict>
+        static uint8_t const* decode(t_dict const& dict,
                                      uint8_t const *in,
                                      uint32_t *out,
-                                     uint32_t /*sum_of_values*/, size_t n)
+                                     size_t n)
         {
             assert(n <= block_size);
-            uint16_t const* ptr = reinterpret_cast<uint16_t const*>(in);
+            auto ptr = reinterpret_cast<uint16_t const*>(in);
             for (size_t i = 0; i != n; ++ptr) {
                 uint32_t index = *ptr;
                 uint32_t decoded_ints = 1;
                 if (DS2I_LIKELY(index > 5)) {
-                    decoded_ints = dict->copy(index, out);
+                    decoded_ints = dict.copy(index, out);
                 } else {
-                    static const uint32_t run_lengths[6] = {0,1, // exception
+                    static const uint32_t run_lengths[] = {0,1, // exception
                                                             256, 128, 64, 32, 16};
                     decoded_ints = run_lengths[index]; // runs of 256, 128, 64, 32 or 16 ints
                     if (DS2I_UNLIKELY(decoded_ints == 0)) {
-                        *out = *(reinterpret_cast<uint16_t const*>(++ptr));
+                        *out = *(++ptr);
                         decoded_ints++;
                     }
                     if (DS2I_UNLIKELY(decoded_ints == 1)) {
@@ -538,7 +539,6 @@ namespace ds2i {
                 out += decoded_ints;
                 i += decoded_ints;
             }
-
             return reinterpret_cast<uint8_t const*>(ptr);
         }
     };

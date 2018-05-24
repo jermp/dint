@@ -35,7 +35,7 @@ namespace ds2i {
     static const uint32_t MAX_BLOCK_LEN = 16;
     static const uint32_t MAX_FRACTAL_STEPS = 5;
 
-    bool is_power_of_two(uint64_t x) {
+    constexpr bool is_power_of_two(uint64_t x) {
         return (x & (x - 1)) == 0;
     }
 

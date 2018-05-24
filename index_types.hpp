@@ -12,6 +12,8 @@
 #include "block_freq_index.hpp"
 #include "block_codecs.hpp"
 #include "mixed_block.hpp"
+#include "dictionary_types.hpp"
+#include "block_statistics.hpp"
 #include "dict_freq_index.hpp"
 
 namespace ds2i {
@@ -43,10 +45,10 @@ namespace ds2i {
 
     // DINT codec
     const uint32_t max_entry_width = 16;
-    using block_stat_type = ds2i::block_stats_full_stride_geom<max_entry_width>;
-    using dict_builder_type = ds2i::dint_dict_builder_smc<block_stat_type,65536, max_entry_width>;
-    typedef dict_freq_index<dict_builder_type,
-                            ds2i::dint_block> block_dint_index;
+    const uint32_t dict_entries = 65536;
+    using block_stats_type = ds2i::block_statistics<max_entry_width,ds2i::stats_geometric>;
+    using dict_type = ds2i::dint_dict_strategy_PDF<block_stats_type,dict_entries, max_entry_width>;
+    using block_dint_index = dict_freq_index<dict_type,ds2i::dint_block>;
 }
 
 #define DS2I_INDEX_TYPES (ef)(single)(uniform)(opt)(block_optpfor)(block_varint)(block_interpolative)(block_mixed)(block_qmx)(block_u32)(block_vbyte)(block_simple16)(block_dint)

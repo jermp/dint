@@ -85,6 +85,20 @@ namespace ds2i {
             return "block_stats-L" + std::to_string(max_entry_width) + "-" + stats_type::type();
         }
 
+        static block_statistics create_or_load(std::string prefix_name,dint_data_type data_type) {
+            std::string file_name = prefix_name + ".docs";
+            if(data_type == dint_data_type::freqs) file_name = prefix_name + ".freqs";
+
+            std::string block_stats_file = file_name + "." + type();
+            if( boost::filesystem::exists(block_stats_file) ) {
+                return block_statistics(block_stats_file);
+            }
+            binary_collection input(file_name.c_str());
+            block_statistics block_stats(input,data_type == dint_data_type::docs);
+            block_stats.try_to_store(block_stats_file);
+            return block_stats;
+        }
+
     	block_statistics(binary_collection& input,bool compute_gaps) {
             DS2I_LOG << "creating block stats (type = " << type() 
                      << ") - MIN_SIZE_THRES = " << MIN_SIZE_THRES;

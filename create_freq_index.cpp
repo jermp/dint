@@ -56,29 +56,36 @@ void dump_index_specific_stats(opt_index const& coll,
         ;
 }
 
-template<typename InputCollection, typename Builder>
-void build_model(InputCollection const&, Builder&, const char*)
+template<typename Builder>
+void build_model(std::string, Builder&)
 {}
 
-template<typename InputCollection>
-void build_model(InputCollection const& input,
-                 block_dint_index::builder& builder, const char* output_filename)
+void build_model(std::string input_basename,block_dint_index::builder& builder)
 {
-    builder.build_model(input, std::string(output_filename));
+    builder.build_model(input_basename);
 }
 
-template <typename InputCollection, typename CollectionType>
-void create_collection(InputCollection const& input,
+template <typename CollectionType>
+void create_collection(std::string input_basename,
                        global_parameters const& params,
                        const char* output_filename, bool check,
                        std::string const& seq_type)
 {
-    DS2I_LOG << "Processing " << input.num_docs() << " documents";
+    size_t num_docs = 0;
+    {
+        binary_freq_collection input(input_basename.c_str());
+        num_docs  = input.num_docs();
+    }
     double tick = get_time_usecs();
     double user_tick = get_user_time_usecs();
 
-    typename CollectionType::builder builder(input.num_docs(), params);
-    build_model(input, builder, output_filename);
+    typename CollectionType::builder builder(num_docs, params);
+    build_model(input_basename,builder);
+
+    binary_freq_collection input(input_basename.c_str());
+
+    DS2I_LOG << "Processing " << input.num_docs() << " documents";
+
 
     progress_logger plog("Encoded");
     DS2I_LOG << "Encoding...";
@@ -113,7 +120,7 @@ void create_collection(InputCollection const& input,
     if (output_filename) {
         succinct::mapper::freeze(coll, output_filename);
         if (check) {
-            verify_collection<InputCollection, CollectionType>(input, output_filename);
+            verify_collection<binary_freq_collection, CollectionType>(input, output_filename);
         }
     }
 }
@@ -139,16 +146,14 @@ int main(int argc, const char** argv) {
         check = true;
     }
 
-    binary_freq_collection input(input_basename);
     ds2i::global_parameters params;
     params.log_partition_size = configuration::get().log_partition_size;
 
     if (false) {
 #define LOOP_BODY(R, DATA, T)                                   \
         } else if (type == BOOST_PP_STRINGIZE(T)) {             \
-            create_collection<binary_freq_collection,           \
-                              BOOST_PP_CAT(T, _index)>          \
-                (input, params, output_filename, check, type);  \
+            create_collection<BOOST_PP_CAT(T, _index)>          \
+                (input_basename, params, output_filename, check, type);  \
             /**/
 
         BOOST_PP_SEQ_FOR_EACH(LOOP_BODY, _, DS2I_INDEX_TYPES);

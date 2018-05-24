@@ -5,12 +5,12 @@
 
 namespace ds2i {
 
-    template<typename DictBlockCoder>
+    template<typename Dictionary,typename DictBlockCoder>
     struct dict_posting_list {
 
         template <typename DocsIterator, typename FreqsIterator>
-        static void write(dictionary::builder const* docs_dict_builder,
-                          dictionary::builder const* freqs_dict_builder,
+        static void write(const typename Dictionary::builder& docs_dict_builder,
+                          const typename Dictionary::builder& freqs_dict_builder,
                           std::vector<uint8_t>& out, uint32_t n,
                           DocsIterator docs_begin, FreqsIterator freqs_begin)
         {
@@ -28,8 +28,6 @@ namespace ds2i {
             std::vector<uint32_t> freqs_buf(block_size);
 
             uint32_t last_doc(-1);
-            // uint32_t last_doc(0);
-            uint32_t block_base = 0;
 
             for (size_t b = 0; b < blocks; ++b) {
                 uint32_t cur_block_size =
@@ -45,18 +43,12 @@ namespace ds2i {
 
                 *((uint32_t*)&out[begin_block_maxs + 4 * b]) = last_doc;
 
-                DictBlockCoder::encode(docs_dict_builder, docs_buf.data(),
-                                       last_doc - block_base - (cur_block_size - 1),
-                                       cur_block_size, out);
-                DictBlockCoder::encode(freqs_dict_builder, freqs_buf.data(),
-                                       uint32_t(-1),
-                                       cur_block_size, out);
+                DictBlockCoder::encode(docs_dict_builder, docs_buf.data(),cur_block_size, out);
+                DictBlockCoder::encode(freqs_dict_builder, freqs_buf.data(),cur_block_size, out);
 
                 if (b != blocks - 1) {
                     *((uint32_t*)&out[begin_block_endpoints + 4 * b]) = out.size() - begin_blocks;
                 }
-
-                block_base = last_doc + 1;
             }
         }
 
@@ -91,8 +83,8 @@ namespace ds2i {
 
         class document_enumerator {
         public:
-            document_enumerator(dictionary const* docs_dict,
-                                dictionary const* freqs_dict,
+            document_enumerator(Dictionary const* docs_dict,
+                                Dictionary const* freqs_dict,
                                 uint8_t const* data,
                                 uint64_t universe,
                                 size_t term_id = 0)
@@ -203,15 +195,8 @@ namespace ds2i {
                         ((b + 1) * block_size <= size())
                         ? block_size : (size() % block_size);
 
-                    uint32_t cur_base = (b ? block_max(b - 1) : uint32_t(-1)) + 1;
-                    uint8_t const* freq_ptr =
-                        DictBlockCoder::decode(m_docs_dict, ptr, buf.data(),
-                                               block_max(b) - cur_base - (cur_block_size - 1),
-                                               cur_block_size);
-                    ptr =
-                        DictBlockCoder::decode(m_freqs_dict, freq_ptr, buf.data(),
-                                               uint32_t(-1),
-                                               cur_block_size);
+                    uint8_t const* freq_ptr = DictBlockCoder::decode(*m_docs_dict, ptr, buf.data(),cur_block_size);
+                    ptr = DictBlockCoder::decode(*m_freqs_dict, freq_ptr, buf.data(),cur_block_size);
                     bytes += ptr - freq_ptr;
                 }
 
@@ -246,8 +231,8 @@ namespace ds2i {
 
             private:
                 friend class document_enumerator;
-                dictionary const* docs_dict;
-                dictionary const* freqs_dict;
+                Dictionary const* docs_dict;
+                Dictionary const* freqs_dict;
                 uint8_t const* docs_begin;
                 uint8_t const* freqs_begin;
                 uint8_t const* end;
@@ -309,9 +294,7 @@ namespace ds2i {
                 uint32_t cur_base = (block ? block_max(block - 1) : uint32_t(-1)) + 1;
                 m_cur_block_max = block_max(block);
                 m_freqs_block_data =
-                    DictBlockCoder::decode(m_docs_dict, block_data, m_docs_buf.data(),
-                                           m_cur_block_max - cur_base - (m_cur_block_size - 1),
-                                           m_cur_block_size);
+                    DictBlockCoder::decode(*m_docs_dict, block_data, m_docs_buf.data(),m_cur_block_size);
                 succinct::intrinsics::prefetch(m_freqs_block_data);
 
                 m_docs_buf[0] += cur_base;
@@ -323,8 +306,8 @@ namespace ds2i {
 
             void DS2I_NOINLINE decode_freqs_block()
             {
-                uint8_t const* next_block = DictBlockCoder::decode(m_freqs_dict, m_freqs_block_data, m_freqs_buf.data(),
-                                                                   uint32_t(-1), m_cur_block_size);
+                uint8_t const* next_block = DictBlockCoder::decode(*m_freqs_dict, m_freqs_block_data, m_freqs_buf.data(),
+                                                                   m_cur_block_size);
                 succinct::intrinsics::prefetch(next_block);
                 m_freqs_decoded = true;
             }
@@ -349,8 +332,8 @@ namespace ds2i {
             std::vector<uint32_t> m_docs_buf;
             std::vector<uint32_t> m_freqs_buf;
 
-            dictionary const* m_docs_dict;
-            dictionary const* m_freqs_dict;
+            Dictionary const* m_docs_dict;
+            Dictionary const* m_freqs_dict;
         };
     };
 
