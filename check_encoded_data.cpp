@@ -70,8 +70,8 @@ void check(char const* collection_filename,
     for (auto const& list: input)
     {
         uint32_t size = list.size();
-        if (size > MIN_SIZE)
-        {
+        // if (size > MIN_SIZE)
+        // {
             uint32_t n, universe;
             begin = header::read(begin, &n, &universe);
             if (n != size) {
@@ -98,7 +98,7 @@ void check(char const* collection_filename,
                 }
                 decoded[j] = 0; // re-init
             }
-        }
+        // }
 
         ++sequence;
     }
