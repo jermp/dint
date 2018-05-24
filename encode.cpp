@@ -72,8 +72,8 @@ void encode(std::string const& type,
             }
             assert(buf.size() == n);
 
-            std::cout << "list.back() = " << list.back() << std::endl;
-            std::cout << "n = " << n << "; universe = " << universe << std::endl;
+            // std::cout << "list.back() = " << list.back() << std::endl;
+            // std::cout << "n = " << n << "; universe = " << universe << std::endl;
 
             header::write(n, universe, output);
             Encoder::encode(buf.data(), universe, n, output, &builder);

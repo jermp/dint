@@ -228,6 +228,11 @@ namespace ds2i {
                            dictionary::builder const* /*builder*/,
                            uint8_t const* b = nullptr) // if non-null forces b
         {
+            if (n == 1) {
+                TightVariableByte::encode_single(in[0], out);
+                return;
+            }
+
             thread_local codec_type optpfor_codec;
             thread_local std::vector<uint8_t> buf(2 * 4 * n);
             size_t out_len = buf.size();
@@ -245,6 +250,10 @@ namespace ds2i {
                                                    uint64_t /*universe*/, uint32_t n,
                                                    dictionary const* /*dict*/)
         {
+            if (DS2I_UNLIKELY(n == 1)) {
+                return TightVariableByte::decode(in, out, 1);
+            }
+
             thread_local codec_type optpfor_codec; // pfor decoding is *not* thread-safe
             size_t out_len = n;
             uint8_t const *ret;
@@ -346,6 +355,11 @@ namespace ds2i {
                            std::vector<uint8_t>& out,
                            dictionary::builder const* /*builder*/)
         {
+            if (n == 1) {
+                TightVariableByte::encode_single(in[0], out);
+                return;
+            }
+
             static const uint64_t overflow = 512;
             thread_local std::vector<uint8_t> buf( (overflow * 4) + 2 * 4 * n);
             QMX::codec qmx_codec(n);
@@ -359,6 +373,10 @@ namespace ds2i {
                                      uint32_t /*universe*/, uint32_t n,
                                      dictionary const* /*dict*/)
         {
+            if (DS2I_UNLIKELY(n == 1)) {
+                return TightVariableByte::decode(in, out, 1);
+            }
+
             uint32_t compressed_bytes = 0;
             in = TightVariableByte::decode(in, &compressed_bytes, 1);
             QMX::codec qmx_codec(n);
