@@ -15,8 +15,8 @@ namespace ds2i {
 
         void log()
         {
-            logger() << msg << " " << sequences << " sequences, "
-                    << postings << " postings" << std::endl;
+            DS2I_LOG << msg << " " << sequences << " sequences, "
+                    << postings << " postings";
         }
 
         void done_sequence(size_t n)
@@ -99,14 +99,13 @@ namespace ds2i {
 
         double bits_per_doc = docs_size * 8.0 / postings;
         double bits_per_freq = freqs_size * 8.0 / postings;
-        logger() << "Documents: " << docs_size << " bytes, "
-                 << bits_per_doc << " bits per element" << std::endl;
-        logger() << "Frequencies: " << freqs_size << " bytes, "
-                 << bits_per_freq << " bits per element" << std::endl;
+        DS2I_LOG << "Documents: " << docs_size << " bytes, "
+                 << bits_per_doc << " bits per element";
+        DS2I_LOG << "Frequencies: " << freqs_size << " bytes, "
+                 << bits_per_freq << " bits per element";
 
-        logger() << "Index Size [GiB]: "
-                 << double(docs_size + freqs_size) / double(1ULL<<30)
-                 << std::endl;
+        DS2I_LOG << "Index Size [GiB]: "
+                 << double(docs_size + freqs_size) / double(1ULL<<30);
 
         stats_line()
             ("type", type)

@@ -435,11 +435,12 @@ namespace ds2i {
         static const uint64_t block_size = constants::block_size;
         static const uint64_t overflow = 512;
 
-        static void encode(dictionary::builder const* builder,
+        static size_t encode(dictionary::builder const* builder,
                            uint32_t const *in,
                            uint32_t /*sum_of_values*/, size_t n,
                            std::vector<uint8_t>& out)
         {
+            size_t written_codes = 0;
             assert(n <= block_size);
             uint32_t const* begin = in;
             uint32_t const* end = begin + n;
@@ -469,6 +470,7 @@ namespace ds2i {
                 if (index < dictionary::reserved) {
                     auto ptr = reinterpret_cast<uint8_t const*>(&index);
                     out.insert(out.end(), ptr, ptr + 2);
+                    written_codes++;
                     begin += std::min<uint64_t>(run_size, end - begin);
                 } else {
                     for (uint32_t sub_block_size  = builder->max_entry_size();
@@ -479,21 +481,33 @@ namespace ds2i {
                         if (index != dictionary::invalid_index) {
                             auto ptr = reinterpret_cast<uint8_t const*>(&index);
                             out.insert(out.end(), ptr, ptr + 2);
+                            written_codes++;
                             begin += len;
                             break;
                         }
                     }
 
                     if (index == dictionary::invalid_index) {
-                        out.insert(out.end(), 0);
-                        out.insert(out.end(), 0);
                         uint32_t exception = *begin;
-                        auto ptr = reinterpret_cast<uint8_t const*>(&exception);
-                        out.insert(out.end(), ptr, ptr + 4);
+                        if(exception <= std::numeric_limits<uint16_t>::max()) {
+                          out.insert(out.end(), 0);
+                          out.insert(out.end(), 0);
+                          uint16_t exception_u16 = exception;
+                          auto ptr = reinterpret_cast<uint8_t const*>(&exception_u16);
+                          out.insert(out.end(), ptr, ptr + 2);
+                          written_codes += 2;
+                        } else {
+                          out.insert(out.end(), 0);
+                          out.insert(out.end(), 1);
+                          auto ptr = reinterpret_cast<uint8_t const*>(&exception);
+                          out.insert(out.end(), ptr, ptr + 4);
+                          written_codes += 3;
+                        }
                         begin += 1;
                     }
                 }
             }
+            return written_codes;
         }
 
         static uint8_t const* decode(dictionary const* dict,
@@ -509,9 +523,13 @@ namespace ds2i {
                 if (DS2I_LIKELY(index > 5)) {
                     decoded_ints = dict->copy(index, out);
                 } else {
-                    static const uint32_t run_lengths[6] = {1, // exception
+                    static const uint32_t run_lengths[6] = {0,1, // exception
                                                             256, 128, 64, 32, 16};
                     decoded_ints = run_lengths[index]; // runs of 256, 128, 64, 32 or 16 ints
+                    if (DS2I_UNLIKELY(decoded_ints == 0)) {
+                        *out = *(reinterpret_cast<uint16_t const*>(++ptr));
+                        decoded_ints++;
+                    }
                     if (DS2I_UNLIKELY(decoded_ints == 1)) {
                         *out = *(reinterpret_cast<uint32_t const*>(++ptr));
                         ++ptr;

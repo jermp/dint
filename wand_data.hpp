@@ -20,7 +20,7 @@ namespace ds2i {
         {
             std::vector<float> norm_lens(num_docs);
             double lens_sum = 0;
-            logger() << "Reading sizes..." << std::endl;
+            logger() << "Reading sizes...";
             for (size_t i = 0; i < num_docs; ++i) {
                 float len = *len_it++;
                 norm_lens[i] = len;
@@ -31,7 +31,7 @@ namespace ds2i {
                 norm_lens[i] /= avg_len;
             }
 
-            logger() << "Storing max weight for each list..." << std::endl;
+            DS2I_LOG << "Storing max weight for each list...";
             std::vector<float> max_term_weight;
             for (auto const& seq: coll) {
                 float max_score = 0;
@@ -43,10 +43,10 @@ namespace ds2i {
                 }
                 max_term_weight.push_back(max_score);
                 if ((max_term_weight.size() % 1000000) == 0) {
-                    logger() << max_term_weight.size() << " list processed" << std::endl;
+                    DS2I_LOG << max_term_weight.size() << " list processed";
                 }
             }
-            logger() << max_term_weight.size() << " list processed" << std::endl;
+            DS2I_LOG << max_term_weight.size() << " list processed";
 
             m_norm_lens.steal(norm_lens);
             m_max_term_weight.steal(max_term_weight);

@@ -42,7 +42,10 @@ namespace ds2i {
     typedef block_freq_index<ds2i::simple16_block> block_simple16_index;
 
     // DINT codec
-    typedef dict_freq_index<ds2i::dint_dictionary_builder<65536, 16>,
+    const uint32_t max_entry_width = 16;
+    using block_stat_type = ds2i::block_stats_full_stride_geom<max_entry_width>;
+    using dict_builder_type = ds2i::dint_dict_builder_smc<block_stat_type,65536, max_entry_width>;
+    typedef dict_freq_index<dict_builder_type,
                             ds2i::dint_block> block_dint_index;
 }
 

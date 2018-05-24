@@ -14,6 +14,7 @@
 #include <sys/resource.h>
 
 #include "succinct/broadword.hpp"
+#include "logging.hpp"
 
 #define DS2I_LIKELY(x) __builtin_expect(!!(x), 1)
 #define DS2I_UNLIKELY(x) __builtin_expect(!!(x), 0)
@@ -41,22 +42,6 @@ namespace ds2i {
     inline uint64_t ceil_log2(const uint64_t x) {
         assert(x > 0);
         return (x > 1) ? succinct::broadword::msb(x - 1) + 1 : 0;
-    }
-
-    inline std::ostream& logger()
-    {
-        time_t t = std::time(nullptr);
-        // XXX(ot): put_time unsupported in g++ 4.7
-        // return std::cerr
-        //     <<  std::put_time(std::localtime(&t), "%F %T")
-        //     << ": ";
-        std::locale loc;
-        const std::time_put<char>& tp =
-            std::use_facet<std::time_put<char>>(loc);
-        const char *fmt = "%F %T";
-        tp.put(std::cerr, std::cerr, ' ',
-               std::localtime(&t), fmt, fmt + strlen(fmt));
-        return std::cerr << ": ";
     }
 
     inline double get_time_usecs() {

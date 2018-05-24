@@ -24,7 +24,7 @@ namespace ds2i {
             m_data_size = m_file.size() / sizeof(m_data[0]);
 
             auto ret = posix_madvise((void*)m_data, m_data_size, POSIX_MADV_SEQUENTIAL);
-            if (ret) logger() << "Error calling madvice: " << errno << std::endl;
+            if (ret) DS2I_LOG << "Error calling madvice: " << errno;
         }
 
         class iterator;
@@ -37,6 +37,10 @@ namespace ds2i {
         iterator end() const
         {
             return iterator(this, m_data_size);
+        }
+
+        size_t data_size() const {
+            return m_data_size;
         }
 
         class sequence {
