@@ -43,13 +43,13 @@ namespace ds2i {
             {
                 {
                     DS2I_LOG << "building or loading dictionary for docs...";
-                    build_or_load_dict<DictionaryBuilder>(m_docs_dict_builder, prefix_name, dint_data_type::docs);
+                    build_or_load_dict(m_docs_dict_builder, prefix_name, data_type::docs);
                     DS2I_LOG << "DONE";
                 }
 
                 {
                     DS2I_LOG << "building or loading dictionary for freqs...";
-                    build_or_load_dict<DictionaryBuilder>(m_freqs_dict_builder, prefix_name, dint_data_type::freqs);
+                    build_or_load_dict(m_freqs_dict_builder, prefix_name, data_type::freqs);
                     DS2I_LOG << "DONE";
                 }
 
@@ -83,18 +83,18 @@ namespace ds2i {
             typename dictionary_type::builder m_freqs_dict_builder;
 
             void build_or_load_dict(typename dictionary_type::builder& builder,
-                                    std::string prefix_name, data_type type)
+                                    std::string prefix_name, data_type dt)
             {
-                std::string file_name = prefix_name + "." + extension(type);
+                std::string file_name = prefix_name + "." + extension(dt);
                 std::string dictionary_file = file_name + "." + DictionaryBuilder::type();
 
                 if (boost::filesystem::exists(dictionary_file)) {
                     builder.load_from_file(dictionary_file);
                 } else {
                     using stats_type = typename DictionaryBuilder::statistics_type;
-                    auto stats = stats_type::create_or_load(prefix_name, type);
+                    auto stats = stats_type::create_or_load(prefix_name, dt);
                     DictionaryBuilder::build(builder, stats);
-                    if (!dict.try_store_to_file(dictionary_file)) {
+                    if (!builder.try_store_to_file(dictionary_file)) {
                         DS2I_LOG << "cannot write dictionary to file";
                     }
                 }

@@ -49,6 +49,9 @@ namespace ds2i {
                 m_endpoints.push_back(m_lists.size());
             }
 
+            void build_model(std::string const&)
+            {}
+
             void build(block_freq_index& sq)
             {
                 sq.m_params = m_params;

@@ -56,33 +56,26 @@ void dump_index_specific_stats(opt_index const& coll,
         ;
 }
 
-template<typename Builder>
-void build_model(std::string, Builder&)
-{}
-
-void build_model(std::string input_basename,block_dint_index::builder& builder)
+template<typename CollectionType>
+void build_model(std::string input_basename,
+                 typename CollectionType::builder& builder)
 {
     builder.build_model(input_basename);
 }
 
-template <typename CollectionType>
+template<typename CollectionType>
 void create_collection(std::string input_basename,
                        global_parameters const& params,
                        const char* output_filename, bool check,
                        std::string const& seq_type)
 {
-    size_t num_docs = 0;
-    {
-        binary_freq_collection input(input_basename.c_str());
-        num_docs  = input.num_docs();
-    }
+    binary_freq_collection input(input_basename.c_str());
+    size_t num_docs  = input.num_docs();
     double tick = get_time_usecs();
     double user_tick = get_user_time_usecs();
 
     typename CollectionType::builder builder(num_docs, params);
-    build_model(input_basename,builder);
-
-    binary_freq_collection input(input_basename.c_str());
+    build_model<CollectionType>(input_basename, builder);
 
     DS2I_LOG << "Processing " << input.num_docs() << " documents...";
     progress_logger plog("Encoded");

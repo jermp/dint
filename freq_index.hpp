@@ -39,6 +39,9 @@ namespace ds2i {
                 m_queue.add_job(ptr, 2 * n);
             }
 
+            void build_model(std::string const&)
+            {}
+
             void build(freq_index& sq)
             {
                 m_queue.complete();

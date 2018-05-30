@@ -16,20 +16,20 @@ namespace ds2i {
     {
         static_assert(is_power_of_two(max_entry_width));
         using block_type = block_info<max_entry_width>;
-        using bm_type = std::unordered_map<uint64_t,block_type>;
+        using bm_type = std::unordered_map<uint64_t, block_type>;
 
         static std::string type() {
-            return "block_statistics-" + std::to_string(max_entry_width) + "-" + stats_type::type();
+            return "block_statistics-" + std::to_string(max_entry_width) + "-" + Collector::type();
         }
 
-        static block_statistics create_or_load(std::string prefix_name, data_type type) {
-            std::string file_name = prefix_name + "." + type;
+        static block_statistics create_or_load(std::string prefix_name, data_type dt) {
+            std::string file_name = prefix_name + "." + extension(dt);
             std::string block_stats_file = file_name + "." + type();
             if (boost::filesystem::exists(block_stats_file)) {
                 return block_statistics(block_stats_file);
             }
             binary_collection input(file_name.c_str());
-            bool compute_gaps = data_type == dint_data_type::docs;
+            bool compute_gaps = dt == data_type::docs;
             block_statistics block_stats(input, compute_gaps);
             block_stats.try_to_store(block_stats_file);
             return block_stats;
@@ -75,7 +75,7 @@ namespace ds2i {
             buf.reserve(n);
             uint32_t prev = compute_gaps ? -1 : 0;
             for (uint32_t i = 0; i < n; ++i, ++it) {
-                docs_gaps.push_back(*it - prev - 1);
+                buf.push_back(*it - prev - 1);
                 if (compute_gaps) {
                     prev = *it;
                 }

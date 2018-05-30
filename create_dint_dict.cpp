@@ -9,7 +9,7 @@
 #include <boost/progress.hpp>
 #include <boost/format.hpp>
 
-#include "dictionary_types.hpp"
+#include "dictionary_builders.hpp"
 #include "block_statistics.hpp"
 #include "block_codecs.hpp"
 #include "logging.hpp"

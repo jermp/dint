@@ -17,11 +17,12 @@ namespace ds2i {
     template<typename Dictionary, typename Statistics>
     struct decreasing_static_frequencies
     {
-        using dictionary_type = typename Dictionary;
-        using statistics_type = typename Statistics;
+        typedef Dictionary dictionary_type;
+        typedef Statistics statistics_type;
 
         static std::string type() {
-            return "DSF-" + std::to_string(Dictionary::num_entries) + "-" + std::to_string(entry_width);
+            return "DSF-" + std::to_string(dictionary_type::num_entries) +
+                      "-" + std::to_string(dictionary_type::max_entry_size);
         }
 
         static void build(typename Dictionary::builder& builder,
@@ -41,7 +42,7 @@ namespace ds2i {
                 boost::progress_display progress(block_stats.blocks.size());
                 for (const auto& block : block_stats.blocks) {
                     ++progress;
-                    if (pq.size() < num_entries) {
+                    if (pq.size() < dictionary_type::num_entries) {
                         pq.push(block);
                     } else {
                         if (coverage_cmp(block,pq.top())) {
@@ -52,19 +53,19 @@ namespace ds2i {
                 }
             }
 
-            DS2I_LOG << "(3) add blocks to dict in decreasing freq order";
-            std::vector<std::pair<int64_t,btype>> final_blocks;
+            logger() << "(3) add blocks to dict in decreasing freq order";
+            std::vector<std::pair<int64_t, block_type>> final_blocks;
             while (!pq.empty()) {
                 auto& block = pq.top();
                 final_blocks.emplace_back(block.freq,block);
                 pq.pop();
             }
             // if estimated freq is the same we prefer longer entries
-            auto cmp = [](const auto& a,const auto& b) {
-                return a.first > b.first || ((a.first == b.first) && a.second.entry_len > b.second.entry_len);
+            auto cmp = [](auto const& l, auto const& r) {
+                return l.first > r.first || ((l.first == r.first) && l.second.entry_len > r.second.entry_len);
             };
             std::sort(final_blocks.begin() ,final_blocks.end(), cmp);
-            for(auto& dict_entry : final_blocks) {
+            for (auto& dict_entry : final_blocks) {
                 auto& block = dict_entry.second;
                 builder.append(block.entry,block.entry_len,block.freq);
             }
@@ -74,12 +75,13 @@ namespace ds2i {
     template<typename Dictionary, typename Statistics>
     struct prefix_discounted_frequencies
     {
-        using dictionary_type = typename Dictionary;
-        using statistics_type = typename Statistics;
+        typedef Dictionary dictionary_type;
+        typedef Statistics statistics_type;
         using hash_map = std::unordered_map<uint64_t, uint64_t>;
 
         static std::string type() {
-            return "PDF-" + std::to_string(num_entries) + "-" + std::to_string(entry_width);
+            return "PDF-" + std::to_string(dictionary_type::num_entries) +
+                      "-" + std::to_string(dictionary_type::max_entry_size);
         }
 
         static void build(typename Dictionary::builder& builder,
@@ -87,7 +89,7 @@ namespace ds2i {
         {
             builder.init();
 
-            DS2I_LOG << "(2) preparing initial estimates";
+            logger() << "(2) preparing initial estimates";
             std::vector<int64_t> freedom(block_stats.blocks.size());
             std::vector<uint8_t> dictionary(block_stats.blocks.size());
             using pqdata_t = std::pair<int64_t,size_t>;
@@ -98,14 +100,14 @@ namespace ds2i {
             hash_id_map.reserve(block_stats.blocks.size());
             for(size_t i=0;i<block_stats.blocks.size();i++) {
                 const auto& block = block_stats.blocks[i];
-                if(block.entry_len < entry_width) hash_id_map[block.hash] = i;
+                if(block.entry_len < dictionary_type::max_entry_size) hash_id_map[block.hash] = i;
                 freedom[i] = block.freq;
                 pq.emplace(freedom[i],i);
             }
 
-            DS2I_LOG << "(3) find the top-K most covering blocks";
-            size_t needed = num_entries;
-            std::vector<int64_t> prefix_ids(entry_width);
+            logger() << "(3) find the top-K most covering blocks";
+            size_t needed = dictionary_type::num_entries;
+            std::vector<int64_t> prefix_ids(dictionary_type::max_entry_size);
             while(needed != 0) {
                 // (a) get top item
                 auto item = pq.top(); pq.pop();
@@ -119,7 +121,7 @@ namespace ds2i {
                 auto adjust = freedom[cur_max_id];
                 dictionary[cur_max_id] = 1;
                 auto& block = block_stats.blocks[cur_max_id];
-                // DS2I_LOG << "\tADD TO DICT with freedom = " << adjust << " - "
+                // logger() << "\tADD TO DICT with freedom = " << adjust << " - "
                 //     << block_stats.block_string(cur_max_id);
 
                 // (c) add freedom of prefixes
@@ -128,12 +130,12 @@ namespace ds2i {
                     auto p_id = prefix_ids[p-1];
                     adjust = adjust * 2;
                     auto padjust = freedom[p_id];
-                    // DS2I_LOG << "\t\tadjust freedom " << freedom[p_id] << " -> "
+                    // logger() << "\t\tadjust freedom " << freedom[p_id] << " -> "
                     //     << freedom[p_id] - adjust << " - "
                     //     << block_stats.block_string(p_id);
                     freedom[p_id] = freedom[p_id] - adjust;
                     if(dictionary[p_id] == 1) {
-                        // DS2I_LOG << "\t\tremove from dict " << p_id;
+                        // logger() << "\t\tremove from dict " << p_id;
                         dictionary[p_id] = 0;
                         adjust = adjust - padjust;
                         needed = needed + 1;
@@ -143,22 +145,21 @@ namespace ds2i {
                 needed = needed - 1;
             }
 
-            DS2I_LOG << "(4) add blocks to dict in decreasing freq order";
-            using btype = typename block_stat_type::block_type;
-            std::vector<std::pair<int64_t,btype>> final_blocks;
-            for(size_t i=0;i<dictionary.size();i++) {
-                if(dictionary[i] == 1) {
+            logger() << "(4) add blocks to dict in decreasing freq order";
+            using block_type = typename statistics_type::block_type;
+            std::vector<std::pair<int64_t, block_type>> final_blocks;
+            for (size_t i=0;i<dictionary.size();i++) {
+                if (dictionary[i] == 1) {
                     auto& block = block_stats.blocks[i];
                     final_blocks.emplace_back(freedom[i],block);
                 }
             }
-            auto final_cmp = [](const auto& a,const auto& b) {
-                return a.first > b.first || ((a.first == b.first) && a.second.entry_len > b.second.entry_len);
-            };
-            std::sort(final_blocks.begin(),final_blocks.end(),final_cmp);
-            for(auto& dict_entry : final_blocks) {
+            std::sort(final_blocks.begin(), final_blocks.end(), [](auto const& l, auto const& r) {
+                return l.first > r.first || ((l.first == r.first) && l.second.entry_len > r.second.entry_len);
+            });
+            for (auto& dict_entry : final_blocks) {
                 auto& block = dict_entry.second;
-                builder.append(block.entry,block.entry_len,uint64_t(dict_entry.first));
+                builder.append(block.entry, block.entry_len, uint64_t(dict_entry.first));
             }
         }
 
@@ -179,17 +180,19 @@ namespace ds2i {
     template<typename Dictionary, typename Statistics>
     struct longest_to_shortest_sweep
     {
-        using dictionary_type = typename Dictionary;
-        using statistics_type = typename Statistics;
+        typedef Dictionary dictionary_type;
+        typedef Statistics statistics_type;
 
         static std::string type() {
-            return "LSS-" + std::to_string(num_entries) + "-" + std::to_string(entry_width);
+            return "LSS-" + std::to_string(dictionary_type::num_entries) +
+                      "-" + std::to_string(dictionary_type::max_entry_size);
         }
 
         static void build(typename Dictionary::builder& builder,
                           Statistics& block_stats)
         {
-
+            (void) builder;
+            (void) block_stats;
         }
 
     };
