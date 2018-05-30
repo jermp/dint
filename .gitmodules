@@ -10,3 +10,6 @@
 [submodule "MaskedVByte"]
 	path = MaskedVByte
 	url = https://github.com/lemire/MaskedVByte.git
+[submodule "FastPFor"]
+	path = FastPFor
+	url = https://github.com/ot/FastPFor.git
