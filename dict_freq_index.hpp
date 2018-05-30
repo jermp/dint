@@ -85,7 +85,7 @@ namespace ds2i {
             void build_or_load_dict(typename dictionary_type::builder& builder,
                                     std::string prefix_name, data_type type)
             {
-                std::string file_name = prefix_name + "." + std::string(type);
+                std::string file_name = prefix_name + "." + extension(type);
                 std::string dictionary_file = file_name + "." + DictionaryBuilder::type();
 
                 if (boost::filesystem::exists(dictionary_file)) {

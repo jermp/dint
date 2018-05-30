@@ -39,14 +39,30 @@ namespace ds2i {
         return (x & (x - 1)) == 0;
     }
 
-    enum class data_type : char {
-        docs  = 'docs',
-        freqs = 'freqs',
+    enum struct data_type : char {
+        docs  = 'd',
+        freqs = 'f',
     };
+
+    std::string extension(data_type type) {
+        return type == data_type::docs ? ".docs" : ".freqs";
+    }
 
     inline uint64_t ceil_log2(const uint64_t x) {
         assert(x > 0);
         return (x > 1) ? succinct::broadword::msb(x - 1) + 1 : 0;
+    }
+
+    inline std::ostream& logger()
+    {
+        time_t t = std::time(nullptr);
+        std::locale loc;
+        const std::time_put<char>& tp =
+            std::use_facet<std::time_put<char>>(loc);
+        const char *fmt = "%F %T";
+        tp.put(std::cerr, std::cerr, ' ',
+               std::localtime(&t), fmt, fmt + strlen(fmt));
+        return std::cerr << ": ";
     }
 
     inline double get_time_usecs() {

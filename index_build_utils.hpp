@@ -16,7 +16,7 @@ namespace ds2i {
         void log()
         {
             DS2I_LOG << msg << " " << sequences << " sequences, "
-                    << postings << " postings";
+                     << postings << " postings";
         }
 
         void done_sequence(size_t n)

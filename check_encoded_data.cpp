@@ -37,9 +37,9 @@ void check(char const* collection_filename,
 
     binary_collection input(collection_filename);
 
-    dictionary dict;
+    dictionary<> dict;
     if (dictionary_filename) {
-        dictionary::builder builder;
+        dictionary<>::builder builder;
         std::ifstream dictionary_file(dictionary_filename);
         builder.load(dictionary_file);
         builder.build(dict);

@@ -12,13 +12,11 @@
 
 namespace ds2i {
 
-    template<uint32_t t_num_entries,
-             uint32_t t_max_entry_size>
+    template<uint32_t t_num_entries = 65536,
+             uint32_t t_max_entry_size = 16>
     struct dictionary
     {
         static_assert(is_power_of_two(t_max_entry_size));
-        using num_entries = t_num_entries;
-        using max_entry_size = t_max_entry_size;
         static const uint32_t invalid_index = uint32_t(-1);
         static const uint32_t reserved = 6; // 2 for exceptions
                                             // 4 for runs
