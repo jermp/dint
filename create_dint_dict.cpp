@@ -16,26 +16,25 @@
 
 using namespace ds2i;
 
-
-template<class block_stat_type>
-block_stat_type create_block_stats(std::string input_basename,dint_data_type type)
+template<class block_stats_type>
+block_stats_type create_block_stats(std::string input_basename,dint_data_type type)
 {
     std::string file_name = input_basename + ".docs";
     if(type == dint_data_type::freqs) file_name = input_basename + ".freqs";
 
-    std::string block_stats_file = file_name + "." + block_stat_type::type();
+    std::string block_stats_file = file_name + "." + block_stats_type::type();
     if( boost::filesystem::exists(block_stats_file) ) {
-        return block_stat_type(block_stats_file);
+        return block_stats_type(block_stats_file);
     }
 
     binary_collection input(file_name.c_str());
-    block_stat_type block_stats(input,type == dict_type::docs);
+    block_stats_type block_stats(input,type == dict_type::docs);
     block_stats.try_to_store(block_stats_file);
     return block_stats;
 }
 
-template<class block_stat_type,class dict_constructor_type>
-typename dict_constructor_type::builder_type build_dict(block_stat_type& block_stats)
+template<class block_stats_type,class dict_constructor_type>
+typename dict_constructor_type::builder_type build_dict(block_stats_type& block_stats)
 {
     typename dict_constructor_type::builder_type dict_builder;
     dict_constructor_type::build(dict_builder,block_stats);
@@ -278,64 +277,68 @@ void encode_lists(t_builder& dict,std::string input_basename,dict_type type,size
 }
 
 
-template<class dict_constructor_type,class block_stat_type,uint32_t encoding_block_size>
+template<class dict_constructor_type,class block_stats_type,uint32_t encoding_block_size>
 void eval_dict(std::string input_basename,std::string log_prefix)
 {
     {
         ds2i::start_logging_to_file(log_prefix + "-docs-" + dict_constructor_type::type());
-	    auto block_stats = create_block_stats<block_stat_type>(input_basename,dint_data_type::docs);
-        auto dict = build_dict<block_stat_type,dict_constructor_type>(block_stats);
+	    auto block_stats = create_block_stats<block_stats_type>(input_basename,dint_data_type::docs);
+        auto dict = build_dict<block_stats_type,dict_constructor_type>(block_stats);
         encode_lists(dict,input_basename,dict_type::docs,encoding_block_size);
         stop_logging_to_file();
     }
     {
         ds2i::start_logging_to_file(log_prefix + "-freqs-" + dict_constructor_type::type());
-        auto block_stats = create_block_stats<block_stat_type>(input_basename,dint_data_type::freqs);
-        auto dict = build_dict<block_stat_type,dict_constructor_type>(block_stats);
+        auto block_stats = create_block_stats<block_stats_type>(input_basename,dint_data_type::freqs);
+        auto dict = build_dict<block_stats_type,dict_constructor_type>(block_stats);
         encode_lists(dict,input_basename,dict_type::freqs,encoding_block_size);
         stop_logging_to_file();
     }
 }
 
-int main(int argc, const char** argv) {
-    ds2i::init_logging();
+int main(int argc, const char** argv)
+{
+    init_logging();
 
     if (argc < 3) {
         std::cerr << "Usage: " << argv[0] << ":\n"
-                  << "\t<collection basename> <log_prefix>"
+                  << "\t<dictionary construction> <collection basename> [<output filename>]"
                   << std::endl;
         return 1;
     }
 
-    const char* input_basename = argv[1];
-    std::string log_prefix = argv[2];
+    std::string dictionary_construction = argv[1];
+    const char* input_basename = argv[2];
+    const char* output_filename = nullptr;
+    if (argc > 3) {
+        output_filename = argv[3];
+    }
 
-    // define dict type
     const uint32_t encoding_block_size = 256;
     const uint32_t max_entry_width = 16;
-    const uint32_t dict_entries = 65536;
+    const uint32_t num_entries = 65536;
 
-    // PDF
-    {
-        using block_stat_type = ds2i::block_statistics<max_entry_width,ds2i::stats_geometric>;
-        using dict_type = ds2i::dint_dict_type_PDF<block_stat_type,dict_entries, max_entry_width>;
-        eval_dict<dict_type,block_stat_type,encoding_block_size>(input_basename,log_prefix);
+    using block_stats_type = block_statistics<adjusted, // geometric, adjusted, full
+                                             max_entry_width>;
+
+    using dictionary_type = dictionary // rectangular, packed
+                                <num_entries, max_entry_width>;
+
+    if (dictionary_construction == std::string("DSF")) {
+        using dictionary_construction = decreasing_static_frequencies<block_stats_type,
+                                                                      dictionary_type>;
+        eval_dict<dictionary_construction, block_stats_type, encoding_block_size>(input_basename, log_prefix);
+    } else if (dictionary_construction == std::string("PDF")) {
+        using dictionary_construction = prefix_discounted_frequencies<block_stats_type,
+                                                                      dictionary_type>;
+        eval_dict<dictionary_construction, block_stats_type, encoding_block_size>(input_basename, log_prefix);
+    } else if (dictionary_construction == std::string("LSS")) {
+        using dictionary_construction = longest_to_shortest_sweep<block_stats_type,
+                                                                  dictionary_type>;
+        eval_dict<dictionary_construction, block_stats_type, encoding_block_size>(input_basename, log_prefix);
+    } else {
+        throw std::runtime_error("Unknown dictionary construction algorithm.");
     }
-
-    // DSF
-    {
-        using block_stat_type = ds2i::block_statistics<max_entry_width,ds2i::stats_geometric>;
-        using dict_type = ds2i::dint_dict_type_DSF<block_stat_type,dict_entries, max_entry_width>;
-        eval_dict<dict_type,block_stat_type,encoding_block_size>(input_basename,log_prefix);
-    }
-
-
-    // // SDF
-    // {
-    //     using block_stat_type = ds2i::block_stats_full_stride_linear<max_entry_width>;
-    //     using dict_type = ds2i::dint_dict_builder_SDF<block_stat_type,dict_entries, max_entry_width>;
-    //     eval_dict<dict_type,block_stat_type,encoding_block_size>(input_basename,log_prefix);
-    // }
 
     return 0;
 }

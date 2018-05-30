@@ -43,13 +43,23 @@ namespace ds2i {
     typedef block_freq_index<ds2i::vbyte_block> block_vbyte_index;
     typedef block_freq_index<ds2i::simple16_block> block_simple16_index;
 
-    // DINT codec
+    // DINT codecs
     const uint32_t max_entry_width = 16;
-    const uint32_t dict_entries = 65536;
-    using block_stats_type = ds2i::block_statistics<max_entry_width,ds2i::stats_geometric>;
-    using dict_type = ds2i::dint_dict_strategy_PDF<block_stats_type,dict_entries, max_entry_width>;
-    using block_dint_index = dict_freq_index<dict_type,ds2i::dint_block>;
+    const uint32_t num_entries = 65536;
+
+    using block_stats_type = block_statistics<adjusted, // adjusted, full
+                                              max_entry_width>;
+    using dictionary_type = dictionary // rectangular, packed
+                                <num_entries, max_entry_width>;
+
+    using DSF = decreasing_static_frequencies<dictionary_type, block_stats_type>;
+    using PDF = prefix_discounted_frequencies<dictionary_type, block_stats_type>;
+    using LSS =     longest_to_shortest_sweep<dictionary_type, block_stats_type>;
+
+    using DSF_block_dint_index = dict_freq_index<DSF, ds2i::dint_block>;
+    using PDF_block_dint_index = dict_freq_index<PDF, ds2i::dint_block>;
+    using LSS_block_dint_index = dict_freq_index<LSS, ds2i::dint_block>;
 }
 
-#define DS2I_INDEX_TYPES (ef)(single)(uniform)(opt)(block_optpfor)(block_varint)(block_interpolative)(block_mixed)(block_qmx)(block_u32)(block_vbyte)(block_simple16)(block_dint)
+#define DS2I_INDEX_TYPES (ef)(single)(uniform)(opt)(block_optpfor)(block_varint)(block_interpolative)(block_mixed)(block_qmx)(block_u32)(block_vbyte)(block_simple16)(DSF_block_dint)(PDF_block_dint)(LSS_block_dint)
 #define DS2I_BLOCK_INDEX_TYPES (block_optpfor)(block_varint)(block_interpolative)(block_qmx)(block_mixed)

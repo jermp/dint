@@ -84,11 +84,9 @@ void create_collection(std::string input_basename,
 
     binary_freq_collection input(input_basename.c_str());
 
-    DS2I_LOG << "Processing " << input.num_docs() << " documents";
-
-
+    DS2I_LOG << "Processing " << input.num_docs() << " documents...";
     progress_logger plog("Encoded");
-    DS2I_LOG << "Encoding...";
+
     for (auto const& plist: input) {
         // if (plist.docs.size() > MIN_SIZE) {
             uint64_t freqs_sum = std::accumulate(plist.freqs.begin(),

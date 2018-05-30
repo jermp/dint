@@ -3,124 +3,59 @@
 #include "binary_collection.hpp"
 #include "hash_utils.hpp"
 #include "util.hpp"
+#include "statistics_collectors.hpp"
 
 #include <boost/progress.hpp>
 
 #include <unordered_map>
 
-const size_t MIN_SIZE_THRES = 256;
-
 namespace ds2i {
-    namespace util {
-        constexpr bool is_power_of_two(uint64_t x) {
-            return (x & (x - 1)) == 0;
-        }
-    }
 
-    #pragma pack(push, 1)
-    template<uint32_t width>
-    struct block_info {
-        uint64_t hash;
-        uint64_t freq;
-        uint8_t entry_len;
-        uint32_t entry[width];
-    };
-    #pragma pack(pop)
-
-    template<class bm_type>
-    void update_entry(const uint32_t* entry,size_t n,bm_type& block_map)
+    template<typename Collector, uint32_t max_entry_width>
+    struct block_statistics
     {
-    	using b_type = typename bm_type::value_type::second_type;
-    	auto hash = hash_u32(entry,n);
-		auto itr = block_map.find(hash);
-		if(itr != block_map.end())
-			itr->second.freq++;
-		else {
-			b_type new_block;
-			new_block.hash = hash;
-			new_block.freq = 1;
-			new_block.entry_len = n;
-			std::copy(entry,entry+n,new_block.entry);
-			block_map[hash] = new_block;
-		}
-    }
-
-    struct stats_geometric {
-    	static std::string type() {
-    		return "geometric";
-    	}
-
-    	template<class bm_type>
-    	static void update_stats(const std::vector<uint32_t>& buf,bm_type& block_map) {
-    		auto b = buf.data();
-    		for(size_t size_u32=1;size_u32<=buf.size();size_u32*=2) {
-    			update_entry(b,size_u32,block_map);
-    		}
-    	}
-    };
-
-    struct stats_adjusted {
-    	static std::string type() {
-    		return "adjusted";
-    	}
-
-    	template<class bm_type>
-    	static void update_stats(std::vector<uint32_t>& buf,bm_type& block_map) {
-    		auto b = buf.data();
-    		for(size_t size_u32=1;size_u32<=buf.size();size_u32*=2) {
-    			for(size_t pos=0;pos<buf.size();pos+=size_u32) {
-    				update_entry(b+pos,size_u32,block_map);
-    			}
-    		}
-    	}
-    };
-
-    template<uint32_t max_entry_width,class stats_type>
-    struct block_statistics {
-    	static_assert(util::is_power_of_two(max_entry_width));
-    	using block_type = block_info<max_entry_width>;
-    	using bm_type = std::unordered_map<uint64_t,block_type>;
+        static_assert(is_power_of_two(max_entry_width));
+        using block_type = block_info<max_entry_width>;
+        using bm_type = std::unordered_map<uint64_t,block_type>;
 
         static std::string type() {
-            return "block_stats-L" + std::to_string(max_entry_width) + "-" + stats_type::type();
+            return "block_statistics-" + std::to_string(max_entry_width) + "-" + stats_type::type();
         }
 
-        static block_statistics create_or_load(std::string prefix_name,dint_data_type data_type) {
-            std::string file_name = prefix_name + ".docs";
-            if(data_type == dint_data_type::freqs) file_name = prefix_name + ".freqs";
-
+        static block_statistics create_or_load(std::string prefix_name, data_type type) {
+            std::string file_name = prefix_name + "." + type;
             std::string block_stats_file = file_name + "." + type();
-            if( boost::filesystem::exists(block_stats_file) ) {
+            if (boost::filesystem::exists(block_stats_file)) {
                 return block_statistics(block_stats_file);
             }
             binary_collection input(file_name.c_str());
-            block_statistics block_stats(input,data_type == dint_data_type::docs);
+            bool compute_gaps = data_type == dint_data_type::docs;
+            block_statistics block_stats(input, compute_gaps);
             block_stats.try_to_store(block_stats_file);
             return block_stats;
         }
 
-    	block_statistics(binary_collection& input,bool compute_gaps) {
-            DS2I_LOG << "creating block stats (type = " << type() 
-                     << ") - MIN_SIZE_THRES = " << MIN_SIZE_THRES;
+        block_statistics(binary_collection& input, bool compute_gaps) {
+            DS2I_LOG << "creating block stats (type = " << type() << ")";
             bm_type block_map;
             block_map.max_load_factor(0.01);
             boost::progress_display progress(input.data_size());
             for (auto const& list: input) {
                 size_t n = list.size();
                 progress += n+1;
-                if (n < MIN_SIZE_THRES) continue;
-                process_list(block_map,list,compute_gaps);
+                process(list.begin(), n, compute_gaps, block_map);
             }
 
             DS2I_LOG << "serializing stats";
             blocks.resize(block_map.size());
-            auto block_selector = [](auto& pair){return pair.second;};
-            std::transform(block_map.begin(), block_map.end(),blocks.begin(), block_selector);
+
+            // Giulio: this will double the space at running time
+            std::transform(block_map.begin(), block_map.end(),blocks.begin(), [](auto& pair){return pair.second;});
+
             DS2I_LOG << "sort by freq";
-            auto freq_cmp = [](const auto& a,const auto& b) {return a.freq > b.freq;};
-            std::sort(blocks.begin(),blocks.end(),freq_cmp);
+            std::sort(blocks.begin(),blocks.end(),[](const auto& a,const auto& b) {return a.freq > b.freq;});
             DS2I_LOG << "done creating stats";
-    	}
+        }
 
         block_statistics(std::string file_name) {
             std::ifstream in(file_name.c_str());
@@ -133,38 +68,36 @@ namespace ds2i {
             DS2I_LOG << "done reading stats from disk";
         }
 
-        template<class t_list>
-    	void process_list(bm_type& block_map,t_list& list,bool compute_gaps) {
-    		thread_local std::vector<uint32_t> buf(max_entry_width);
-            size_t n = list.size();
-            size_t full_strides = n / max_entry_width;
-            auto lst_itr = list.begin();
-            uint32_t prev = 0;
-            for(size_t i=0;i<full_strides;i++) {
-                // (1) fill buf
-                for(size_t j=0;j<max_entry_width;j++) {
-                    buf[j] = *lst_itr - prev;
-                    if(compute_gaps == true) prev = *lst_itr;
-                    ++lst_itr;
+        template<typename Iterator>
+        void process(Iterator it, size_t n, bool compute_gaps, bm_type& block_map)
+        {
+            thread_local std::vector<uint32_t> buf;
+            buf.reserve(n);
+            uint32_t prev = compute_gaps ? -1 : 0;
+            for (uint32_t i = 0; i < n; ++i, ++it) {
+                docs_gaps.push_back(*it - prev - 1);
+                if (compute_gaps) {
+                    prev = *it;
                 }
-                // (2) process buf and update freq stats
-                stats_type::update_stats(buf,block_map);
             }
-    	}
+            assert(buf.size() == n);
+            Collector::collect(buf, block_map);
+        }
 
         void try_to_store(std::string file_name) {
             std::ofstream out(file_name.c_str());
             if(out) {
-            	DS2I_LOG << "writing block stats";
+                DS2I_LOG << "writing block stats";
                 uint64_t num_blocks = blocks.size();
                 out.write(reinterpret_cast<char const*>(&num_blocks), sizeof(uint64_t));
                 out.write(reinterpret_cast<char const*>(blocks.data()), num_blocks* sizeof(block_type));
                 DS2I_LOG << "done writing stats to disk";
             } else {
-            	DS2I_LOG << "cannot write block stats. collection directory not writeable";
+                DS2I_LOG << "cannot write block stats. collection directory not writeable";
             }
         }
 
+        // debug purposes
         std::string block_string(size_t id) const {
             const auto& b = blocks[id];
             std::string entry_str = "[";
@@ -181,7 +114,7 @@ namespace ds2i {
             return str;
         }
 
-    	std::vector<block_type> blocks;
+        std::vector<block_type> blocks;
     };
 
 }

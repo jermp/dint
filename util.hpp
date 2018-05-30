@@ -39,6 +39,11 @@ namespace ds2i {
         return (x & (x - 1)) == 0;
     }
 
+    enum class data_type : char {
+        docs  = 'docs',
+        freqs = 'freqs',
+    };
+
     inline uint64_t ceil_log2(const uint64_t x) {
         assert(x > 0);
         return (x > 1) ? succinct::broadword::msb(x - 1) + 1 : 0;

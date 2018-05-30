@@ -5,17 +5,17 @@
 
 namespace ds2i {
 
-    template<typename Dictionary,typename DictBlockCoder>
+    template<typename Dictionary, typename Coder>
     struct dict_posting_list {
 
         template <typename DocsIterator, typename FreqsIterator>
-        static void write(const typename Dictionary::builder& docs_dict_builder,
-                          const typename Dictionary::builder& freqs_dict_builder,
+        static void write(typename Dictionary::builder const& docs_dict_builder,
+                          typename Dictionary::builder const& freqs_dict_builder,
                           std::vector<uint8_t>& out, uint32_t n,
                           DocsIterator docs_begin, FreqsIterator freqs_begin)
         {
             TightVariableByte::encode_single(n, out);
-            uint64_t block_size = DictBlockCoder::block_size;
+            uint64_t block_size = Coder::block_size;
             uint64_t blocks = succinct::util::ceil_div(n, block_size);
             size_t begin_block_maxs = out.size();
             size_t begin_block_endpoints = begin_block_maxs + 4 * blocks;
@@ -43,8 +43,8 @@ namespace ds2i {
 
                 *((uint32_t*)&out[begin_block_maxs + 4 * b]) = last_doc;
 
-                DictBlockCoder::encode(docs_dict_builder, docs_buf.data(),cur_block_size, out);
-                DictBlockCoder::encode(freqs_dict_builder, freqs_buf.data(),cur_block_size, out);
+                Coder::encode(docs_dict_builder, docs_buf.data(),cur_block_size, out);
+                Coder::encode(freqs_dict_builder, freqs_buf.data(),cur_block_size, out);
 
                 if (b != blocks - 1) {
                     *((uint32_t*)&out[begin_block_endpoints + 4 * b]) = out.size() - begin_blocks;
@@ -90,7 +90,7 @@ namespace ds2i {
                                 size_t term_id = 0)
                 : m_n(0) // just to silence warnings
                 , m_base(TightVariableByte::decode(data, &m_n, 1))
-                , m_blocks(succinct::util::ceil_div(m_n, DictBlockCoder::block_size))
+                , m_blocks(succinct::util::ceil_div(m_n, Coder::block_size))
                 , m_block_maxs(m_base)
                 , m_block_endpoints(m_block_maxs + 4 * m_blocks)
                 , m_blocks_data(m_block_endpoints + 4 * (m_blocks - 1))
@@ -99,8 +99,8 @@ namespace ds2i {
                 , m_freqs_dict(freqs_dict)
             {
                 (void) term_id;
-                m_docs_buf.resize(DictBlockCoder::block_size + DictBlockCoder::overflow);
-                m_freqs_buf.resize(DictBlockCoder::block_size + DictBlockCoder::overflow);
+                m_docs_buf.resize(Coder::block_size + Coder::overflow);
+                m_freqs_buf.resize(Coder::block_size + Coder::overflow);
                 reset();
             }
 
@@ -151,7 +151,7 @@ namespace ds2i {
             void DS2I_ALWAYSINLINE move(uint64_t pos)
             {
                 assert(pos >= position());
-                uint64_t block = pos / DictBlockCoder::block_size;
+                uint64_t block = pos / Coder::block_size;
                 if (DS2I_UNLIKELY(block != m_cur_block)) {
                     decode_docs_block(block);
                 }
@@ -172,7 +172,7 @@ namespace ds2i {
             }
 
             uint64_t position() const {
-                return m_cur_block * DictBlockCoder::block_size + m_pos_in_block;
+                return m_cur_block * Coder::block_size + m_pos_in_block;
             }
 
             uint64_t size() const {
@@ -188,15 +188,15 @@ namespace ds2i {
                 // XXX rewrite in terms of get_blocks()
                 uint64_t bytes = 0;
                 uint8_t const* ptr = m_blocks_data;
-                static const uint64_t block_size = DictBlockCoder::block_size;
-                std::vector<uint32_t> buf(block_size + DictBlockCoder::overflow);
+                static const uint64_t block_size = Coder::block_size;
+                std::vector<uint32_t> buf(block_size + Coder::overflow);
                 for (size_t b = 0; b < m_blocks; ++b) {
                     uint32_t cur_block_size =
                         ((b + 1) * block_size <= size())
                         ? block_size : (size() % block_size);
 
-                    uint8_t const* freq_ptr = DictBlockCoder::decode(*m_docs_dict, ptr, buf.data(),cur_block_size);
-                    ptr = DictBlockCoder::decode(*m_freqs_dict, freq_ptr, buf.data(),cur_block_size);
+                    uint8_t const* freq_ptr = Coder::decode(*m_docs_dict, ptr, buf.data(),cur_block_size);
+                    ptr = Coder::decode(*m_freqs_dict, freq_ptr, buf.data(),cur_block_size);
                     bytes += ptr - freq_ptr;
                 }
 
@@ -219,13 +219,13 @@ namespace ds2i {
 
                 void decode_doc_gaps(std::vector<uint32_t>& out) const {
                     out.resize(size, 1);
-                    DictBlockCoder::decode(docs_dict, docs_begin, out.data(),
+                    Coder::decode(docs_dict, docs_begin, out.data(),
                                            doc_gaps_universe, size);
                 }
 
                 void decode_freqs(std::vector<uint32_t>& out) const {
                     out.resize(size, 1);
-                    DictBlockCoder::decode(freqs_dict,freqs_begin, out.data(),
+                    Coder::decode(freqs_dict,freqs_begin, out.data(),
                                            uint32_t(-1), size);
                 }
 
@@ -243,8 +243,8 @@ namespace ds2i {
                 std::vector<block_data> blocks;
 
                 uint8_t const* ptr = m_blocks_data;
-                static const uint64_t block_size = DictBlockCoder::block_size;
-                std::vector<uint32_t> buf(block_size + DictBlockCoder::overflow);
+                static const uint64_t block_size = Coder::block_size;
+                std::vector<uint32_t> buf(block_size + Coder::overflow);
                 for (size_t b = 0; b < m_blocks; ++b) {
                     blocks.emplace_back();
                     uint32_t cur_block_size =
@@ -263,10 +263,10 @@ namespace ds2i {
                     blocks.back().max = block_max(b);
 
                     uint8_t const* freq_ptr =
-                        DictBlockCoder::decode(m_docs_dict, ptr, buf.data(),
+                        Coder::decode(m_docs_dict, ptr, buf.data(),
                                                gaps_universe, cur_block_size);
                     blocks.back().freqs_begin = freq_ptr;
-                    ptr = DictBlockCoder::decode(m_freqs_dict, freq_ptr, buf.data(),
+                    ptr = Coder::decode(m_freqs_dict, freq_ptr, buf.data(),
                                                  uint32_t(-1), cur_block_size);
                     blocks.back().end = ptr;
                 }
@@ -283,7 +283,7 @@ namespace ds2i {
 
             void DS2I_NOINLINE decode_docs_block(uint64_t block)
             {
-                static const uint64_t block_size = DictBlockCoder::block_size;
+                static const uint64_t block_size = Coder::block_size;
                 uint32_t endpoint = block
                     ? ((uint32_t const*)m_block_endpoints)[block - 1]
                     : 0;
@@ -294,7 +294,7 @@ namespace ds2i {
                 uint32_t cur_base = (block ? block_max(block - 1) : uint32_t(-1)) + 1;
                 m_cur_block_max = block_max(block);
                 m_freqs_block_data =
-                    DictBlockCoder::decode(*m_docs_dict, block_data, m_docs_buf.data(),m_cur_block_size);
+                    Coder::decode(*m_docs_dict, block_data, m_docs_buf.data(),m_cur_block_size);
                 succinct::intrinsics::prefetch(m_freqs_block_data);
 
                 m_docs_buf[0] += cur_base;
@@ -306,7 +306,7 @@ namespace ds2i {
 
             void DS2I_NOINLINE decode_freqs_block()
             {
-                uint8_t const* next_block = DictBlockCoder::decode(*m_freqs_dict, m_freqs_block_data, m_freqs_buf.data(),
+                uint8_t const* next_block = Coder::decode(*m_freqs_dict, m_freqs_block_data, m_freqs_buf.data(),
                                                                    m_cur_block_size);
                 succinct::intrinsics::prefetch(next_block);
                 m_freqs_decoded = true;

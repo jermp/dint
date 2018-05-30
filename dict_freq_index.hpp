@@ -5,20 +5,18 @@
 
 #include "util.hpp"
 #include "dictionary.hpp"
-#include "dictionary_types.hpp"
+#include "dictionary_builders.hpp"
 #include "compact_elias_fano.hpp"
 #include "dict_posting_list.hpp"
 #include "block_statistics.hpp"
 
 namespace ds2i {
 
-    template<typename DictionaryStrategy,
-             typename Encoder>
-    struct dict_freq_index {
-        using dict_strategy = DictionaryStrategy;
-        using dict_type = typename dict_strategy::dict_type;
-        using dict_builder_type = typename dict_strategy::builder_type;
-        using encoder_type = Encoder;
+    template<typename DictionaryBuilder, typename Coder>
+    struct dict_freq_index
+    {
+        using dictionary_type = typename DictionaryBuilder::dictionary_type;
+        using coder_type = Coder;
 
         struct builder {
             builder(uint64_t num_docs, global_parameters const& params)
@@ -34,7 +32,7 @@ namespace ds2i {
                                   uint64_t /* occurrences */)
             {
                 if (!n) throw std::invalid_argument("List must be nonempty");
-                dict_posting_list<dict_type,encoder_type>::write(m_docs_dict_builder,
+                dict_posting_list<dictionary_type, coder_type>::write(m_docs_dict_builder,
                                                    m_freqs_dict_builder,
                                                    m_lists, n,
                                                    docs_begin, freqs_begin);
@@ -45,11 +43,14 @@ namespace ds2i {
             {
                 {
                     DS2I_LOG << "building or loading dictionary for docs...";
-                    build_or_load_dict<dict_strategy>(m_docs_dict_builder,prefix_name,dint_data_type::docs);
+                    build_or_load_dict<DictionaryBuilder>(m_docs_dict_builder, prefix_name, dint_data_type::docs);
+                    DS2I_LOG << "DONE";
                 }
+
                 {
                     DS2I_LOG << "building or loading dictionary for freqs...";
-                    build_or_load_dict<dict_strategy>(m_freqs_dict_builder,prefix_name,dint_data_type::freqs);
+                    build_or_load_dict<DictionaryBuilder>(m_freqs_dict_builder, prefix_name, dint_data_type::freqs);
+                    DS2I_LOG << "DONE";
                 }
 
                 m_docs_dict_builder.prepare_for_encoding();
@@ -78,9 +79,26 @@ namespace ds2i {
             size_t m_num_docs;
             std::vector<uint64_t> m_endpoints;
             std::vector<uint8_t> m_lists;
+            typename dictionary_type::builder m_docs_dict_builder;
+            typename dictionary_type::builder m_freqs_dict_builder;
 
-            dict_builder_type m_docs_dict_builder;
-            dict_builder_type m_freqs_dict_builder;
+            void build_or_load_dict(typename dictionary_type::builder& builder,
+                                    std::string prefix_name, data_type type)
+            {
+                std::string file_name = prefix_name + "." + std::string(type);
+                std::string dictionary_file = file_name + "." + DictionaryBuilder::type();
+
+                if (boost::filesystem::exists(dictionary_file)) {
+                    builder.load_from_file(dictionary_file);
+                } else {
+                    using stats_type = typename DictionaryBuilder::statistics_type;
+                    auto stats = stats_type::create_or_load(prefix_name, type);
+                    DictionaryBuilder::build(builder, stats);
+                    if (!dict.try_store_to_file(dictionary_file)) {
+                        DS2I_LOG << "cannot write dictionary to file";
+                    }
+                }
+            }
         };
 
         dict_freq_index()
@@ -97,15 +115,15 @@ namespace ds2i {
             return m_num_docs;
         }
 
-        dict_type const& docs_dict() const {
+        dictionary_type const& docs_dict() const {
             return m_docs_dict;
         }
 
-        dict_type const& freqs_dict() const {
+        dictionary_type const& freqs_dict() const {
             return m_freqs_dict;
         }
 
-        typedef typename dict_posting_list<dict_type,encoder_type>::document_enumerator document_enumerator;
+        typedef typename dict_posting_list<dictionary_type, coder_type>::document_enumerator document_enumerator;
 
         document_enumerator operator[](size_t i) const
         {
@@ -169,8 +187,8 @@ namespace ds2i {
         size_t m_num_docs;
         succinct::bit_vector m_endpoints;
         succinct::mapper::mappable_vector<uint8_t> m_lists;
-        dict_type m_docs_dict;
-        dict_type m_freqs_dict;
+        dictionary_type m_docs_dict;
+        dictionary_type m_freqs_dict;
     };
 }
 
