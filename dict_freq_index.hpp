@@ -91,12 +91,16 @@ namespace ds2i {
 
                 if (boost::filesystem::exists(dictionary_file)) {
                     builder.load_from_file(dictionary_file);
-                } else {
+                } else
+                {
                     using stats_type = dictionary_builder::statistics_type;
                     auto stats = stats_type::create_or_load(
                         prefix_name, dt, dictionary_builder::sorter
                     );
                     dictionary_builder::build(builder, stats);
+                    logger() << "using " << builder.bpi() << " bits x integer" << std::endl;
+                    logger() << "covering " << builder.coverage() << "% of integers" << std::endl;
+
                     if (!builder.try_store_to_file(dictionary_file)) {
                         DS2I_LOG << "cannot write dictionary to file";
                     }

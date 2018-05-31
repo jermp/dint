@@ -186,6 +186,14 @@ namespace ds2i {
                 return m_table[end];
             }
 
+            double bpi() const {
+                return m_final_bpi;
+            }
+
+            double coverage() const {
+                return m_total_coverage;
+            }
+
             uint64_t freq(uint32_t i) const {
                 if (i <= 5) return 0;
                 return m_freq[i];
