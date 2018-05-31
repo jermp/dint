@@ -31,10 +31,6 @@ namespace ds2i {
 
     typedef std::chrono::high_resolution_clock clock_type;
 
-    const static uint64_t MIN_SIZE = 4096;
-    static const uint32_t MAX_BLOCK_LEN = 16;
-    static const uint32_t MAX_FRACTAL_STEPS = 5;
-
     constexpr bool is_power_of_two(uint64_t x) {
         return (x & (x - 1)) == 0;
     }

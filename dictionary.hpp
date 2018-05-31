@@ -30,16 +30,26 @@ namespace ds2i {
             builder()
                 : m_pos(0)
                 , m_size(reserved)
+
+                , m_final_bpi(0.0)
+                , m_total_coverage(0.0)
+                , m_total_integers(0)
+
                 , m_reserved(reserved)
                 , m_capacity(0)
                 , m_table(0, 0)
             {}
 
-            void init(std::string type = "NULL") {
+            void init(uint64_t total_integers, std::string type = "NULL") {
                 m_type = type;
                 m_pos = reserved * (t_max_entry_size + 1);
                 m_size = reserved;
                 m_capacity = t_num_entries;
+
+                // at the beginning, everything is exception(al)
+                m_final_bpi = constants::initial_bpi;
+                m_total_coverage = 0.0;
+                m_total_integers = total_integers;
 
                 m_table.resize(t_num_entries * (t_max_entry_size + 1), 0);
                 m_freq.resize(0);
@@ -65,7 +75,7 @@ namespace ds2i {
 
             bool try_store_to_file(std::string dict_file) const {
                 std::ofstream ofs(dict_file);
-                if(ofs) {
+                if (ofs) {
                     write(ofs);
                     return true;
                 }
@@ -83,7 +93,7 @@ namespace ds2i {
                 return m_size == m_capacity;
             }
 
-            bool append(uint32_t const* entry, uint32_t entry_size,uint64_t freq) {
+            bool append(uint32_t const* entry, uint32_t entry_size, uint64_t freq) {
                 if (full()) {
                     return false;
                 }
@@ -93,11 +103,22 @@ namespace ds2i {
                 m_table[m_pos - 1] = entry_size;
                 m_freq.push_back(freq);
                 ++m_size;
+
+                // logging
+                double cost_saving = bpi(entry_size, freq, m_total_integers);
+                m_total_coverage += freq * entry_size * 100.0 / m_total_integers;
+                m_final_bpi -= cost_saving;
+                if (m_size % 500 == 0) {
+                    logger() << "entries in dictionary " << m_size << "/" << num_entries << std::endl;
+                    logger() << "current bits x integer: " << m_final_bpi << std::endl;
+                    logger() << "covering " << m_total_coverage << "% of integers" << std::endl;
+                }
+
                 return true;
             }
 
             void prepare_for_encoding() {
-                DS2I_LOG << "building mapping for encoding ";
+                logger() << "building mapping for encoding ";
                 std::vector<uint32_t> run(256, 1);
                 uint8_t const* ptr = reinterpret_cast<uint8_t const*>(run.data());
                 uint32_t i = 0;
@@ -203,26 +224,26 @@ namespace ds2i {
             }
 
             void print() {
-                DS2I_LOG << "type = " << type();
-                DS2I_LOG << "     size = " << m_size;
-                DS2I_LOG << "     special_cases = " << m_reserved;
-                DS2I_LOG << "     max_entry_size = " << t_max_entry_size;
+                logger() << "type = " << type();
+                logger() << "     size = " << m_size;
+                logger() << "     special_cases = " << m_reserved;
+                logger() << "     max_entry_size = " << t_max_entry_size;
 
                 std::vector<uint32_t> len_stats(257);
                 for(size_t i=0;i<m_size;i++) {
                     len_stats[size(i)]++;
                 }
-                DS2I_LOG << " LEN DIST = ";
+                logger() << " LEN DIST = ";
                 boost::format fmt("\t   len = %1$3d count = %2$5d percent = %3$4.2f");
                 for(size_t i=0;i<len_stats.size();i++) {
                     if(len_stats[i] != 0) {
-                        DS2I_LOG << fmt % i % len_stats[i] % (double(len_stats[i]) / double(m_size) * 100);
+                        logger() << fmt % i % len_stats[i] % (double(len_stats[i]) / double(m_size) * 100);
                     }
                 }
-                DS2I_LOG << " CONTENT = ";
+                logger() << " CONTENT = ";
                 boost::format fmt2("\t   code = %1$6d freq = %2$10d entry = %3%");
                 for(size_t i=0;i<m_size;i++) {
-                    DS2I_LOG << fmt2 % i % freq(i) %  entry_string(i);
+                    logger() << fmt2 % i % freq(i) %  entry_string(i);
                 }
             }
 
@@ -230,6 +251,13 @@ namespace ds2i {
             std::string m_type;
             uint32_t m_pos;
             uint32_t m_size;
+
+
+            double m_final_bpi;
+            double m_total_coverage;
+            uint64_t m_total_integers;
+
+
             uint32_t m_reserved;
             uint32_t m_capacity;
             std::vector<uint32_t> m_table;

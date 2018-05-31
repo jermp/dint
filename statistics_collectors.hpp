@@ -1,38 +1,42 @@
 #pragma once
 
+#include "dint_configuration.hpp"
+
 namespace ds2i {
 
-    static const size_t MAX_STRIDE_SIZE = 64;
-
     #pragma pack(push, 1)
-    template<uint32_t width>
-    struct block_info {
+    template<uint32_t N>
+    struct block {
         uint64_t hash;
         uint64_t freq;
-        uint8_t entry_len;
-        uint32_t entry[width];
+        uint8_t size;
+        uint32_t entry[N];
     };
     #pragma pack(pop)
 
-    // Giulio: why not an abstract class with the increase_frequency method
-    // and the block_map ??
+    typedef std::pair<uint64_t, block> hash_block_type;
+    typedef std::unordered_map<uint64_t, block> blocks_map;
 
-    template<typename bm_type>
-    void increase_frequency(const uint32_t* entry, size_t n, bm_type& block_map,
-                            uint32_t amount = 1)
+
+    // Giulio: why not an abstract class with the increase_frequency method
+    // and a blocks_map object ??
+
+
+
+    void increase_frequency(const uint32_t* entry, size_t n,
+                            blocks_map& bmap, uint32_t amount = 1)
     {
-        using b_type = typename bm_type::value_type::second_type;
-        auto hash = hash_u32(entry,n);
-        auto itr = block_map.find(hash);
-        if (itr != block_map.end()) {
-            itr->second.freq += amount;
+        auto hash = hash_bytes64(entry, n);
+        auto it = bmap.find(hash);
+        if (it != bmap.end()) {
+            it->second.freq += amount;
         } else {
-            b_type new_block;
-            new_block.hash = hash;
-            new_block.freq = 1;
-            new_block.entry_len = n;
-            std::copy(entry,entry+n,new_block.entry);
-            block_map[hash] = new_block;
+            block b;
+            b.hash = hash;
+            b.freq = 1;
+            b.size = n;
+            std::copy(entry, entry + n, b.entry);
+            bmap[hash] = std::move(b);
         }
     }
 
@@ -42,11 +46,11 @@ namespace ds2i {
     //         return "geometric";
     //     }
 
-    //     template<class bm_type>
-    //     static void collect(const std::vector<uint32_t>& buf, bm_type& block_map)
+    //     template<class Map>
+    //     static void collect(const std::vector<uint32_t>& buf, Map& block_map)
     //     {
     //         auto b = buf.data();
-    //         for (size_t stride_size = 1; stride_size <= buf.size(); stride_size *= 2) {
+    //         for (size_t block_size = 1; block_size <= buf.size(); block_size *= 2) {
     //             increase_frequency(b, size_u32, block_map);
     //         }
     //     }
@@ -58,13 +62,11 @@ namespace ds2i {
             return "adjusted";
         }
 
-        template<class bm_type>
-        static void collect(std::vector<uint32_t>& buf, bm_type& block_map)
-        {
+        static void collect(std::vector<uint32_t>& buf, blocks_map& bmap) {
             auto b = buf.data();
-            for (size_t stride_size = 1; stride_size <= MAX_STRIDE_SIZE; stride_size *= 2) {
-                for (size_t pos = 0; pos < buf.size(); pos += stride_size) {
-                    increase_frequency(b + pos, stride_size, block_map);
+            for (uint32_t block_size = 1; block_size <= constants::max_block_length; block_size *= 2) {
+                for (size_t pos = 0; pos < buf.size(); pos += block_size) {
+                    increase_frequency(b + pos, block_size, bmap);
                 }
             }
         }
@@ -76,14 +78,12 @@ namespace ds2i {
             return "full";
         }
 
-        template<class bm_type>
-        static void collect(std::vector<uint32_t>& buf, bm_type& block_map) {
+        static void collect(std::vector<uint32_t>& buf, blocks_map& bmap) {
             auto b = buf.data();
-            for (size_t pos = 0; pos < buf.size(); pos += MAX_STRIDE_SIZE) {
-                for (size_t stride_size = 1; stride_size <= MAX_STRIDE_SIZE; stride_size *= 2)
-                {
-                    uint32_t amount = MAX_STRIDE_SIZE / stride_size;
-                    increase_frequency(b + pos, stride_size, block_map, amount);
+            for (size_t pos = 0; pos < buf.size(); pos += constants::max_block_length) {
+                for (uint32_t block_size = 1; block_size <= constants::max_block_length; block_size *= 2) {
+                    uint32_t amount = constants::max_block_length / block_size;
+                    increase_frequency(b + pos, block_size, bmap, amount);
                 }
             }
         }

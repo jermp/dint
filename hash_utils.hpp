@@ -69,8 +69,8 @@ namespace ds2i {
         return murmur_hash64(br.first, br.second - br.first, 0);
     }
 
-    uint64_t hash_u32(uint32_t const* ptr,size_t size_u32) {
+    uint64_t hash_bytes64(uint32_t const* ptr, size_t size_u32) {
         uint8_t const* b = reinterpret_cast<uint8_t const*>(ptr);
-        return murmur_hash64(b,size_u32*sizeof(uint32_t),0);
+        return murmur_hash64(b, size_u32 * sizeof(uint32_t), 0);
     }
 }

@@ -35,11 +35,11 @@ void start_logging_to_file(std::string filename)
     boost::log::core::get()->add_global_attribute("TimeStamp", boost::log::attributes::local_clock());
     logging::add_console_log(std::cout,keywords::format = "[%TimeStamp%]: %Message%");
     logging::add_file_log
-	    (
-	        keywords::file_name = filename,
-	        keywords::format = "[%TimeStamp%]: %Message%",
-		keywords::auto_flush = true
-	    );
+        (
+            keywords::file_name = filename,
+            keywords::format = "[%TimeStamp%]: %Message%",
+        keywords::auto_flush = true
+        );
 }
 
 void stop_logging_to_file()

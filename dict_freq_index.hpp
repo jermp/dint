@@ -15,7 +15,8 @@ namespace ds2i {
     template<typename DictionaryBuilder, typename Coder>
     struct dict_freq_index
     {
-        using dictionary_type = typename DictionaryBuilder::dictionary_type;
+        using dictionary_builder = DictionaryBuilder;
+        using dictionary_type = dictionary_builder::dictionary_type;
         using coder_type = Coder;
 
         struct builder {
@@ -86,14 +87,16 @@ namespace ds2i {
                                     std::string prefix_name, data_type dt)
             {
                 std::string file_name = prefix_name + "." + extension(dt);
-                std::string dictionary_file = file_name + "." + DictionaryBuilder::type();
+                std::string dictionary_file = file_name + "." + dictionary_builder::type();
 
                 if (boost::filesystem::exists(dictionary_file)) {
                     builder.load_from_file(dictionary_file);
                 } else {
-                    using stats_type = typename DictionaryBuilder::statistics_type;
-                    auto stats = stats_type::create_or_load(prefix_name, dt);
-                    DictionaryBuilder::build(builder, stats);
+                    using stats_type = dictionary_builder::statistics_type;
+                    auto stats = stats_type::create_or_load(
+                        prefix_name, dt, dictionary_builder::sorter
+                    );
+                    dictionary_builder::build(builder, stats);
                     if (!builder.try_store_to_file(dictionary_file)) {
                         DS2I_LOG << "cannot write dictionary to file";
                     }

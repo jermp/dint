@@ -44,9 +44,6 @@ namespace ds2i {
     typedef block_freq_index<ds2i::simple16_block> block_simple16_index;
 
     // DINT codecs
-    const uint32_t max_entry_width = 16;
-    const uint32_t num_entries = 65536;
-
     using block_stats_type = block_statistics<adjusted, // adjusted, full
                                               max_entry_width>;
     using dictionary_type = dictionary // rectangular, packed

@@ -141,9 +141,9 @@ int main(int argc, const char** argv) {
     params.log_partition_size = configuration::get().log_partition_size;
 
     if (false) {
-#define LOOP_BODY(R, DATA, T)                                   \
-        } else if (type == BOOST_PP_STRINGIZE(T)) {             \
-            create_collection<BOOST_PP_CAT(T, _index)>          \
+#define LOOP_BODY(R, DATA, T)                                            \
+        } else if (type == BOOST_PP_STRINGIZE(T)) {                      \
+            create_collection<BOOST_PP_CAT(T, _index)>                   \
                 (input_basename, params, output_filename, check, type);  \
             /**/
 
