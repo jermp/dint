@@ -12,6 +12,8 @@
 #include "block_freq_index.hpp"
 #include "block_codecs.hpp"
 #include "mixed_block.hpp"
+
+#include "dint_configuration.hpp"
 #include "dictionary_builders.hpp"
 #include "block_statistics.hpp"
 #include "dict_freq_index.hpp"
@@ -34,28 +36,29 @@ namespace ds2i {
         positive_sequence<partitioned_sequence<strict_sequence>>
         > opt_index;
 
-    typedef block_freq_index<ds2i::optpfor_block> block_optpfor_index;
-    typedef block_freq_index<ds2i::varint_G8IU_block> block_varint_index;
-    typedef block_freq_index<ds2i::interpolative_block> block_interpolative_index;
-    typedef block_freq_index<ds2i::qmx_block> block_qmx_index;
-    typedef block_freq_index<ds2i::mixed_block> block_mixed_index;
-    typedef block_freq_index<ds2i::u32_block> block_u32_index;
-    typedef block_freq_index<ds2i::vbyte_block> block_vbyte_index;
-    typedef block_freq_index<ds2i::simple16_block> block_simple16_index;
+    typedef block_freq_index<optpfor_block> block_optpfor_index;
+    typedef block_freq_index<varint_G8IU_block> block_varint_index;
+    typedef block_freq_index<interpolative_block> block_interpolative_index;
+    typedef block_freq_index<qmx_block> block_qmx_index;
+    typedef block_freq_index<mixed_block> block_mixed_index;
+    typedef block_freq_index<u32_block> block_u32_index;
+    typedef block_freq_index<vbyte_block> block_vbyte_index;
+    typedef block_freq_index<simple16_block> block_simple16_index;
 
     // DINT codecs
     using block_stats_type = block_statistics<adjusted, // adjusted, full
-                                              max_entry_width>;
+                                              constants::max_entry_size>;
     using dictionary_type = dictionary // rectangular, packed
-                                <num_entries, max_entry_width>;
+                                <constants::num_entries,
+                                 constants::max_entry_size>;
 
     using DSF = decreasing_static_frequencies<dictionary_type, block_stats_type>;
     using PDF = prefix_discounted_frequencies<dictionary_type, block_stats_type>;
     using LSS =     longest_to_shortest_sweep<dictionary_type, block_stats_type>;
 
-    using DSF_block_dint_index = dict_freq_index<DSF, ds2i::dint_block>;
-    using PDF_block_dint_index = dict_freq_index<PDF, ds2i::dint_block>;
-    using LSS_block_dint_index = dict_freq_index<LSS, ds2i::dint_block>;
+    using DSF_block_dint_index = dict_freq_index<DSF, dint_block>;
+    using PDF_block_dint_index = dict_freq_index<PDF, dint_block>;
+    using LSS_block_dint_index = dict_freq_index<LSS, dint_block>;
 }
 
 #define DS2I_INDEX_TYPES (ef)(single)(uniform)(opt)(block_optpfor)(block_varint)(block_interpolative)(block_mixed)(block_qmx)(block_u32)(block_vbyte)(block_simple16)(DSF_block_dint)(PDF_block_dint)(LSS_block_dint)

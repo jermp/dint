@@ -3,6 +3,9 @@
 #include <boost/progress.hpp>
 #include <boost/filesystem.hpp>
 
+#include <unordered_map>
+#include <queue>
+
 #include "dint_configuration.hpp"
 #include "statistics_collectors.hpp"
 #include "binary_blocks_collection.hpp"
@@ -10,45 +13,45 @@
 #include "heap.hpp"
 #include "hash_utils.hpp"
 #include "util.hpp"
-
-#include <unordered_map>
-#include <queue>
+#include "model_build_utils.hpp"
 
 namespace ds2i {
 
+    template<typename Block>
     struct freq_sorter {
-        void operator()(block const& l, block const& r) {
+        bool operator()(Block const& l, Block const& r) {
             return l.freq > r.freq;
         }
-    }
+    };
 
+    template<typename Block>
     struct length_freq_sorter {
-        void operator()(block const& l, block const& r) {
+        bool operator()(Block const& l, Block const& r) {
             if (l.size == r.size) {
-                return l.freq > r.fre;
+                return l.freq > r.freq;
             }
             return l.size > r.size;
         }
-    }
+    };
 
     template<typename Dictionary, typename Statistics>
     struct decreasing_static_frequencies
     {
         typedef Dictionary dictionary_type;
         typedef Statistics statistics_type;
-        typedef freq_sorter sorter_type;
+        typedef freq_sorter<typename statistics_type::block_type> sorter_type;
 
         static std::string type() {
             return "DSF-" + std::to_string(dictionary_type::num_entries) +
                       "-" + std::to_string(dictionary_type::max_entry_size);
         }
 
-        static void build(dictionary_type::builder& builder,
+        static void build(typename dictionary_type::builder& builder,
                           statistics_type& stats)
         {
-            builder.init();
+            builder.init(stats.total_integers);
 
-            using block_type = statistics_type::block_type;
+            using block_type = typename statistics_type::block_type;
             auto coverage_cmp = [](block_type const& l, block_type const& r) {
                 return l.freq > r.freq;
             };
@@ -82,12 +85,12 @@ namespace ds2i {
 
             std::sort(final_blocks.begin(), final_blocks.end(),
             [](auto const& l, auto const& r) { // if estimated freq is the same we prefer longer entries
-                return (l.first  > r.first) or ((l.first == r.first) and l.second.entry_len > r.second.entry_len);
+                return (l.first  > r.first) or ((l.first == r.first) and l.second.size > r.second.size);
             });
 
             for (auto& dict_entry : final_blocks) {
                 auto& block = dict_entry.second;
-                builder.append(block.entry, block.entry_len, block.freq);
+                builder.append(block.entry, block.size, block.freq);
             }
             logger() << "DONE" << std::endl;
         }
@@ -98,7 +101,7 @@ namespace ds2i {
     {
         typedef Dictionary dictionary_type;
         typedef Statistics statistics_type;
-        typedef freq_sorter sorter_type;
+        typedef freq_sorter<typename statistics_type::block_type> sorter_type;
 
         using hash_map = std::unordered_map<uint64_t, uint64_t>;
 
@@ -107,10 +110,10 @@ namespace ds2i {
                       "-" + std::to_string(dictionary_type::max_entry_size);
         }
 
-        static void build(dictionary_type::builder& builder,
+        static void build(typename dictionary_type::builder& builder,
                           statistics_type& stats)
         {
-            builder.init();
+            builder.init(stats.total_integers);
 
             logger() << "(1) preparing initial estimates";
             std::vector<int64_t> freedom(stats.blocks.size());
@@ -125,7 +128,7 @@ namespace ds2i {
             hash_id_map.reserve(stats.blocks.size());
             for (size_t i = 0; i < stats.blocks.size(); ++i) {
                 auto const& block = stats.blocks[i];
-                if (block.entry_len < dictionary_type::max_entry_size) {
+                if (block.size < dictionary_type::max_entry_size) {
                     hash_id_map[block.hash] = i;
                 }
                 freedom[i] = block.freq;
@@ -184,12 +187,12 @@ namespace ds2i {
             std::sort(final_blocks.begin(), final_blocks.end(), [](auto const& l, auto const& r) {
                 return (l.first  > r.first) or
                       ((l.first == r.first) and
-                        l.second.entry_len > r.second.entry_len);
+                        l.second.size > r.second.size);
             });
 
             for (auto& dict_entry : final_blocks) {
                 auto& block = dict_entry.second;
-                builder.append(block.entry, block.entry_len, uint64_t(dict_entry.first));
+                builder.append(block.entry, block.size, uint64_t(dict_entry.first));
             }
         }
 
@@ -200,7 +203,7 @@ namespace ds2i {
                                          std::vector<int64_t>& prefix_ids)
         {
             size_t num_prefixes = 0;
-            for (size_t size_u32=1; size_u32 < block.entry_len; size_u32 *= 2) {
+            for (size_t size_u32=1; size_u32 < block.size; size_u32 *= 2) {
                 auto hash = hash_bytes64(block.entry, size_u32);
                 auto itr = hash_id_map.find(hash);
                 prefix_ids[num_prefixes++] = itr->second;
@@ -214,17 +217,17 @@ namespace ds2i {
     {
         typedef Dictionary dictionary_type;
         typedef Statistics statistics_type;
-        typedef length_freq_sorter sorter_type;
+        typedef length_freq_sorter<typename statistics_type::block_type> sorter_type;
 
         static std::string type() {
             return "LSS-" + std::to_string(dictionary_type::num_entries) +
                       "-" + std::to_string(dictionary_type::max_entry_size);
         }
 
-        static void build(dictionary_type::builder& builder,
+        static void build(typename dictionary_type::builder& builder,
                           statistics_type& stats)
         {
-            builder.init();
+            builder.init(stats.total_integers);
 
             // <hash of block, unique_id>
             std::unordered_map<uint64_t,
@@ -233,12 +236,13 @@ namespace ds2i {
 
             std::vector<uint64_t> id_lowerbounds(constants::max_fractal_steps + 1, 0);
             uint32_t id = 0;
-            uint32_t block_size = constants::max_block_length;
+            uint32_t curr_block_size = constants::max_block_length;
+            uint32_t k = 0;
             for (auto const& block: stats.blocks)
             {
-                if (block.size == block_size / 2) {
-                    id_lowerbounds[++i] = id;
-                    block_size /= 2
+                if (block.size == curr_block_size / 2) {
+                    id_lowerbounds[++k] = id;
+                    curr_block_size /= 2;
                 }
 
                 map[block.hash] = id;
@@ -248,8 +252,8 @@ namespace ds2i {
             assert(id == stats.blocks.size());
             id_lowerbounds[constants::max_fractal_steps] = id;
 
-            uint32_t curr_block_size = constants::max_block_length;
-            uint32_t k = 0;
+            curr_block_size = constants::max_block_length;
+            k = 0;
             for (uint32_t i = 0; i < stats.blocks.size(); ++i)
             {
                 if (builder.full()) break;
@@ -280,9 +284,12 @@ namespace ds2i {
                     curr_block_size /= 2;
                     ++k;
                     // sort sub-blocks after decreasing of frequencies
-                    std::sort(stats.blocks[id_lowerbounds[k]],
-                              stats.blocks[id_lowerbounds[k + 1]],
-                              sorter_type);
+                    sorter_type sorter;
+                    std::sort(
+                        stats.blocks.begin() + id_lowerbounds[k],
+                        stats.blocks.begin() + id_lowerbounds[k + 1],
+                        sorter
+                    );
                 }
             }
         }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "dint_configuration.hpp"
 #include "binary_collection.hpp"
 #include "hash_utils.hpp"
 #include "util.hpp"
@@ -11,14 +12,15 @@
 
 namespace ds2i {
 
-    template<typename Collector, uint32_t max_entry_width>
+    template<typename Collector, uint32_t max_entry_size>
     struct block_statistics
     {
-        static_assert(is_power_of_two(max_entry_width));
-        using block_type = block<max_entry_width>;
+        static_assert(is_power_of_two(max_entry_size));
+        using block_type = block<max_entry_size>;
+        using map_type = std::unordered_map<uint64_t, block_type>;
 
         static std::string type() {
-            return "block_statistics-" + std::to_string(max_entry_width) + "-" + Collector::type();
+            return "block_statistics-" + std::to_string(max_entry_size) + "-" + Collector::type();
         }
 
         template<typename Sorter> static block_statistics
@@ -56,14 +58,19 @@ namespace ds2i {
 
             logger() << "selecting entries...";
             blocks.reserve(block_map.size());
-            for (auto& pair: block_map) {
+            for (auto& pair: block_map)
+            {
                 auto& old_b = pair.second;
-                if (bpi(old_b.size, old_b.freq, total_integers) > eps) { // cost pruning
-                    block new_b;
+                if (compute_saving(old_b.size,
+                                   old_b.freq,
+                                   total_integers) > constants::eps) // cost pruning
+                {
+                    block_type new_b;
                     new_b.hash = old_b.hash;
                     new_b.freq = old_b.freq;
                     new_b.size = old_b.size;
-                    std::copy(old_b.entry, old_b.entry + n, new_b.entry);
+                    std::copy(old_b.entry,
+                              old_b.entry + old_b.size, new_b.entry);
                     blocks.push_back(std::move(new_b));
                 }
             }

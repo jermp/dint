@@ -16,7 +16,7 @@ namespace ds2i {
     struct dict_freq_index
     {
         using dictionary_builder = DictionaryBuilder;
-        using dictionary_type = dictionary_builder::dictionary_type;
+        using dictionary_type = typename dictionary_builder::dictionary_type;
         using coder_type = Coder;
 
         struct builder {
@@ -91,12 +91,11 @@ namespace ds2i {
 
                 if (boost::filesystem::exists(dictionary_file)) {
                     builder.load_from_file(dictionary_file);
-                } else
-                {
-                    using stats_type = dictionary_builder::statistics_type;
-                    auto stats = stats_type::create_or_load(
-                        prefix_name, dt, dictionary_builder::sorter
-                    );
+                } else {
+                    using statistics_type = typename dictionary_builder::statistics_type;
+                    using sorter_type = typename dictionary_builder::sorter_type;
+                    sorter_type sorter;
+                    auto stats = statistics_type::create_or_load(prefix_name, dt, sorter);
                     dictionary_builder::build(builder, stats);
                     logger() << "using " << builder.bpi() << " bits x integer" << std::endl;
                     logger() << "covering " << builder.coverage() << "% of integers" << std::endl;

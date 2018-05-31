@@ -14,8 +14,6 @@ namespace ds2i {
     };
     #pragma pack(pop)
 
-    typedef std::pair<uint64_t, block> hash_block_type;
-    typedef std::unordered_map<uint64_t, block> blocks_map;
 
 
     // Giulio: why not an abstract class with the increase_frequency method
@@ -23,15 +21,17 @@ namespace ds2i {
 
 
 
+    template<typename Map>
     void increase_frequency(const uint32_t* entry, size_t n,
-                            blocks_map& bmap, uint32_t amount = 1)
+                            Map& bmap, uint32_t amount = 1)
     {
+        using block_type = typename Map::value_type::second_type;
         auto hash = hash_bytes64(entry, n);
         auto it = bmap.find(hash);
         if (it != bmap.end()) {
             it->second.freq += amount;
         } else {
-            block b;
+            block_type b;
             b.hash = hash;
             b.freq = 1;
             b.size = n;
@@ -40,7 +40,7 @@ namespace ds2i {
         }
     }
 
-    // struct geometric // Giulio: what is the reason for this??
+    // struct geometric // Giulio: what is the reason for this?
     // {
     //     static std::string type() {
     //         return "geometric";
@@ -56,13 +56,13 @@ namespace ds2i {
     //     }
     // };
 
-    struct adjusted
-    {
+    struct adjusted {
         static std::string type() {
             return "adjusted";
         }
 
-        static void collect(std::vector<uint32_t>& buf, blocks_map& bmap) {
+        template<typename Map>
+        static void collect(std::vector<uint32_t>& buf, Map& bmap) {
             auto b = buf.data();
             for (uint32_t block_size = 1; block_size <= constants::max_block_length; block_size *= 2) {
                 for (size_t pos = 0; pos < buf.size(); pos += block_size) {
@@ -72,13 +72,13 @@ namespace ds2i {
         }
     };
 
-    struct full
-    {
+    struct full {
         static std::string type() {
             return "full";
         }
 
-        static void collect(std::vector<uint32_t>& buf, blocks_map& bmap) {
+        template<typename Map>
+        static void collect(std::vector<uint32_t>& buf, Map& bmap) {
             auto b = buf.data();
             for (size_t pos = 0; pos < buf.size(); pos += constants::max_block_length) {
                 for (uint32_t block_size = 1; block_size <= constants::max_block_length; block_size *= 2) {

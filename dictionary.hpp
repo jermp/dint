@@ -1,14 +1,15 @@
 #pragma once
 
 #include <unordered_map>
-
-#include <succinct/mappable_vector.hpp>
 #include <fstream>
 
+#include <boost/format.hpp>
+#include <succinct/mappable_vector.hpp>
+
+#include "dint_configuration.hpp"
+#include "model_build_utils.hpp"
 #include "hash_utils.hpp"
 #include "util.hpp"
-
-#include <boost/format.hpp>
 
 namespace ds2i {
 
@@ -40,7 +41,7 @@ namespace ds2i {
                 , m_table(0, 0)
             {}
 
-            void init(uint64_t total_integers, std::string type = "NULL") {
+            void init(uint64_t total_integers = 0, std::string type = "NULL") {
                 m_type = type;
                 m_pos = reserved * (t_max_entry_size + 1);
                 m_size = reserved;
@@ -93,10 +94,10 @@ namespace ds2i {
                 return m_size == m_capacity;
             }
 
-            bool append(uint32_t const* entry, uint32_t entry_size, uint64_t freq) {
-                if (full()) {
-                    return false;
-                }
+            bool append(uint32_t const* entry, uint32_t entry_size, uint64_t freq)
+            {
+                if (full()) return false;
+
                 assert(m_pos % (t_max_entry_size + 1) == 0);
                 std::copy(entry, entry + entry_size, &m_table[m_pos]);
                 m_pos += t_max_entry_size + 1;
@@ -105,7 +106,7 @@ namespace ds2i {
                 ++m_size;
 
                 // logging
-                double cost_saving = bpi(entry_size, freq, m_total_integers);
+                double cost_saving = compute_saving(entry_size, freq, m_total_integers);
                 m_total_coverage += freq * entry_size * 100.0 / m_total_integers;
                 m_final_bpi -= cost_saving;
                 if (m_size % 500 == 0) {
@@ -121,8 +122,8 @@ namespace ds2i {
                 logger() << "building mapping for encoding ";
                 std::vector<uint32_t> run(256, 1);
                 uint8_t const* ptr = reinterpret_cast<uint8_t const*>(run.data());
-                uint32_t i = 0;
-                for (uint32_t n = 256; n != 16; n /= 2, ++i) {
+                uint32_t i = 1;
+                for (uint32_t n = 256; n != constants::max_block_length; n /= 2, ++i) {
                     uint64_t hash = hash_bytes64(byte_range(ptr, ptr + n * sizeof(uint32_t)));
                     m_map[hash] = i;
                 }

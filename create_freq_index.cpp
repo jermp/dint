@@ -39,11 +39,11 @@ void dump_index_specific_stats(opt_index const& coll,
 
     for (size_t s = 0; s < coll.size(); ++s) {
         auto const& list = coll[s];
-        if (list.size() > MIN_SIZE) {
+        // if (list.size() > constants::min_size) {
             long_postings += list.size();
             docs_partitions += list.docs_enum().num_partitions();
             freqs_partitions += list.freqs_enum().base().num_partitions();
-        }
+        // }
     }
 
     stats_line()
@@ -81,7 +81,7 @@ void create_collection(std::string input_basename,
     progress_logger plog("Encoded");
 
     for (auto const& plist: input) {
-        // if (plist.docs.size() > MIN_SIZE) {
+        // if (plist.docs.size() > constants::min_size) {
             uint64_t freqs_sum = std::accumulate(plist.freqs.begin(),
                                                  plist.freqs.end(), uint64_t(0));
             builder.add_posting_list(plist.docs.size(), plist.docs.begin(),

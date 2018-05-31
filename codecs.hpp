@@ -201,17 +201,9 @@ namespace ds2i {
                 return b;
             }
 
-            const uint32_t* decodeArray(
-            #ifndef NDEBUG
-                    const uint32_t *in, const size_t len, uint32_t *out, size_t & nvalue) {
-            #else
-                    const uint32_t *in, const size_t    , uint32_t *out, size_t & nvalue) {
-            #endif
-            #ifndef NDEBUG
-                const uint32_t * const initin(in);
-            #endif
+            const uint32_t* decodeArray(const uint32_t *in, const size_t, uint32_t *out, size_t & nvalue)
+            {
                 const uint32_t * const initout(out);
-
                 const uint32_t numBlocks = *in++;
                 size_t out_len = 0;
                 for (uint32_t i = 0; i < numBlocks; i++) {
