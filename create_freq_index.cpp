@@ -77,7 +77,7 @@ void create_collection(std::string input_basename,
     typename CollectionType::builder builder(num_docs, params);
     build_model<CollectionType>(input_basename, builder);
 
-    DS2I_LOG << "Processing " << input.num_docs() << " documents...";
+    logger() << "Processing " << input.num_docs() << " documents..." << std::endl;
     progress_logger plog("Encoded");
 
     for (auto const& plist: input) {
@@ -95,8 +95,8 @@ void create_collection(std::string input_basename,
     builder.build(coll);
     double elapsed_secs = (get_time_usecs() - tick) / 1000000;
     double user_elapsed_secs = (get_user_time_usecs() - user_tick) / 1000000;
-    DS2I_LOG << seq_type << " collection built in "
-             << elapsed_secs << " seconds";
+    logger() << seq_type << " collection built in "
+             << elapsed_secs << " seconds" << std::endl;
 
     stats_line()
         ("type", seq_type)
@@ -150,7 +150,7 @@ int main(int argc, const char** argv) {
         BOOST_PP_SEQ_FOR_EACH(LOOP_BODY, _, DS2I_INDEX_TYPES);
 #undef LOOP_BODY
     } else {
-        DS2I_LOG << "ERROR: Unknown type " << type;
+        logger() << "ERROR: Unknown type " << type << std::endl;
     }
 
     return 0;

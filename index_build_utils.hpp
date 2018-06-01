@@ -16,7 +16,7 @@ namespace ds2i {
         void log()
         {
             logger() << msg << " " << sequences << " sequences, "
-                     << postings << " postings";
+                     << postings << " postings" << std::endl;
         }
 
         void done_sequence(size_t n)

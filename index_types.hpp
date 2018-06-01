@@ -46,11 +46,16 @@ namespace ds2i {
     typedef block_freq_index<simple16_block> block_simple16_index;
 
     // DINT codecs
-    using block_stats_type = block_statistics<adjusted, // adjusted, full
-                                              constants::max_entry_size>;
+
     using dictionary_type = dictionary // rectangular, packed
                                 <constants::num_entries,
                                  constants::max_entry_size>;
+
+    using stats_collector_type = adjusted< // adjusted, full
+                                    dictionary_type::max_entry_size
+                                >;
+
+    using block_stats_type = block_statistics<stats_collector_type>;
 
     using DSF = decreasing_static_frequencies<dictionary_type, block_stats_type>;
     using PDF = prefix_discounted_frequencies<dictionary_type, block_stats_type>;

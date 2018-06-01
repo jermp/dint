@@ -16,7 +16,8 @@
 
 namespace ds2i {
 
-    typedef dictionary<> dictionary_type;
+    typedef dictionary<constants::num_entries,
+                       constants::max_entry_size> dictionary_type;
 
     // workaround: VariableByte::decodeArray needs the buffer size, while we
     // only know the number of values. It also pads to 32 bits. We need to

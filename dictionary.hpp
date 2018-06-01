@@ -13,8 +13,8 @@
 
 namespace ds2i {
 
-    template<uint32_t t_num_entries = 65536,
-             uint32_t t_max_entry_size = 16>
+    template<uint32_t t_num_entries,
+             uint32_t t_max_entry_size>
     struct dictionary
     {
         static_assert(is_power_of_two(t_max_entry_size));
@@ -123,7 +123,7 @@ namespace ds2i {
                 std::vector<uint32_t> run(256, 1);
                 uint8_t const* ptr = reinterpret_cast<uint8_t const*>(run.data());
                 uint32_t i = 1;
-                for (uint32_t n = 256; n != constants::max_block_length; n /= 2, ++i) {
+                for (uint32_t n = 256; n != max_entry_size(); n /= 2, ++i) {
                     uint64_t hash = hash_bytes64(byte_range(ptr, ptr + n * sizeof(uint32_t)));
                     m_map[hash] = i;
                 }

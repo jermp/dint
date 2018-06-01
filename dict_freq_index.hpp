@@ -43,15 +43,15 @@ namespace ds2i {
             void build_model(std::string const& prefix_name)
             {
                 {
-                    DS2I_LOG << "building or loading dictionary for docs...";
+                    logger() << "building or loading dictionary for docs..." << std::endl;
                     build_or_load_dict(m_docs_dict_builder, prefix_name, data_type::docs);
-                    DS2I_LOG << "DONE";
+                    logger() << "DONE";
                 }
 
                 {
-                    DS2I_LOG << "building or loading dictionary for freqs...";
+                    logger() << "building or loading dictionary for freqs..." << std::endl;
                     build_or_load_dict(m_freqs_dict_builder, prefix_name, data_type::freqs);
-                    DS2I_LOG << "DONE";
+                    logger() << "DONE";
                 }
 
                 m_docs_dict_builder.prepare_for_encoding();
@@ -97,11 +97,12 @@ namespace ds2i {
                     sorter_type sorter;
                     auto stats = statistics_type::create_or_load(prefix_name, dt, sorter);
                     dictionary_builder::build(builder, stats);
+
                     logger() << "using " << builder.bpi() << " bits x integer" << std::endl;
                     logger() << "covering " << builder.coverage() << "% of integers" << std::endl;
 
                     if (!builder.try_store_to_file(dictionary_file)) {
-                        DS2I_LOG << "cannot write dictionary to file";
+                        logger() << "cannot write dictionary to file";
                     }
                 }
             }

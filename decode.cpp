@@ -35,9 +35,9 @@ void decode(std::string const& type,
         logger() << "Error calling madvice: " << errno << std::endl;
     }
 
-    dictionary<> dict;
+    dictionary_type dict;
     if (dictionary_filename) {
-        dictionary<>::builder builder;
+        typename dictionary_type::builder builder;
         std::ifstream dictionary_file(dictionary_filename);
         builder.load(dictionary_file);
         builder.build(dict);

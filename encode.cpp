@@ -38,7 +38,7 @@ void encode(std::string const& type,
         throw std::runtime_error("unsupported file format");
     }
 
-    dictionary<>::builder builder;
+    typename dictionary_type::builder builder;
 
     if (dictionary_filename) {
         std::ifstream dictionary_file(dictionary_filename);
