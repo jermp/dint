@@ -48,9 +48,6 @@ namespace ds2i {
     // };
 
     struct no_filter {
-
-
-
         bool operator()(block_type const& block, uint64_t total_integers) const {
             return compute_saving(block.data.size(),
                                   block.freq,
@@ -58,8 +55,7 @@ namespace ds2i {
         }
     };
 
-    struct cost_filter
-    {
+    struct cost_filter {
         cost_filter(double threshold = constants::eps)
             : m_threshold(threshold)
         {}
@@ -73,7 +69,6 @@ namespace ds2i {
     private:
         double m_threshold;
     };
-
 
     template<typename Dictionary, typename Statistics>
     struct decreasing_static_frequencies
@@ -92,7 +87,7 @@ namespace ds2i {
         }
 
         static auto filter() {
-            cost_filter filter;
+            cost_filter filter(constants::eps / 1000);
             return filter;
         }
 
@@ -102,7 +97,7 @@ namespace ds2i {
             logger() << "building " << type() << " dictionary for " << stats.total_integers << std::endl;
             builder.init(stats.total_integers);
 
-            logger() << "(1) finding the most covering blocks";
+            logger() << "(1) finding the most covering blocks" << std::endl;
             freq_sorter sorter;
             std::priority_queue<block_type,
                                 std::vector<block_type>,
@@ -122,7 +117,7 @@ namespace ds2i {
                 }
             }
 
-            logger() << "(2) adding entries to the dictionary";
+            logger() << "(2) adding entries to the dictionary" << std::endl;
             std::vector<block_type> blocks;
             while (!pq.empty()) {
                 auto& block = pq.top();
