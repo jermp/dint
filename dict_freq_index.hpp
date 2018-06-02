@@ -95,10 +95,10 @@ namespace ds2i {
                     builder.load_from_file(dictionary_file);
                 } else {
                     using statistics_type = typename dictionary_builder::statistics_type;
-                    using sorter_type = typename dictionary_builder::sorter_type;
-                    sorter_type sorter;
-                    auto stats = statistics_type::create_or_load(prefix_name, dt, sorter);
-                    dictionary_builder::build(builder, stats);
+                    auto statistics = statistics_type::create_or_load(prefix_name, dt,
+                                                                      dictionary_builder::filter(),
+                                                                      dictionary_builder::sorter());
+                    dictionary_builder::build(builder, statistics);
 
                     logger() << "using " << builder.bpi() << " bits x integer" << std::endl;
                     logger() << "covering " << builder.coverage() << "% of integers" << std::endl;

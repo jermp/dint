@@ -46,23 +46,20 @@ void check(char const* collection_filename,
         builder.build(dict);
     }
 
-    const static uint64_t MAX_SIZE = 50000000;
     std::vector<uint32_t> decoded;
-    decoded.resize(MAX_SIZE, 0);
+    decoded.resize(constants::max_size, 0);
 
     bool docs = true;
     boost::filesystem::path collection_path(collection_filename);
     if (collection_path.extension() == ".freqs") {
         docs = false;
-        logger() << "decoding freqs..." << std::endl;
+        logger() << "checking freqs..." << std::endl;
     } else if (collection_path.extension() == ".docs") {
         ++it; // skip first singleton sequence, containing num. of docs
-        logger() << "decoding docs" << std::endl;
+        logger() << "checking docs..." << std::endl;
     } else {
         throw std::runtime_error("unsupported file format");
     }
-
-    logger() << "checking encoded data..." << std::endl;
 
     uint64_t total_decoded_ints = 0;
     uint64_t sequence = 0;

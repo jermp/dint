@@ -99,7 +99,7 @@ namespace ds2i {
                 double cost_saving = compute_saving(entry_size, freq, m_total_integers);
                 m_total_coverage += freq * entry_size * 100.0 / m_total_integers;
                 m_final_bpi -= cost_saving;
-                if (m_size % 500 == 0) {
+                if (m_size % 1000 == 0) {
                     logger() << "entries in dictionary " << m_size << "/" << num_entries << std::endl;
                     logger() << "current bits x integer: " << m_final_bpi << std::endl;
                     logger() << "covering " << m_total_coverage << "% of integers" << std::endl;

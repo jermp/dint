@@ -35,12 +35,12 @@ void encode(std::string const& type,
     boost::filesystem::path collection_path(collection_name);
     if (collection_path.extension() == ".freqs") {
         docs = false;
-        logger() << "checking freqs..." << std::endl;
+        logger() << "encoding freqs..." << std::endl;
     } else if (collection_path.extension() == ".docs") {
         // skip first singleton sequence, containing num. of docs
         ++it;
         total_progress -= 2;
-        logger() << "checking docs..." << std::endl;
+        logger() << "encoding docs..." << std::endl;
     } else {
         throw std::runtime_error("unsupported file format");
     }
