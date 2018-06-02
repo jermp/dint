@@ -24,22 +24,22 @@ namespace ds2i {
             m_data_size = m_file.size() / sizeof(m_data[0]);
 
             auto ret = posix_madvise((void*)m_data, m_data_size, POSIX_MADV_SEQUENTIAL);
-            if (ret) DS2I_LOG << "Error calling madvice: " << errno;
+            if (ret) {
+                logger() << "Error calling madvice: " << errno;
+            }
         }
 
         class iterator;
 
-        iterator begin() const
-        {
+        iterator begin() const {
             return iterator(this, 0);
         }
 
-        iterator end() const
-        {
+        iterator end() const {
             return iterator(this, m_data_size);
         }
 
-        size_t data_size() const {
+        size_t num_postings() const {
             return m_data_size;
         }
 

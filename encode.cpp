@@ -7,7 +7,9 @@
 #include <boost/preprocessor/stringize.hpp>
 #include <boost/preprocessor/cat.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/progress.hpp>
 
+#include "dint_configuration.hpp"
 #include "codecs.hpp"
 #include "util.hpp"
 #include "hash_utils.hpp"
@@ -24,16 +26,21 @@ void encode(std::string const& type,
 {
     binary_collection input(collection_name);
 
+    auto it = input.begin();
     uint64_t num_processed_lists = 0;
     uint64_t num_total_ints = 0;
 
+    uint64_t total_progress = input.num_postings();
     bool docs = true;
     boost::filesystem::path collection_path(collection_name);
     if (collection_path.extension() == ".freqs") {
         docs = false;
-        logger() << "encoding freqs..." << std::endl;
+        logger() << "checking freqs..." << std::endl;
     } else if (collection_path.extension() == ".docs") {
-        logger() << "encoding docs..." << std::endl;
+        // skip first singleton sequence, containing num. of docs
+        ++it;
+        total_progress -= 2;
+        logger() << "checking docs..." << std::endl;
     } else {
         throw std::runtime_error("unsupported file format");
     }
@@ -53,13 +60,14 @@ void encode(std::string const& type,
 
     std::vector<uint32_t> buf;
 
-    logger() << "encoding..." << std::endl;
+    boost::progress_display progress(total_progress);
 
-    for (auto const& list: input)
+    for (; it != input.end(); ++it)
     {
+        auto const& list = *it;
         uint32_t n = list.size();
-        // if (n > MIN_SIZE)
-        // {
+        if (n > constants::min_size)
+        {
             buf.reserve(n);
             uint32_t prev = docs ? -1 : 0;
             uint32_t universe = 0;
@@ -72,24 +80,24 @@ void encode(std::string const& type,
             }
             assert(buf.size() == n);
 
-            // std::cout << "list.back() = " << list.back() << std::endl;
-            // std::cout << "n = " << n << "; universe = " << universe << std::endl;
-
             header::write(n, universe, output);
             Encoder::encode(buf.data(), universe, n, output, &builder);
             buf.clear();
 
             ++num_processed_lists;
             num_total_ints += n;
+            progress += n + 1;
 
-            if (num_processed_lists % 5000 == 0) {
-                logger() << "encoded " << num_processed_lists << " lists" << std::endl;
-                logger() << "encoded " << num_total_ints << " integers" << std::endl;
-                logger() << "bits x integer: "
-                         << output.size() * sizeof(output[0]) * 8.0 / num_total_ints << std::endl;
-            }
-        // }
+            // if (num_processed_lists % 5000 == 0) {
+            //     logger() << "encoded " << num_processed_lists << " lists" << std::endl;
+            //     logger() << "encoded " << num_total_ints << " integers" << std::endl;
+            //     logger() << "bits x integer: "
+            //              << output.size() * sizeof(output[0]) * 8.0 / num_total_ints << std::endl;
+            // }
+        }
     }
+
+    std::cerr << std::endl;
 
     double GiB_space = output.size() * 1.0 / GiB;
     double bpi_space = output.size() * sizeof(output[0]) * 8.0 / num_total_ints;

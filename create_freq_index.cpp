@@ -39,11 +39,11 @@ void dump_index_specific_stats(opt_index const& coll,
 
     for (size_t s = 0; s < coll.size(); ++s) {
         auto const& list = coll[s];
-        // if (list.size() > constants::min_size) {
+        if (list.size() > constants::min_size) {
             long_postings += list.size();
             docs_partitions += list.docs_enum().num_partitions();
             freqs_partitions += list.freqs_enum().base().num_partitions();
-        // }
+        }
     }
 
     stats_line()
@@ -80,15 +80,20 @@ void create_collection(std::string input_basename,
     logger() << "Processing " << input.num_docs() << " documents..." << std::endl;
     progress_logger plog("Encoded");
 
+    boost::progress_display progress(input.num_postings());
+
     for (auto const& plist: input) {
-        // if (plist.docs.size() > constants::min_size) {
+        if (plist.docs.size() > constants::min_size) {
             uint64_t freqs_sum = std::accumulate(plist.freqs.begin(),
                                                  plist.freqs.end(), uint64_t(0));
             builder.add_posting_list(plist.docs.size(), plist.docs.begin(),
                                      plist.freqs.begin(), freqs_sum);
             plog.done_sequence(plist.docs.size());
-        // }
+            progress += plist.docs.size() + plist.freqs.size() + 2;
+        }
     }
+
+    std::cerr << std::endl;
 
     plog.log();
     CollectionType coll;

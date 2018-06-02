@@ -30,7 +30,7 @@ namespace ds2i {
 
             using namespace boost::filesystem;
             path p(file_name);
-            std::string block_stats_filename = "./" + p.stem().string() + "." + type();
+            std::string block_stats_filename = "./" + p.filename().string() + "." + type();
 
             if (boost::filesystem::exists(block_stats_filename)) {
                 return block_statistics(block_stats_filename);
@@ -49,9 +49,10 @@ namespace ds2i {
                          Sorter const& sorter)
         {
             logger() << "creating block stats (type = " << type() << ")" << std::endl;
+
             map_type block_map;
             // block_map.max_load_factor(0.01);
-            boost::progress_display progress(input.data_size());
+            boost::progress_display progress(input.num_postings());
             total_integers = 0;
             std::vector<uint32_t> buf;
 
@@ -87,11 +88,12 @@ namespace ds2i {
                     block.data.swap(freq_block.data);
                     blocks.push_back(std::move(block));
                 }
+                // else {
+                //     std::vector<uint32_t>(0).swap(freq_block.data);
+                // }
             }
             logger() << "DONE" << std::endl;
             logger() << "selected " << blocks.size() << " blocks" << std::endl;
-
-            map_type().swap(block_map);
 
             logger() << "sorting..." << std::endl;
             std::sort(blocks.begin(), blocks.end(), sorter);
@@ -118,7 +120,9 @@ namespace ds2i {
             logger() << "DONE" << std::endl;
         }
 
-        void try_to_store(std::string file_name) {
+        void try_to_store(std::string file_name)
+        {
+            logger() << "storing stats to disk..." << std::endl;
             std::ofstream out(file_name.c_str());
             if (out) {
                 logger() << "writing block stats" << std::endl;

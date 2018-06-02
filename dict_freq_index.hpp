@@ -45,13 +45,13 @@ namespace ds2i {
                 {
                     logger() << "building or loading dictionary for docs..." << std::endl;
                     build_or_load_dict(m_docs_dict_builder, prefix_name, data_type::docs);
-                    logger() << "DONE";
+                    logger() << "DONE" << std::endl;
                 }
 
                 {
                     logger() << "building or loading dictionary for freqs..." << std::endl;
                     build_or_load_dict(m_freqs_dict_builder, prefix_name, data_type::freqs);
-                    logger() << "DONE";
+                    logger() << "DONE" << std::endl;
                 }
 
                 m_docs_dict_builder.prepare_for_encoding();
@@ -86,8 +86,10 @@ namespace ds2i {
             void build_or_load_dict(typename dictionary_type::builder& builder,
                                     std::string prefix_name, data_type dt)
             {
-                std::string file_name = prefix_name + "." + extension(dt);
-                std::string dictionary_file = file_name + "." + dictionary_builder::type();
+                std::string file_name = prefix_name + extension(dt);
+                using namespace boost::filesystem;
+                path p(file_name);
+                std::string dictionary_file = "./" + p.filename().string() + "." + dictionary_builder::type();
 
                 if (boost::filesystem::exists(dictionary_file)) {
                     builder.load_from_file(dictionary_file);

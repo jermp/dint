@@ -21,8 +21,8 @@ namespace ds2i {
         static const uint32_t num_entries = t_num_entries;
         static const uint32_t max_entry_size = t_max_entry_size;
         static const uint32_t invalid_index = uint32_t(-1);
-        static const uint32_t reserved = 6; // 2 for exceptions
-                                            // 4 for runs
+        static const uint32_t reserved = 6; // 1 for exceptions
+                                            // 5 for runs
 
         struct builder {
             static const uint32_t invalid_index = dictionary::invalid_index;
@@ -53,15 +53,6 @@ namespace ds2i {
                 m_total_integers = total_integers;
 
                 m_table.resize(t_num_entries * (t_max_entry_size + 1), 0);
-                m_freq.resize(0);
-
-                m_freq.push_back(0);    // exceptions u16
-                m_freq.push_back(0);    // exceptions u32
-
-                m_freq.push_back(0);    // 256
-                m_freq.push_back(0);    // 128
-                m_freq.push_back(0);    // 64
-                m_freq.push_back(0);    // 32
             }
 
             void load_from_file(std::string dict_file) {
@@ -102,7 +93,6 @@ namespace ds2i {
                 std::copy(entry, entry + entry_size, &m_table[m_pos]);
                 m_pos += t_max_entry_size + 1;
                 m_table[m_pos - 1] = entry_size;
-                m_freq.push_back(freq);
                 ++m_size;
 
                 // logging
@@ -119,7 +109,6 @@ namespace ds2i {
             }
 
             void prepare_for_encoding() {
-                logger() << "building mapping for encoding ";
                 std::vector<uint32_t> run(256, 1);
                 uint8_t const* ptr = reinterpret_cast<uint8_t const*>(run.data());
                 uint32_t i = 1;
@@ -169,19 +158,10 @@ namespace ds2i {
                 std::swap(m_size, other.m_size);
                 std::swap(m_capacity, other.m_capacity);
                 m_table.swap(other.m_table);
-                m_freq.swap(other.m_freq);
                 m_map.swap(other.m_map);
             }
 
             uint32_t size(uint32_t i) const {
-                // special cases
-                if(i == 0 || i == 1) {
-                    return 0;
-                }
-                if(i == 2) return 256;
-                if(i == 3) return 128;
-                if(i == 4) return 64;
-                if(i == 5) return 32;
                 uint32_t begin = i * (t_max_entry_size + 1);
                 uint32_t end = begin + t_max_entry_size;
                 return m_table[end];
@@ -195,82 +175,70 @@ namespace ds2i {
                 return m_total_coverage;
             }
 
-            uint64_t freq(uint32_t i) const {
-                if (i <= 5) return 0;
-                return m_freq[i];
-            }
-
-            uint32_t special_cases() const {
-                return m_reserved;
-            }
-
             uint32_t const* get(uint32_t i) const {
                 uint32_t begin = i * (t_max_entry_size + 1);
                 return &m_table[begin];
             }
 
-            std::string entry_string(uint32_t i) const {
-                if(i == 0) return "[exception 16bit]";
-                if(i == 1) return "[exception 32bit]";
-                if(i == 2) return "[1]*256";
-                if(i == 3) return "[1]*128";
-                if(i == 4) return "[1]*64";
-                if(i == 5) return "[1]*32";
+            // std::string entry_string(uint32_t i) const {
+            //     if(i == 0) return "[exception 16bit]";
+            //     if(i == 1) return "[exception 32bit]";
+            //     if(i == 2) return "[1]*256";
+            //     if(i == 3) return "[1]*128";
+            //     if(i == 4) return "[1]*64";
+            //     if(i == 5) return "[1]*32";
 
-                uint32_t begin = i * (t_max_entry_size + 1);
-                uint32_t end = begin + t_max_entry_size;
-                uint32_t const* entry = &m_table[begin];
-                auto esize =  m_table[end];
-                std::string estr = "[";
-                for(size_t i=0;i<esize-1;i++) {
-                    estr += std::to_string(entry[i]) + ",";
-                }
-                return estr + std::to_string(entry[esize-1]) + "]";
-            }
+            //     uint32_t begin = i * (t_max_entry_size + 1);
+            //     uint32_t end = begin + t_max_entry_size;
+            //     uint32_t const* entry = &m_table[begin];
+            //     auto esize =  m_table[end];
+            //     std::string estr = "[";
+            //     for(size_t i=0;i<esize-1;i++) {
+            //         estr += std::to_string(entry[i]) + ",";
+            //     }
+            //     return estr + std::to_string(entry[esize-1]) + "]";
+            // }
 
-            std::string type() const {
+            std::string const& type() const {
                 return m_type;
             }
 
-            void print() {
-                logger() << "type = " << type();
-                logger() << "     size = " << m_size;
-                logger() << "     special_cases = " << m_reserved;
-                logger() << "     max_entry_size = " << t_max_entry_size;
+            // void print() {
+            //     logger() << "type = " << type();
+            //     logger() << "     size = " << m_size;
+            //     logger() << "     special_cases = " << m_reserved;
+            //     logger() << "     max_entry_size = " << t_max_entry_size;
 
-                std::vector<uint32_t> len_stats(257);
-                for(size_t i=0;i<m_size;i++) {
-                    len_stats[size(i)]++;
-                }
-                logger() << " LEN DIST = ";
-                boost::format fmt("\t   len = %1$3d count = %2$5d percent = %3$4.2f");
-                for(size_t i=0;i<len_stats.size();i++) {
-                    if(len_stats[i] != 0) {
-                        logger() << fmt % i % len_stats[i] % (double(len_stats[i]) / double(m_size) * 100);
-                    }
-                }
-                logger() << " CONTENT = ";
-                boost::format fmt2("\t   code = %1$6d freq = %2$10d entry = %3%");
-                for(size_t i=0;i<m_size;i++) {
-                    logger() << fmt2 % i % freq(i) %  entry_string(i);
-                }
-            }
+            //     std::vector<uint32_t> len_stats(257);
+            //     for(size_t i=0;i<m_size;i++) {
+            //         len_stats[size(i)]++;
+            //     }
+            //     logger() << " LEN DIST = ";
+            //     boost::format fmt("\t   len = %1$3d count = %2$5d percent = %3$4.2f");
+            //     for(size_t i=0;i<len_stats.size();i++) {
+            //         if(len_stats[i] != 0) {
+            //             logger() << fmt % i % len_stats[i] % (double(len_stats[i]) / double(m_size) * 100);
+            //         }
+            //     }
+            //     logger() << " CONTENT = ";
+            //     boost::format fmt2("\t   code = %1$6d freq = %2$10d entry = %3%");
+            //     for(size_t i=0;i<m_size;i++) {
+            //         logger() << fmt2 % i % freq(i) %  entry_string(i);
+            //     }
+            // }
 
         private:
             std::string m_type;
             uint32_t m_pos;
             uint32_t m_size;
 
-
             double m_final_bpi;
             double m_total_coverage;
             uint64_t m_total_integers;
 
-
             uint32_t m_reserved;
             uint32_t m_capacity;
             std::vector<uint32_t> m_table;
-            std::vector<uint64_t> m_freq;
 
             // map from hash codes to table indexes, used during encoding
             std::unordered_map<uint64_t, uint32_t> m_map;
@@ -281,7 +249,6 @@ namespace ds2i {
             : m_capacity(0)
         {}
 
-
         uint32_t copy(uint32_t i, uint32_t* out) const
         {
             assert(i < capacity());
@@ -289,7 +256,7 @@ namespace ds2i {
             uint32_t end = begin + t_max_entry_size;
             uint32_t size = m_table[end];
             uint32_t const* ptr = &m_table[begin];
-            memcpy(out, ptr, t_max_entry_size*sizeof(uint32_t));
+            memcpy(out, ptr, t_max_entry_size * sizeof(uint32_t));
             return size;
         }
 
@@ -315,7 +282,6 @@ namespace ds2i {
         uint32_t m_capacity;
         succinct::mapper::mappable_vector<uint32_t> m_table;
     };
-
 }
 
 // #pragma once
@@ -328,8 +294,13 @@ namespace ds2i {
 
 // namespace ds2i {
 
+//     template<uint32_t t_num_entries,
+//              uint32_t t_max_entry_size>
 //     struct dictionary {
 
+//         static_assert(is_power_of_two(t_max_entry_size));
+//         static const uint32_t num_entries = t_num_entries;
+//         static const uint32_t max_entry_size = t_max_entry_size;
 //         static const uint32_t invalid_index = uint32_t(-1);
 //         static const uint32_t reserved = 6; // 1 for exceptions
 //                                             // 5 for runs

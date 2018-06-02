@@ -435,14 +435,119 @@ namespace ds2i {
         static const uint64_t block_size = constants::block_size;
         static const uint64_t overflow = 512;
 
-        template<class t_dict>
-        static size_t encode(const t_dict& builder,
-                           uint32_t const *in,
-                           size_t n,
+        // template<class t_dict>
+        // static size_t encode(const t_dict& builder,
+        //                    uint32_t const *in,
+        //                    size_t n,
+        //                    std::vector<uint8_t>& out)
+        // {
+        //     size_t written_codes = 0;
+        //     assert(n <= block_size);
+        //     uint32_t const* begin = in;
+        //     uint32_t const* end = begin + n;
+
+        //     while (begin < end) {
+        //         // first, try runs of sizes 256, 128, 64, 32 and 16
+        //         uint32_t longest_run_size = 0;
+        //         uint32_t run_size = 256;
+        //         uint32_t index = 1;
+
+        //         for (uint32_t const* ptr  = begin;
+        //                              ptr != begin + std::min<uint64_t>(run_size, end - begin);
+        //                            ++ptr)
+        //         {
+        //             if (*ptr == 0) {
+        //                 ++longest_run_size;
+        //             } else {
+        //                 break;
+        //             }
+        //         }
+
+        //         while (longest_run_size < run_size and run_size != 8) {
+        //             run_size /= 2;
+        //             ++index;
+        //         }
+
+        //         if (index < t_dict::reserved) {
+        //             uint16_t codeword = index;
+        //             auto ptr = reinterpret_cast<uint8_t const*>(&codeword);
+        //             out.insert(out.end(), ptr, ptr + 2);
+        //             written_codes++;
+        //             begin += std::min<uint64_t>(run_size, end - begin);
+        //         } else {
+        //             for (uint32_t sub_block_size  = builder.max_entry_size();
+        //                           sub_block_size != 0; sub_block_size /= 2)
+        //             {
+        //                 uint32_t len = std::min<uint32_t>(sub_block_size, end - begin);
+        //                 index = builder.lookup(begin, len);
+        //                 if (index != t_dict::invalid_index) {
+        //                     auto ptr = reinterpret_cast<uint8_t const*>(&index);
+        //                     out.insert(out.end(), ptr, ptr + 2);
+        //                     written_codes++;
+        //                     begin += len;
+        //                     break;
+        //                 }
+        //             }
+
+        //             if (index == t_dict::invalid_index) {
+        //                 uint32_t exception = *begin;
+        //                 if(exception <= std::numeric_limits<uint16_t>::max()) {
+        //                   out.insert(out.end(), 0);
+        //                   uint16_t exception_u16 = exception;
+        //                   auto ptr = reinterpret_cast<uint8_t const*>(&exception_u16);
+        //                   out.insert(out.end(), ptr, ptr + 2);
+        //                   written_codes += 2;
+        //                 } else {
+        //                   out.insert(out.end(), 1);
+        //                   auto ptr = reinterpret_cast<uint8_t const*>(&exception);
+        //                   out.insert(out.end(), ptr, ptr + 4);
+        //                   written_codes += 3;
+        //                 }
+        //                 begin += 1;
+        //             }
+        //         }
+        //     }
+        //     return written_codes;
+        // }
+
+        // template<class t_dict>
+        // static uint8_t const* decode(t_dict const& dict,
+        //                              uint8_t const *in,
+        //                              uint32_t *out,
+        //                              size_t n)
+        // {
+        //     assert(n <= block_size);
+        //     auto ptr = reinterpret_cast<uint16_t const*>(in);
+        //     for (size_t i = 0; i != n; ++ptr) {
+        //         uint32_t index = *ptr;
+        //         uint32_t decoded_ints = 1;
+        //         if (DS2I_LIKELY(index > 5)) {
+        //             decoded_ints = dict.copy(index, out);
+        //         } else {
+        //             static const uint32_t run_lengths[] = {0,1, // exception
+        //                                                     256, 128, 64, 32, 16};
+        //             decoded_ints = run_lengths[index]; // runs of 256, 128, 64, 32 or 16 ints
+        //             if (DS2I_UNLIKELY(decoded_ints == 0)) {
+        //                 *out = *(++ptr);
+        //                 decoded_ints++;
+        //             }
+        //             if (DS2I_UNLIKELY(decoded_ints == 1)) {
+        //                 *out = *(reinterpret_cast<uint32_t const*>(++ptr));
+        //                 ++ptr;
+        //             }
+        //         }
+        //         out += decoded_ints;
+        //         i += decoded_ints;
+        //     }
+        //     return reinterpret_cast<uint8_t const*>(ptr);
+        // }
+
+        template<typename Builder>
+        static void encode(Builder const& builder,
+                           uint32_t const* in,
+                           uint32_t n,
                            std::vector<uint8_t>& out)
         {
-            size_t written_codes = 0;
-            assert(n <= block_size);
             uint32_t const* begin = in;
             uint32_t const* end = begin + n;
 
@@ -468,11 +573,9 @@ namespace ds2i {
                     ++index;
                 }
 
-                if (index < t_dict::reserved) {
-                    uint16_t codeword = index;
-                    auto ptr = reinterpret_cast<uint8_t const*>(&codeword);
+                if (index < Builder::reserved) {
+                    auto ptr = reinterpret_cast<uint8_t const*>(&index);
                     out.insert(out.end(), ptr, ptr + 2);
-                    written_codes++;
                     begin += std::min<uint64_t>(run_size, end - begin);
                 } else {
                     for (uint32_t sub_block_size  = builder.max_entry_size();
@@ -480,65 +583,80 @@ namespace ds2i {
                     {
                         uint32_t len = std::min<uint32_t>(sub_block_size, end - begin);
                         index = builder.lookup(begin, len);
-                        if (index != t_dict::invalid_index) {
+                        if (index != Builder::invalid_index) {
                             auto ptr = reinterpret_cast<uint8_t const*>(&index);
                             out.insert(out.end(), ptr, ptr + 2);
-                            written_codes++;
                             begin += len;
                             break;
                         }
                     }
 
-                    if (index == t_dict::invalid_index) {
+                    if (index == Builder::invalid_index) {
+                        out.insert(out.end(), 0);
+                        out.insert(out.end(), 0);
                         uint32_t exception = *begin;
-                        if(exception <= std::numeric_limits<uint16_t>::max()) {
-                          out.insert(out.end(), 0);
-                          uint16_t exception_u16 = exception;
-                          auto ptr = reinterpret_cast<uint8_t const*>(&exception_u16);
-                          out.insert(out.end(), ptr, ptr + 2);
-                          written_codes += 2;
-                        } else {
-                          out.insert(out.end(), 1);
-                          auto ptr = reinterpret_cast<uint8_t const*>(&exception);
-                          out.insert(out.end(), ptr, ptr + 4);
-                          written_codes += 3;
-                        }
+                        auto ptr = reinterpret_cast<uint8_t const*>(&exception);
+                        out.insert(out.end(), ptr, ptr + 4);
                         begin += 1;
                     }
                 }
             }
-            return written_codes;
         }
 
-        template<class t_dict>
-        static uint8_t const* decode(t_dict const& dict,
-                                     uint8_t const *in,
-                                     uint32_t *out,
-                                     size_t n)
+        template<typename Dictionary>
+        static uint8_t const* decode(Dictionary const& dict,
+                                     uint8_t const* in,
+                                     uint32_t* out,
+                                     size_t n
+                                     // ,
+                                     // dint_statistics& stats
+                                     )
         {
-            assert(n <= block_size);
-            auto ptr = reinterpret_cast<uint16_t const*>(in);
+            uint16_t const* ptr = reinterpret_cast<uint16_t const*>(in);
             for (size_t i = 0; i != n; ++ptr) {
                 uint32_t index = *ptr;
                 uint32_t decoded_ints = 1;
+
                 if (DS2I_LIKELY(index > 5)) {
                     decoded_ints = dict.copy(index, out);
+
+                    // stats.ints[1] += decoded_ints;
+                    // stats.codewords[1] += 1;
                 } else {
-                    static const uint32_t run_lengths[] = {0,1, // exception
+                    static const uint32_t run_lengths[6] = {1, // exception
                                                             256, 128, 64, 32, 16};
                     decoded_ints = run_lengths[index]; // runs of 256, 128, 64, 32 or 16 ints
-                    if (DS2I_UNLIKELY(decoded_ints == 0)) {
-                        *out = *(++ptr);
-                        decoded_ints++;
-                    }
                     if (DS2I_UNLIKELY(decoded_ints == 1)) {
                         *out = *(reinterpret_cast<uint32_t const*>(++ptr));
                         ++ptr;
+
+                        // stats.ints[2] += 1;
+                        // stats.codewords[2] += 3;
+                        // stats.codewords_distr[4] += 2;
                     }
+                    // else {
+
+                    //     stats.ints[0] += decoded_ints;
+                    //     stats.codewords[0] += 1;
+                    // }
                 }
+
                 out += decoded_ints;
                 i += decoded_ints;
+
+                // if (decoded_ints >= 16) {
+                //     stats.codewords_distr[0] += 1;
+                // } else if (decoded_ints == 8) {
+                //     stats.codewords_distr[1] += 1;
+                // } else if (decoded_ints == 4) {
+                //     stats.codewords_distr[2] += 1;
+                // } else if (decoded_ints == 2) {
+                //     stats.codewords_distr[3] += 1;
+                // } else if (decoded_ints == 1) {
+                //     stats.codewords_distr[4] += 1;
+                // }
             }
+
             return reinterpret_cast<uint8_t const*>(ptr);
         }
     };

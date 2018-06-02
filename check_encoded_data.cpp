@@ -36,6 +36,7 @@ void check(char const* collection_filename,
     }
 
     binary_collection input(collection_filename);
+    auto it = input.begin();
 
     dictionary_type dict;
     if (dictionary_filename) {
@@ -55,6 +56,7 @@ void check(char const* collection_filename,
         docs = false;
         logger() << "decoding freqs..." << std::endl;
     } else if (collection_path.extension() == ".docs") {
+        ++it; // skip first singleton sequence, containing num. of docs
         logger() << "decoding docs" << std::endl;
     } else {
         throw std::runtime_error("unsupported file format");
@@ -67,11 +69,12 @@ void check(char const* collection_filename,
 
     dint_statistics stats;
 
-    for (auto const& list: input)
+    for (; it != input.end(); ++it)
     {
+        auto const& list = *it;
         uint32_t size = list.size();
-        // if (size > MIN_SIZE)
-        // {
+        if (size > constants::min_size)
+        {
             uint32_t n, universe;
             begin = header::read(begin, &n, &universe);
             if (n != size) {
@@ -98,7 +101,7 @@ void check(char const* collection_filename,
                 }
                 decoded[j] = 0; // re-init
             }
-        // }
+        }
 
         ++sequence;
     }

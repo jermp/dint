@@ -24,25 +24,22 @@ namespace ds2i {
 
         class iterator;
 
-        iterator begin() const
-        {
+        iterator begin() const {
             auto docs_it = m_docs.begin();
             return iterator(++docs_it, m_freqs.begin());
         }
 
-        iterator end() const
-        {
+        iterator end() const {
             return iterator(m_docs.end(), m_freqs.end());
         }
 
-        uint64_t num_docs() const
-        {
+        uint64_t num_docs() const {
             return m_num_docs;
         }
 
-        uint64_t num_u32() const
-        {
-            return m_freqs.data_size();
+        uint64_t num_postings() const {
+            return m_docs.num_postings() + m_freqs.num_postings()
+                - 2; // skip fist singleton sequence, containing num. of docs
         }
 
         struct sequence {
@@ -56,30 +53,25 @@ namespace ds2i {
             iterator()
             {}
 
-            value_type const& operator*() const
-            {
+            value_type const& operator*() const {
                 return m_cur_seq;
             }
 
-            value_type const* operator->() const
-            {
+            value_type const* operator->() const {
                 return &m_cur_seq;
             }
 
-            iterator& operator++()
-            {
+            iterator& operator++() {
                 m_cur_seq.docs = *++m_docs_it;
                 m_cur_seq.freqs = *++m_freqs_it;
                 return *this;
             }
 
-            bool operator==(iterator const& other) const
-            {
+            bool operator==(iterator const& other) const {
                 return m_docs_it == other.m_docs_it;
             }
 
-            bool operator!=(iterator const& other) const
-            {
+            bool operator!=(iterator const& other) const {
                 return !(*this == other);
             }
 

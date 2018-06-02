@@ -2,7 +2,7 @@
 
 namespace ds2i {
     namespace constants {
-        static const uint64_t min_size = 4096;
+        static const uint64_t min_size = 0;
         static const uint32_t max_fractal_steps = 5;
 
         static const uint32_t max_entry_size = 16;

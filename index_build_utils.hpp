@@ -23,9 +23,9 @@ namespace ds2i {
         {
             sequences += 1;
             postings += n;
-            if (sequences % 500 == 0) { // 1000000
-                log();
-            }
+            // if (sequences % 1000000 == 0) {
+            //     log();
+            // }
         }
 
         std::string msg;
@@ -99,13 +99,12 @@ namespace ds2i {
 
         double bits_per_doc = docs_size * 8.0 / postings;
         double bits_per_freq = freqs_size * 8.0 / postings;
-        DS2I_LOG << "Documents: " << docs_size << " bytes, "
-                 << bits_per_doc << " bits per element";
-        DS2I_LOG << "Frequencies: " << freqs_size << " bytes, "
-                 << bits_per_freq << " bits per element";
-
-        DS2I_LOG << "Index Size [GiB]: "
-                 << double(docs_size + freqs_size) / double(1ULL<<30);
+        logger() << "Documents: " << docs_size << " bytes, "
+                 << bits_per_doc << " bits per element" << std::endl;
+        logger() << "Frequencies: " << freqs_size << " bytes, "
+                 << bits_per_freq << " bits per element" << std::endl;
+        logger() << "Index Size [GiB]: "
+                 << double(docs_size + freqs_size) / double(1ULL << 30)  << std::endl;
 
         stats_line()
             ("type", type)
