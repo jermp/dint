@@ -22,12 +22,11 @@ namespace ds2i {
             return "block_statistics-" + std::to_string(Collector::max_block_size) + "-" + Collector::type();
         }
 
-        template<typename Filter, typename Sorter>
+        template<typename Filter>
         static block_statistics create_or_load(std::string prefix_name, data_type dt,
-                                               Filter const& filter, Sorter const& sorter)
+                                               Filter const& filter)
         {
             std::string file_name = prefix_name + extension(dt);
-
             using namespace boost::filesystem;
             path p(file_name);
             std::string block_stats_filename = "./" + p.filename().string() + "." + type();
@@ -38,15 +37,15 @@ namespace ds2i {
 
             binary_collection input(file_name.c_str());
             bool compute_gaps = dt == data_type::docs;
-            block_statistics stats(input, compute_gaps, filter, sorter);
+            block_statistics stats(input, compute_gaps, filter);
             stats.try_to_store(block_stats_filename);
             return stats;
         }
 
         // create
-        template<typename Filter, typename Sorter>
+        template<typename Filter>
         block_statistics(binary_collection& input, bool compute_gaps,
-                         Filter const& filter, Sorter const& sorter)
+                         Filter const& filter)
         {
             logger() << "creating block stats (type = " << type() << ")" << std::endl;
 
@@ -56,11 +55,16 @@ namespace ds2i {
             total_integers = 0;
             std::vector<uint32_t> buf;
 
-            for (auto const& list: input) {
+            auto it = input.begin();
+            if (compute_gaps) { // docs
+                ++it; // skip first singleton sequence, containing # of docs
+            }
+
+            for (; it != input.end(); ++it) {
+                auto const& list = *it;
                 size_t n = list.size();
                 total_integers += n;
                 progress += n + 1;
-
                 buf.reserve(n);
                 uint32_t prev = compute_gaps ? -1 : 0;
                 auto it = list.begin();
@@ -76,8 +80,7 @@ namespace ds2i {
 
             logger() << "selecting entries..." << std::endl;
             blocks.reserve(block_map.size());
-            for (auto& pair: block_map)
-            {
+            for (auto& pair: block_map) {
                 auto& freq_block = pair.second;
                 if (filter(freq_block, total_integers)) {
                     block_type block;
@@ -90,6 +93,7 @@ namespace ds2i {
             logger() << "selected " << blocks.size() << " blocks" << std::endl;
 
             logger() << "sorting..." << std::endl;
+            freq_sorter sorter;
             std::sort(blocks.begin(), blocks.end(), sorter);
             logger() << "DONE" << std::endl;
         }

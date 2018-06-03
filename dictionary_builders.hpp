@@ -17,44 +17,6 @@
 
 namespace ds2i {
 
-    struct freq_sorter {
-        bool operator()(block_type const& l, block_type const& r) {
-            return l.freq > r.freq;
-        }
-    };
-
-    struct length_freq_sorter {
-        bool operator()(block_type const& l, block_type const& r) {
-            if (l.data.size() == r.data.size()) {
-                return l.freq > r.freq;
-            }
-            return l.data.size() > r.data.size();
-        }
-    };
-
-    struct freq_length_sorter {
-        bool operator()(block_type const& l, block_type const& r) {
-            if (l.freq == r.freq) {
-                return l.data.size() > r.data.size();
-            }
-            return l.freq > r.freq;
-        }
-    };
-
-    // struct no_filter {
-    //     bool operator()(block_type const& /*block*/, uint64_t /*total_integers*/) {
-    //         return true;
-    //     }
-    // };
-
-    struct no_filter {
-        bool operator()(block_type const& block, uint64_t total_integers) const {
-            return compute_saving(block.data.size(),
-                                  block.freq,
-                                  total_integers) > constants::eps / 1000;
-        }
-    };
-
     struct cost_filter {
         cost_filter(double threshold = constants::eps)
             : m_threshold(threshold)
@@ -81,11 +43,6 @@ namespace ds2i {
                       "-" + std::to_string(dictionary_type::max_entry_size);
         }
 
-        static auto sorter() {
-            freq_sorter sorter;
-            return sorter;
-        }
-
         static auto filter() {
             cost_filter filter(constants::eps / 1000);
             return filter;
@@ -103,9 +60,7 @@ namespace ds2i {
                                 std::vector<block_type>,
                                 freq_sorter> pq(sorter);
             {
-                boost::progress_display progress(stats.blocks.size());
                 for (auto const& block : stats.blocks) {
-                    ++progress;
                     if (pq.size() < dictionary_type::num_entries) {
                         pq.push(block);
                     } else {
@@ -151,11 +106,6 @@ namespace ds2i {
                       "-" + std::to_string(dictionary_type::max_entry_size);
         }
 
-        static auto sorter() {
-            freq_sorter sorter;
-            return sorter;
-        }
-
         static auto filter() {
             cost_filter filter(constants::eps / 1000);
             return filter;
@@ -192,8 +142,9 @@ namespace ds2i {
             logger() << "(2) finding the most covering blocks" << std::endl;
             size_t needed = dictionary_type::num_entries;
             std::vector<int64_t> prefix_ids(dictionary_type::max_entry_size);
-            while (needed != 0) {
 
+            while (needed != 0)
+            {
                 if (pq.empty()) break;
 
                 // (a) get top item
@@ -286,11 +237,6 @@ namespace ds2i {
                       "-" + std::to_string(dictionary_type::max_entry_size);
         }
 
-        static auto sorter() {
-            length_freq_sorter sorter;
-            return sorter;
-        }
-
         static auto filter() {
             cost_filter filter;
             return filter;
@@ -312,6 +258,9 @@ namespace ds2i {
             uint32_t curr_block_size = dictionary_type::max_entry_size;
             uint32_t k = 0;
 
+            length_freq_sorter sorter;
+            std::sort(stats.blocks.begin(), stats.blocks.end(), sorter);
+
             std::vector<uint32_t> candidates_ids;
             candidates_ids.reserve(stats.blocks.size());
             cost_filter cf;
@@ -323,6 +272,7 @@ namespace ds2i {
                         curr_block_size /= 2;
                     }
                     map[block.hash()] = id;
+                    candidates_ids.push_back(id);
                 }
                 ++id;
             }
@@ -340,7 +290,7 @@ namespace ds2i {
                 size_t size = block.data.size();
                 builder.append(block.data.data(), size, block.freq);
 
-                // decrease frequencies of smaller blocks (if any)
+                // decrease frequencies of sub-blocks (if any)
                 for (uint32_t block_size = size / 2; block_size != 0; block_size /= 2) {
                     for (uint32_t begin = 0; begin < size; begin += block_size) {
                         uint8_t const* b = reinterpret_cast<uint8_t const*>(&(block.data[begin]));
@@ -362,8 +312,7 @@ namespace ds2i {
                              << "with entries of size " << size << std::endl;
                     curr_block_size /= 2;
                     ++k;
-                    // sort sub-blocks after decreasing of frequencies
-                    length_freq_sorter sorter;
+                    // re-sort sub-blocks after decreasing their frequencies
                     std::sort(
                         stats.blocks.begin() + id_lowerbounds[k],
                         stats.blocks.begin() + id_lowerbounds[k + 1],

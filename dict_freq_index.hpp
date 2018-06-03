@@ -96,8 +96,7 @@ namespace ds2i {
                 } else {
                     using statistics_type = typename dictionary_builder::statistics_type;
                     auto statistics = statistics_type::create_or_load(prefix_name, dt,
-                                                                      dictionary_builder::filter(),
-                                                                      dictionary_builder::sorter());
+                                                                      dictionary_builder::filter());
                     dictionary_builder::build(builder, statistics);
 
                     logger() << "using " << builder.bpi() << " bits x integer" << std::endl;

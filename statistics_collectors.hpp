@@ -20,6 +20,30 @@ namespace ds2i {
 
     typedef std::unordered_map<uint64_t, block_type> map_type;
 
+    struct freq_sorter {
+        bool operator()(block_type const& l, block_type const& r) {
+            return l.freq > r.freq;
+        }
+    };
+
+    struct length_freq_sorter {
+        bool operator()(block_type const& l, block_type const& r) {
+            if (l.data.size() == r.data.size()) {
+                return l.freq > r.freq;
+            }
+            return l.data.size() > r.data.size();
+        }
+    };
+
+    struct freq_length_sorter {
+        bool operator()(block_type const& l, block_type const& r) {
+            if (l.freq == r.freq) {
+                return l.data.size() > r.data.size();
+            }
+            return l.freq > r.freq;
+        }
+    };
+
     void increase_frequency(uint32_t const* entry, size_t n,
                             map_type& bmap, uint32_t amount = 1)
     {
