@@ -3,14 +3,16 @@ import sys, os
 collection_basename = sys.argv[1]
 ouput_prefix_name = sys.argv[2]
 
-strategies = ["vbyte_block",
-              "varint_G8IU_block",
-              "optpfor_block",
-              "interpolative_block",
-              "qmx_block",
-              "simple16_block",
-              "opt",
-              ]
+strategies =
+            [
+            "block_vbyte",
+            "block_varint",
+            "block_optpfor",
+            "block_interpolative",
+            "block_qmx",
+            "block_simple16",
+            "opt"
+            ]
 
 for strategy in strategies:
     output = ouput_prefix_name + "." + strategy
