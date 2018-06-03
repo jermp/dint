@@ -124,54 +124,45 @@ namespace ds2i {
                 m_cur_docid = m_docs_enum.move(0).second;
             }
 
-            void DS2I_FLATTEN_FUNC next()
-            {
+            void DS2I_FLATTEN_FUNC next() {
                 auto val = m_docs_enum.next();
                 m_cur_pos = val.first;
                 m_cur_docid = val.second;
             }
 
-            void DS2I_FLATTEN_FUNC next_geq(uint64_t lower_bound)
-            {
+            void DS2I_FLATTEN_FUNC next_geq(uint64_t lower_bound) {
                 auto val = m_docs_enum.next_geq(lower_bound);
                 m_cur_pos = val.first;
                 m_cur_docid = val.second;
             }
 
-            void DS2I_FLATTEN_FUNC move(uint64_t position)
-            {
+            void DS2I_FLATTEN_FUNC move(uint64_t position) {
                 auto val = m_docs_enum.move(position);
                 m_cur_pos = val.first;
                 m_cur_docid = val.second;
             }
 
-            uint64_t docid() const
-            {
+            uint64_t docid() const {
                 return m_cur_docid;
             }
 
-            uint64_t DS2I_FLATTEN_FUNC freq()
-            {
+            uint64_t DS2I_FLATTEN_FUNC freq() {
                 return m_freqs_enum.move(m_cur_pos).second;
             }
 
-            uint64_t position() const
-            {
+            uint64_t position() const {
                 return m_cur_pos;
             }
 
-            uint64_t size() const
-            {
+            uint64_t size() const {
                 return m_docs_enum.size();
             }
 
-            typename DocsSequence::enumerator const& docs_enum() const
-            {
+            typename DocsSequence::enumerator const& docs_enum() const {
                 return m_docs_enum;
             }
 
-            typename FreqsSequence::enumerator const& freqs_enum() const
-            {
+            typename FreqsSequence::enumerator const& freqs_enum() const {
                 return m_freqs_enum;
             }
 

@@ -17,8 +17,8 @@ namespace ds2i {
             , m_work_per_thread(work_per_thread)
         {
             m_max_threads = configuration::get().worker_threads;
-            DS2I_LOG << "semiasync_queue using " << m_max_threads
-                     << " worker threads";
+            logger() << "semiasync_queue using " << m_max_threads
+                     << " worker threads" << std::endl;
         }
 
         class job {
