@@ -37,13 +37,16 @@ namespace ds2i {
         > opt_index;
 
     typedef block_freq_index<optpfor_block> block_optpfor_index;
-    typedef block_freq_index<varint_G8IU_block> block_varint_index;
+    typedef block_freq_index<varint_G8IU_block> block_varintg8iu_index;
     typedef block_freq_index<interpolative_block> block_interpolative_index;
     typedef block_freq_index<qmx_block> block_qmx_index;
     typedef block_freq_index<mixed_block> block_mixed_index;
     typedef block_freq_index<u32_block> block_u32_index;
     typedef block_freq_index<vbyte_block> block_vbyte_index;
     typedef block_freq_index<simple16_block> block_simple16_index;
+    typedef block_freq_index<varintgb_block> block_varintgb_index;
+    typedef block_freq_index<maskedvbyte_block> block_maskedvbyte_index;
+    typedef block_freq_index<streamvbyte_block> block_streamvbyte_index;
 
     // DINT codecs
 
@@ -66,5 +69,5 @@ namespace ds2i {
     using LSS_block_dint_index = dict_freq_index<LSS, dint_block>;
 }
 
-#define DS2I_INDEX_TYPES (ef)(single)(uniform)(opt)(block_optpfor)(block_varint)(block_interpolative)(block_mixed)(block_qmx)(block_u32)(block_vbyte)(block_simple16)(DSF_block_dint)(PDF_block_dint)(LSS_block_dint)
-#define DS2I_BLOCK_INDEX_TYPES (block_optpfor)(block_varint)(block_interpolative)(block_qmx)(block_mixed)
+#define DS2I_INDEX_TYPES (ef)(single)(uniform)(opt)(block_optpfor)(block_varintg8iu)(block_interpolative)(block_qmx)(block_mixed)(block_u32)(block_vbyte)(block_simple16)(block_varintgb)(block_maskedvbyte)(block_streamvbyte)(DSF_block_dint)(PDF_block_dint)(LSS_block_dint)
+#define DS2I_BLOCK_INDEX_TYPES (block_optpfor)(block_varintg8iu)(block_interpolative)(block_qmx)(block_mixed)(block_u32)(block_vbyte)(block_simple16)(block_varintgb)(block_maskedvbyte)(block_streamvbyte)

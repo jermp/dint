@@ -22,8 +22,8 @@ namespace ds2i {
     // workaround: VariableByte::decodeArray needs the buffer size, while we
     // only know the number of values. It also pads to 32 bits. We need to
     // rewrite
-    class TightVariableByte {
-    public:
+    struct TightVariableByte {
+
       template <uint32_t i> static uint8_t extract7bits(const uint32_t val) {
         return static_cast<uint8_t>((val >> (7 * i)) & ((1U << 7) - 1));
       }
@@ -125,6 +125,7 @@ namespace ds2i {
     };
 
     struct interpolative {
+
         static void encode(uint32_t const* in,
                            uint32_t universe, uint32_t n,
                            std::vector<uint8_t>& out,

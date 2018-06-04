@@ -3,7 +3,10 @@
 #include "FastPFor/headers/VarIntG8IU.h"
 #include "FastPFor/headers/optpfor.h"
 #include "FastPFor/headers/variablebyte.h"
-
+#include "streamvbyte/include/streamvbyte.h"
+#include "MaskedVByte/include/varintencode.h"
+#include "MaskedVByte/include/varintdecode.h"
+#include "varintgb.h"
 #include "interpolative_coding.hpp"
 #include "qmx_codec.hpp"
 #include "succinct/util.hpp"
@@ -344,7 +347,7 @@ namespace ds2i {
         assert(n <= block_size);
 
         if (DS2I_UNLIKELY(n < block_size)) {
-          return interpolative_block::decode(in, out, sum_of_values, n);
+            return interpolative_block::decode(in, out, sum_of_values, n);
         }
 
         uint32_t enc_len = 0;
@@ -401,7 +404,8 @@ namespace ds2i {
         }
     };
 
-    struct simple16_block {
+    struct simple16_block
+    {
         static const uint64_t block_size = constants::block_size;
         static const uint64_t overflow = 512;
         using codec_type = FastPFor::Simple16<false>;
@@ -428,6 +432,79 @@ namespace ds2i {
             ret = reinterpret_cast<uint8_t const*>(simple16_codec.decodeArray(reinterpret_cast<uint32_t const*>(in), 1,
                 out, n));
             return ret;
+        }
+    };
+
+    struct streamvbyte_block
+    {
+        static const uint64_t block_size = constants::block_size;
+        static const uint64_t overflow = 512;
+
+        static void encode(uint32_t const* in,
+                           uint32_t /*universe*/, uint32_t n,
+                           std::vector<uint8_t>& out)
+        {
+            uint32_t *src = const_cast<uint32_t*>(in);
+            std::vector<uint8_t> buf(streamvbyte_max_compressedbytes(n));
+            size_t out_len = streamvbyte_encode(src, n, buf.data());
+            out.insert(out.end(), buf.data(), buf.data() + out_len);
+        }
+
+        static uint8_t const* decode(uint8_t const* in,
+                                     uint32_t* out,
+                                     uint32_t /*universe*/, size_t n)
+        {
+            auto read = streamvbyte_decode(in, out, n);
+            return in + read;
+        }
+    };
+
+    struct maskedvbyte_block
+    {
+        static const uint64_t block_size = constants::block_size;
+        static const uint64_t overflow = 512;
+
+        static void encode(uint32_t const* in,
+                           uint32_t /*universe*/, uint32_t n,
+                           std::vector<uint8_t>& out)
+        {
+            uint32_t* src = const_cast<uint32_t*>(in);
+            std::vector<uint8_t> buf(2 * n * sizeof(uint32_t));
+            size_t out_len = vbyte_encode(src, n, buf.data());
+            out.insert(out.end(), buf.data(), buf.data() + out_len);
+        }
+
+        static uint8_t const* decode(uint8_t const* in,
+                                     uint32_t* out,
+                                     uint32_t /*universe*/, size_t n)
+        {
+            auto read = masked_vbyte_decode(in, out, n);
+            return in + read;
+        }
+    };
+
+    struct varintgb_block
+    {
+        static const uint64_t block_size = constants::block_size;
+        static const uint64_t overflow = 512;
+
+        static void encode(uint32_t const* in,
+                           uint32_t /*universe*/, uint32_t n,
+                           std::vector<uint8_t>& out)
+        {
+            thread_local VarIntGB<false> varintgb_codec;
+            thread_local std::vector<uint8_t> buf(2 * n * sizeof(uint32_t));
+            size_t out_len = varintgb_codec.encodeArray(in, n, buf.data());
+            out.insert(out.end(), buf.data(), buf.data() + out_len);
+        }
+
+        static uint8_t const* decode(uint8_t const* in,
+                                     uint32_t* out,
+                                     uint32_t /*universe*/, size_t n)
+        {
+            thread_local VarIntGB<false> varintgb_codec;
+            auto read = varintgb_codec.decodeArray(in, n, out);
+            return read + in;
         }
     };
 

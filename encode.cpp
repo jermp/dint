@@ -141,7 +141,7 @@ int main(int argc, char** argv) {
     char const* dictionary_filename = nullptr;
     char const* output_filename = nullptr;
 
-    std::string cmd(std::string(argv[0]) + ": " + type + " " + std::string(collection_name));
+    std::string cmd(std::string(argv[0]) + " " + type + " " + std::string(collection_name));
 
     for (int i = 3; i < argc; ++i) {
         if (argv[i] == std::string("--dict")) {

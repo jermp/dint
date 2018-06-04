@@ -133,7 +133,7 @@ int main(int argc, char** argv) {
     char const* encoded_data_filename = argv[2];
     char const* dictionary_filename = nullptr;
 
-    std::string cmd(std::string(argv[0]) + ": " + type + " " + std::string(encoded_data_filename));
+    std::string cmd(std::string(argv[0]) + " " + type + " " + std::string(encoded_data_filename));
 
     for (int i = 3; i < argc; ++i) {
         if (argv[i] == std::string("--dict")) {
