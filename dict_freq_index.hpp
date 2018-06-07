@@ -89,7 +89,11 @@ namespace ds2i {
                 std::string file_name = prefix_name + extension(dt);
                 using namespace boost::filesystem;
                 path p(file_name);
-                std::string dictionary_file = "./" + p.filename().string() + "." + dictionary_builder::type();
+                using d_type = typename dictionary_type::builder;
+                std::string dictionary_file = "./dict."
+                                            + p.filename().string() + "."
+                                            + d_type::type() + "."
+                                            + dictionary_builder::type();
 
                 if (boost::filesystem::exists(dictionary_file)) {
                     builder.load_from_file(dictionary_file);
@@ -106,6 +110,8 @@ namespace ds2i {
                         logger() << "cannot write dictionary to file";
                     }
                 }
+
+                builder.print(dictionary_file + ".log");
             }
         };
 

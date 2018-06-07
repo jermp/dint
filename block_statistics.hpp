@@ -16,7 +16,7 @@ namespace ds2i {
     template<typename Collector>
     struct block_statistics
     {
-        static_assert(is_power_of_two(Collector::max_block_size));
+        // static_assert(is_power_of_two(Collector::max_block_size));
 
         static std::string type() {
             return "block_statistics-" + std::to_string(Collector::max_block_size) + "-" + Collector::type();

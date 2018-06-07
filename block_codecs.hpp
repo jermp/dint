@@ -655,7 +655,7 @@ namespace ds2i {
                     out.insert(out.end(), ptr, ptr + 2);
                     begin += std::min<uint64_t>(run_size, end - begin);
                 } else {
-                    for (uint32_t sub_block_size  = builder.max_entry_size();
+                    for (uint32_t sub_block_size  = Builder::max_entry_size;
                                   sub_block_size != 0; sub_block_size /= 2)
                     {
                         uint32_t len = std::min<uint32_t>(sub_block_size, end - begin);
@@ -684,21 +684,15 @@ namespace ds2i {
         static uint8_t const* decode(Dictionary const& dict,
                                      uint8_t const* in,
                                      uint32_t* out,
-                                     size_t n
-                                     // ,
-                                     // dint_statistics& stats
-                                     )
+                                     size_t n)
         {
             uint16_t const* ptr = reinterpret_cast<uint16_t const*>(in);
-            for (size_t i = 0; i != n; ++ptr) {
+            for (size_t i = 0; i != n; ++ptr)
+            {
                 uint32_t index = *ptr;
                 uint32_t decoded_ints = 1;
-
                 if (DS2I_LIKELY(index > 5)) {
                     decoded_ints = dict.copy(index, out);
-
-                    // stats.ints[1] += decoded_ints;
-                    // stats.codewords[1] += 1;
                 } else {
                     static const uint32_t run_lengths[6] = {1, // exception
                                                             256, 128, 64, 32, 16};
@@ -706,32 +700,10 @@ namespace ds2i {
                     if (DS2I_UNLIKELY(decoded_ints == 1)) {
                         *out = *(reinterpret_cast<uint32_t const*>(++ptr));
                         ++ptr;
-
-                        // stats.ints[2] += 1;
-                        // stats.codewords[2] += 3;
-                        // stats.codewords_distr[4] += 2;
                     }
-                    // else {
-
-                    //     stats.ints[0] += decoded_ints;
-                    //     stats.codewords[0] += 1;
-                    // }
                 }
-
                 out += decoded_ints;
                 i += decoded_ints;
-
-                // if (decoded_ints >= 16) {
-                //     stats.codewords_distr[0] += 1;
-                // } else if (decoded_ints == 8) {
-                //     stats.codewords_distr[1] += 1;
-                // } else if (decoded_ints == 4) {
-                //     stats.codewords_distr[2] += 1;
-                // } else if (decoded_ints == 2) {
-                //     stats.codewords_distr[3] += 1;
-                // } else if (decoded_ints == 1) {
-                //     stats.codewords_distr[4] += 1;
-                // }
             }
 
             return reinterpret_cast<uint8_t const*>(ptr);

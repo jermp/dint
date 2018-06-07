@@ -53,14 +53,14 @@ void decode(std::string const& type,
     uint64_t num_decoded_lists = 0;
     std::vector<double> timings;
 
-    dint_statistics stats;
+    dint_statistics stats(dictionary_type::num_entries);
 
     while (begin != end) {
         uint32_t n, universe;
         begin = header::read(begin, &n, &universe);
         auto start = clock_type::now();
         begin = Decoder::decode(begin, decoded.data(), universe, n, &dict
-                                // , stats
+                                , stats
                                 );
         auto finish = clock_type::now();
         std::chrono::duration<double> elapsed = finish - start;
@@ -106,15 +106,65 @@ void decode(std::string const& type,
 
     std::cout << "\"codewords_runs\": \"" << stats.codewords[0] << "\", ";
     std::cout << "\"codewords_table\": \"" << stats.codewords[1] << "\", ";
-    std::cout << "\"codewords_exception\": \"" << stats.codewords[2] << "\", ";
+    std::cout << "\"codewords_exceptions\": \"" << stats.codewords[2] << "\", ";
 
     std::cout << "\"codewords_16_ints\": \"" << stats.codewords_distr[0] << "\", ";
     std::cout << "\"codewords_8_ints\": \"" << stats.codewords_distr[1] << "\", ";
     std::cout << "\"codewords_4_ints\": \"" << stats.codewords_distr[2] << "\", ";
     std::cout << "\"codewords_2_ints\": \"" << stats.codewords_distr[3] << "\", ";
-    std::cout << "\"codewords_1_ints\": \"" << stats.codewords_distr[4] << "\"";
+    std::cout << "\"codewords_1_ints\": \"" << stats.codewords_distr[4] << "\", ";
+    std::cout << "\"codewords_ex_ints\": \"" << stats.codewords_distr[5] << "\", ";
+
+    std::cout << "\"exceptions_1_bytes\": \"" << stats.exceptions[0] << "\", ";
+    std::cout << "\"exceptions_2_bytes\": \"" << stats.exceptions[1] << "\", ";
+    std::cout << "\"exceptions_3_bytes\": \"" << stats.exceptions[2] << "\", ";
+    std::cout << "\"exceptions_4_bytes\": \"" << stats.exceptions[3] << "\"";
 
     std::cout << "}" << std::endl;
+
+    {
+        std::vector<std::pair<uint32_t, uint64_t>> v;
+        v.reserve(dictionary_type::num_entries);
+        uint32_t i = 0;
+        for (auto f: stats.freqs) {
+            v.emplace_back(i, f);
+            ++i;
+        }
+        std::sort(v.begin(), v.end(),
+            [](auto const& x, auto const& y) {
+                return x.second > y.second;
+            });
+        for (auto const& p: v) {
+            std::cout << std::setw( 6) << p.first
+                      << std::setw(23) << "freq: " << p.second << "; ";
+            std::cout << "entry: ";
+            dict.print(p.first);
+        }
+        std::cout << std::endl;
+    }
+
+    {
+        std::cout << "decoded " << stats.exceptions_freqs.size() << " distinct exceptions" << std::endl;
+        std::vector<std::pair<uint32_t, uint64_t>> v;
+        v.reserve(stats.exceptions_freqs.size());
+        for (auto const& p: stats.exceptions_freqs) {
+            v.emplace_back(p.first, p.second);
+        }
+        std::sort(v.begin(), v.end(),
+            [](auto const& x, auto const& y) {
+                return x.second > y.second;
+            }
+        );
+
+        uint32_t i = 0;
+        for (auto const& p: v) {
+            std::cout << std::setw( 6) << p.first
+                      << std::setw(23) << "freq: " << p.second << "\n";
+            ++i;
+            if (i == 50) break;
+        }
+        std::cout << std::endl;
+    }
 
     file.close();
 }
@@ -147,21 +197,21 @@ int main(int argc, char** argv) {
 
     logger() << cmd << std::endl;
 
-    // decode<dint>(type, encoded_data_filename, dictionary_filename);
+    decode<dint>(type, encoded_data_filename, dictionary_filename);
 
-    if (false) {
-#define LOOP_BODY(R, DATA, T)                                          \
-        } else if (type == BOOST_PP_STRINGIZE(T)) {                    \
-            decode<BOOST_PP_CAT(T, )>                                  \
-                (type, encoded_data_filename, dictionary_filename);    \
-            /**/
+//     if (false) {
+// #define LOOP_BODY(R, DATA, T)                                          \
+//         } else if (type == BOOST_PP_STRINGIZE(T)) {                    \
+//             decode<BOOST_PP_CAT(T, )>                                  \
+//                 (type, encoded_data_filename, dictionary_filename);    \
+//             /**/
 
-        BOOST_PP_SEQ_FOR_EACH(LOOP_BODY, _, CODECS);
-#undef LOOP_BODY
-    } else {
-        logger() << "ERROR: unknown type '"
-                 << type << "'" << std::endl;
-    }
+//         BOOST_PP_SEQ_FOR_EACH(LOOP_BODY, _, CODECS);
+// #undef LOOP_BODY
+//     } else {
+//         logger() << "ERROR: unknown type '"
+//                  << type << "'" << std::endl;
+//     }
 
     return 0;
 }

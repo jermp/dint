@@ -266,7 +266,7 @@ namespace ds2i {
             cost_filter cf;
             for (auto const& block: stats.blocks)
             {
-                if (cf(block, stats.total_integers)) {
+                if (cf(block, stats.total_integers) or block.data.size() == 1) {
                     if (block.data.size() == curr_block_size / 2) {
                         id_lowerbounds[++k] = id;
                         curr_block_size /= 2;
@@ -302,6 +302,9 @@ namespace ds2i {
                             uint32_t id = map[hash];
                             if (stats.blocks[id].freq >= block.freq) {
                                 stats.blocks[id].freq -= block.freq;
+                            } else {
+                                std::cout << "stats.blocks[" << id << "].freq = " << stats.blocks[id].freq
+                                          << " < " << block.freq << std::endl;
                             }
                         }
                     }

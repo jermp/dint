@@ -6,7 +6,7 @@ namespace ds2i {
         static const uint64_t max_size = 50000000;
 
         static const uint32_t max_fractal_steps = 5;
-        static const uint32_t max_entry_size = 16;
+        static const uint32_t max_entry_size = 16; // 8, 16
         static const uint32_t num_entries = 65536;
 
         static const double codeword_bits = 16.0;

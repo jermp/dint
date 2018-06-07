@@ -54,9 +54,9 @@ namespace ds2i {
                                 <constants::num_entries,
                                  constants::max_entry_size>;
 
-    using stats_collector_type = full< // adjusted, full
+    using stats_collector_type = adjusted< // adjusted, full
                                     dictionary_type::max_entry_size
-                                >;
+                                    >;
 
     using block_stats_type = block_statistics<stats_collector_type>;
 

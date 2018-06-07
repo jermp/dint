@@ -14,6 +14,8 @@
 #include "util.hpp"
 #include "dictionary.hpp"
 
+#include <unordered_map>
+
 namespace ds2i {
 
     typedef dictionary<constants::num_entries,
@@ -541,16 +543,25 @@ namespace ds2i {
 
     struct dint_statistics
     {
-        dint_statistics()
+        dint_statistics(uint32_t num_entries)
             : ints(3, 0)
             , codewords(3, 0)
-            , codewords_distr(5, 0)
+            , codewords_distr(6, 0)
+            , exceptions(4, 0)
+            , freqs(num_entries, 0)
         {}
 
         std::vector<uint64_t> ints;       // 0:runs; 1:table; 2:exceptions
         std::vector<uint64_t> codewords;  // 0:runs; 1:table; 2:exceptions
 
-        std::vector<uint64_t> codewords_distr;  // 0:16+; 1:8; 2:4; 3:2; 4:1
+        std::vector<uint64_t> codewords_distr;  // 0:16+; 1:8; 2:4; 3:2; 4:1; 5:exceptions
+
+        std::vector<uint64_t> exceptions; // 0: < 2^8 ; 1: >= 2^8 and < 2^16 ; 2: >= 2^16 and < 2^24 : 3: >= 2^24
+
+        std::vector<uint64_t> freqs;
+
+        // (exception, frequency)
+        std::unordered_map<uint32_t, uint64_t> exceptions_freqs;
     };
 
     struct dint {
@@ -591,9 +602,10 @@ namespace ds2i {
                     out.insert(out.end(), ptr, ptr + 2);
                     begin += std::min<uint64_t>(run_size, end - begin);
                 } else {
-                    for (uint32_t sub_block_size  = builder->max_entry_size();
+                    for (uint32_t sub_block_size = dictionary_type::max_entry_size;
                                   sub_block_size != 0; sub_block_size /= 2)
                     {
+                        // std::cout << "sub_block_size " << sub_block_size << std::endl;
                         uint32_t len = std::min<uint32_t>(sub_block_size, end - begin);
                         index = builder->lookup(begin, len);
                         if (index != dictionary_type::invalid_index) {
@@ -620,8 +632,8 @@ namespace ds2i {
                                      uint32_t* out,
                                      uint32_t /*universe*/, size_t n,
                                      dictionary_type const* dict
-                                     // ,
-                                     // dint_statistics& stats
+                                     ,
+                                     dint_statistics& stats
                                      )
         {
             uint16_t const* ptr = reinterpret_cast<uint16_t const*>(in);
@@ -629,44 +641,69 @@ namespace ds2i {
                 uint32_t index = *ptr;
                 uint32_t decoded_ints = 1;
 
-                if (DS2I_LIKELY(index > 5)) {
+                if (DS2I_LIKELY(index > 5))
+                {
                     decoded_ints = dict->copy(index, out);
 
-                    // stats.ints[1] += decoded_ints;
-                    // stats.codewords[1] += 1;
+                    stats.ints[1] += decoded_ints;
+                    stats.codewords[1] += 1;
+
+                    if (decoded_ints == 1) {
+                        stats.codewords_distr[4] += 1;
+                    }
+
+                    stats.freqs[index] += 1;
+
                 } else {
                     static const uint32_t run_lengths[6] = {1, // exception
                                                             256, 128, 64, 32, 16};
                     decoded_ints = run_lengths[index]; // runs of 256, 128, 64, 32 or 16 ints
                     if (DS2I_UNLIKELY(decoded_ints == 1)) {
-                        *out = *(reinterpret_cast<uint32_t const*>(++ptr));
+                        uint32_t exception = *(reinterpret_cast<uint32_t const*>(++ptr));
+                        *out = exception;
                         ++ptr;
 
-                        // stats.ints[2] += 1;
-                        // stats.codewords[2] += 3;
-                        // stats.codewords_distr[4] += 2;
-                    }
-                    // else {
+                        stats.ints[2] += 1;
+                        stats.codewords[2] += 3;
+                        stats.codewords_distr[5] += 3;
 
-                    //     stats.ints[0] += decoded_ints;
-                    //     stats.codewords[0] += 1;
-                    // }
+                        if (exception < 256) {
+                            stats.exceptions[0] += 1;
+                        } else if (exception < 65536) {
+                            stats.exceptions[1] += 1;
+                        } else if (exception < 16777216) {
+                            stats.exceptions[2] += 1;
+                        } else {
+                            stats.exceptions[3] += 1;
+                        }
+
+                        auto it = stats.exceptions_freqs.find(exception);
+                        if (it != stats.exceptions_freqs.end()) {
+                            (*it).second += 1;
+                        } else {
+                            stats.exceptions_freqs[exception] = 1;
+                        }
+
+                    }
+                    else {
+
+                        stats.ints[0] += decoded_ints;
+                        stats.codewords[0] += 1;
+                    }
                 }
 
                 out += decoded_ints;
                 i += decoded_ints;
 
-                // if (decoded_ints >= 16) {
-                //     stats.codewords_distr[0] += 1;
-                // } else if (decoded_ints == 8) {
-                //     stats.codewords_distr[1] += 1;
-                // } else if (decoded_ints == 4) {
-                //     stats.codewords_distr[2] += 1;
-                // } else if (decoded_ints == 2) {
-                //     stats.codewords_distr[3] += 1;
-                // } else if (decoded_ints == 1) {
-                //     stats.codewords_distr[4] += 1;
-                // }
+                if (decoded_ints >= 16) {
+                    stats.codewords_distr[0] += 1;
+                } else if (decoded_ints == 8) {
+                    stats.codewords_distr[1] += 1;
+                } else if (decoded_ints == 4) {
+                    stats.codewords_distr[2] += 1;
+                } else if (decoded_ints == 2) {
+                    stats.codewords_distr[3] += 1;
+                }
             }
 
             return reinterpret_cast<uint8_t const*>(ptr);

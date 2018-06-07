@@ -30,6 +30,15 @@ void encode(std::string const& type,
     uint64_t num_processed_lists = 0;
     uint64_t num_total_ints = 0;
 
+    typename dictionary_type::builder builder;
+
+    if (dictionary_filename) {
+        std::ifstream dictionary_file(dictionary_filename);
+        builder.load(dictionary_file);
+        logger() << "preparing for encoding..." << std::endl;
+        builder.prepare_for_encoding();
+    }
+
     uint64_t total_progress = input.num_postings();
     bool docs = true;
     boost::filesystem::path collection_path(collection_name);
@@ -43,14 +52,6 @@ void encode(std::string const& type,
         logger() << "encoding docs..." << std::endl;
     } else {
         throw std::runtime_error("unsupported file format");
-    }
-
-    typename dictionary_type::builder builder;
-
-    if (dictionary_filename) {
-        std::ifstream dictionary_file(dictionary_filename);
-        builder.load(dictionary_file);
-        builder.prepare_for_encoding();
     }
 
     std::vector<uint8_t> output;
@@ -159,19 +160,21 @@ int main(int argc, char** argv) {
 
     logger() << cmd << std::endl;
 
-    if (false) {
-#define LOOP_BODY(R, DATA, T)                                                     \
-        } else if (type == BOOST_PP_STRINGIZE(T)) {                               \
-            encode<BOOST_PP_CAT(T, )>                                             \
-                (type, collection_name, output_filename, dictionary_filename);    \
-            /**/
+    encode<dint>(type, collection_name, output_filename, dictionary_filename);
 
-        BOOST_PP_SEQ_FOR_EACH(LOOP_BODY, _, CODECS);
-#undef LOOP_BODY
-    } else {
-        logger() << "ERROR: unknown type '"
-                 << type << "'" << std::endl;
-    }
+//     if (false) {
+// #define LOOP_BODY(R, DATA, T)                                                     \
+//         } else if (type == BOOST_PP_STRINGIZE(T)) {                               \
+//             encode<BOOST_PP_CAT(T, )>                                             \
+//                 (type, collection_name, output_filename, dictionary_filename);    \
+//             /**/
+
+//         BOOST_PP_SEQ_FOR_EACH(LOOP_BODY, _, CODECS);
+// #undef LOOP_BODY
+//     } else {
+//         logger() << "ERROR: unknown type '"
+//                  << type << "'" << std::endl;
+//     }
 
     return 0;
 }
