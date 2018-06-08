@@ -142,5 +142,10 @@ target_link_libraries(decoding_speed_perf_test
   MaskedVByte
   )
 
+add_executable(rbo rbo.cpp)
+target_link_libraries(rbo
+  ${Boost_LIBRARIES}
+  )
+
 enable_testing()
 add_subdirectory(test)

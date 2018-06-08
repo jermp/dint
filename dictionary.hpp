@@ -173,7 +173,20 @@ namespace ds2i {
                 return "rectangular";
             }
 
-            void print(std::string filename)
+            void print_indexes(std::string filename) {
+                std::ofstream out(filename.c_str());
+                std::sort(m_freqs.begin(), m_freqs.end(),
+                    [](auto const& x, auto const& y) {
+                        return x.second > y.second;
+                    }
+                );
+                for (auto const& p: m_freqs) {
+                    out << p.first << "\n";
+                }
+                out.close();
+            }
+
+            void print_entries(std::string filename)
             {
                 std::ofstream out(filename.c_str());
 

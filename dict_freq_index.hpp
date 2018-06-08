@@ -111,7 +111,8 @@ namespace ds2i {
                     }
                 }
 
-                builder.print(dictionary_file + ".log");
+                builder.print_entries(dictionary_file + ".log");
+                builder.print_indexes(dictionary_file + ".rbo_input.estimated");
             }
         };
 

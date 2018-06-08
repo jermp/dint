@@ -121,9 +121,6 @@ namespace ds2i {
                 in.read(reinterpret_cast<char*>(block.data.data()), size * bytes);
                 if (size == 1) {
                     ++num_singletons;
-                    if (block.data.front() == 42) {
-                        std::cout << "42 found!" << std::endl;
-                    }
                 }
                 blocks.push_back(std::move(block));
             }

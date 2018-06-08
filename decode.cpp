@@ -36,10 +36,12 @@ void decode(std::string const& type,
     }
 
     dictionary_type dict;
+    uint64_t dict_size = 0;
     if (dictionary_filename) {
         typename dictionary_type::builder builder;
         std::ifstream dictionary_file(dictionary_filename);
         builder.load(dictionary_file);
+        dict_size = builder.size();
         builder.build(dict);
     }
 
@@ -78,93 +80,95 @@ void decode(std::string const& type,
     logger() << ints_x_sec << " ints x [sec]" << std::endl;
 
     // stats to std output
-    std::cout << "{";
-    std::cout << "\"filename\": \"" << encoded_data_filename << "\", ";
-    std::cout << "\"num_sequences\": \"" << num_decoded_lists << "\", ";
-    std::cout << "\"num_integers\": \"" << num_decoded_ints << "\", ";
-    std::cout << "\"type\": \"" << type << "\", ";
-    std::cout << "\"tot_elapsed_time\": \"" << tot_elapsed << "\", ";
-    std::cout << "\"ns_x_int\": \"" << ns_x_int << "\", ";
-    std::cout << "\"ints_x_sec\": \"" << ints_x_sec << "\"";
-    std::cout << "}" << std::endl;
+    // std::cout << "{";
+    // std::cout << "\"filename\": \"" << encoded_data_filename << "\", ";
+    // std::cout << "\"num_sequences\": \"" << num_decoded_lists << "\", ";
+    // std::cout << "\"num_integers\": \"" << num_decoded_ints << "\", ";
+    // std::cout << "\"type\": \"" << type << "\", ";
+    // std::cout << "\"tot_elapsed_time\": \"" << tot_elapsed << "\", ";
+    // std::cout << "\"ns_x_int\": \"" << ns_x_int << "\", ";
+    // std::cout << "\"ints_x_sec\": \"" << ints_x_sec << "\"";
+    // std::cout << "}" << std::endl;
 
-    uint64_t total_codewords = stats.codewords[0] +
-                               stats.codewords[1] +
-                               stats.codewords[2] ;
-    uint64_t total_decoded_ints = stats.ints[0] +
-                                  stats.ints[1] +
-                                  stats.ints[2] ;
-    std::cout << "{";
-    std::cout << "\"filename\": \"" << encoded_data_filename << "\", ";
-    std::cout << "\"num_sequences\": \"" << num_decoded_lists << "\", ";
-    std::cout << "\"num_integers\": \"" << total_decoded_ints << "\", ";
-    std::cout << "\"num_codewords\": \"" << total_codewords << "\", ";
+    // uint64_t total_codewords = stats.codewords[0] +
+    //                            stats.codewords[1] +
+    //                            stats.codewords[2] ;
+    // uint64_t total_decoded_ints = stats.ints[0] +
+    //                               stats.ints[1] +
+    //                               stats.ints[2] ;
+    // std::cout << "{";
+    // std::cout << "\"filename\": \"" << encoded_data_filename << "\", ";
+    // std::cout << "\"num_sequences\": \"" << num_decoded_lists << "\", ";
+    // std::cout << "\"num_integers\": \"" << total_decoded_ints << "\", ";
+    // std::cout << "\"num_codewords\": \"" << total_codewords << "\", ";
 
-    std::cout << "\"ints_runs\": \"" << stats.ints[0] << "\", ";
-    std::cout << "\"ints_table\": \"" << stats.ints[1] << "\", ";
-    std::cout << "\"ints_exception\": \"" << stats.ints[2] << "\", ";
+    // std::cout << "\"ints_runs\": \"" << stats.ints[0] << "\", ";
+    // std::cout << "\"ints_table\": \"" << stats.ints[1] << "\", ";
+    // std::cout << "\"ints_exception\": \"" << stats.ints[2] << "\", ";
 
-    std::cout << "\"codewords_runs\": \"" << stats.codewords[0] << "\", ";
-    std::cout << "\"codewords_table\": \"" << stats.codewords[1] << "\", ";
-    std::cout << "\"codewords_exceptions\": \"" << stats.codewords[2] << "\", ";
+    // std::cout << "\"codewords_runs\": \"" << stats.codewords[0] << "\", ";
+    // std::cout << "\"codewords_table\": \"" << stats.codewords[1] << "\", ";
+    // std::cout << "\"codewords_exceptions\": \"" << stats.codewords[2] << "\", ";
 
-    std::cout << "\"codewords_16_ints\": \"" << stats.codewords_distr[0] << "\", ";
-    std::cout << "\"codewords_8_ints\": \"" << stats.codewords_distr[1] << "\", ";
-    std::cout << "\"codewords_4_ints\": \"" << stats.codewords_distr[2] << "\", ";
-    std::cout << "\"codewords_2_ints\": \"" << stats.codewords_distr[3] << "\", ";
-    std::cout << "\"codewords_1_ints\": \"" << stats.codewords_distr[4] << "\", ";
-    std::cout << "\"codewords_ex_ints\": \"" << stats.codewords_distr[5] << "\", ";
+    // std::cout << "\"codewords_16_ints\": \"" << stats.codewords_distr[0] << "\", ";
+    // std::cout << "\"codewords_8_ints\": \"" << stats.codewords_distr[1] << "\", ";
+    // std::cout << "\"codewords_4_ints\": \"" << stats.codewords_distr[2] << "\", ";
+    // std::cout << "\"codewords_2_ints\": \"" << stats.codewords_distr[3] << "\", ";
+    // std::cout << "\"codewords_1_ints\": \"" << stats.codewords_distr[4] << "\", ";
+    // std::cout << "\"codewords_ex_ints\": \"" << stats.codewords_distr[5] << "\", ";
 
-    std::cout << "\"exceptions_1_bytes\": \"" << stats.exceptions[0] << "\", ";
-    std::cout << "\"exceptions_2_bytes\": \"" << stats.exceptions[1] << "\", ";
-    std::cout << "\"exceptions_3_bytes\": \"" << stats.exceptions[2] << "\", ";
-    std::cout << "\"exceptions_4_bytes\": \"" << stats.exceptions[3] << "\"";
+    // std::cout << "\"exceptions_1_bytes\": \"" << stats.exceptions[0] << "\", ";
+    // std::cout << "\"exceptions_2_bytes\": \"" << stats.exceptions[1] << "\", ";
+    // std::cout << "\"exceptions_3_bytes\": \"" << stats.exceptions[2] << "\", ";
+    // std::cout << "\"exceptions_4_bytes\": \"" << stats.exceptions[3] << "\"";
 
-    std::cout << "}" << std::endl;
+    // std::cout << "}" << std::endl;
 
     {
         std::vector<std::pair<uint32_t, uint64_t>> v;
         v.reserve(dictionary_type::num_entries);
-        uint32_t i = 0;
-        for (auto f: stats.freqs) {
-            v.emplace_back(i, f);
-            ++i;
+
+        for (uint32_t i = dictionary_type::reserved;
+                      i < dict_size; ++i)
+        {
+            v.emplace_back(i, stats.freqs[i]);
         }
         std::sort(v.begin(), v.end(),
             [](auto const& x, auto const& y) {
                 return x.second > y.second;
             });
         for (auto const& p: v) {
-            std::cout << std::setw( 6) << p.first
-                      << std::setw(23) << "freq: " << p.second << "; ";
-            std::cout << "entry: ";
-            dict.print(p.first);
+            // std::cout << std::setw( 6) << p.first
+            //           << std::setw(23) << "freq: " << p.second << "; ";
+            // std::cout << "entry: ";
+            // dict.print(p.first);
+            std::cout << p.first << std::endl;
         }
-        std::cout << std::endl;
+        // std::cout << std::endl;
     }
 
-    {
-        std::cout << "decoded " << stats.exceptions_freqs.size() << " distinct exceptions" << std::endl;
-        std::vector<std::pair<uint32_t, uint64_t>> v;
-        v.reserve(stats.exceptions_freqs.size());
-        for (auto const& p: stats.exceptions_freqs) {
-            v.emplace_back(p.first, p.second);
-        }
-        std::sort(v.begin(), v.end(),
-            [](auto const& x, auto const& y) {
-                return x.second > y.second;
-            }
-        );
+    // {
+    //     std::cout << "decoded " << stats.exceptions_freqs.size() << " distinct exceptions" << std::endl;
+    //     std::vector<std::pair<uint32_t, uint64_t>> v;
+    //     v.reserve(stats.exceptions_freqs.size());
+    //     for (auto const& p: stats.exceptions_freqs) {
+    //         v.emplace_back(p.first, p.second);
+    //     }
+    //     std::sort(v.begin(), v.end(),
+    //         [](auto const& x, auto const& y) {
+    //             return x.second > y.second;
+    //         }
+    //     );
 
-        uint32_t i = 0;
-        for (auto const& p: v) {
-            std::cout << std::setw( 6) << p.first
-                      << std::setw(23) << "freq: " << p.second << "\n";
-            ++i;
-            if (i == 50) break;
-        }
-        std::cout << std::endl;
-    }
+    //     uint32_t i = 0;
+    //     for (auto const& p: v) {
+    //         std::cout << std::setw( 6) << p.first
+    //                   << std::setw(23) << "freq: " << p.second << "\n";
+    //         ++i;
+    //         if (i == 50) break;
+    //     }
+    //     std::cout << std::endl;
+    // }
 
     file.close();
 }
