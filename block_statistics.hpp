@@ -79,10 +79,12 @@ namespace ds2i {
             }
 
             logger() << "selecting entries..." << std::endl;
+            uint32_t num_singletons = 0;
             blocks.reserve(block_map.size());
             for (auto& pair: block_map) {
                 auto& freq_block = pair.second;
-                if (filter(freq_block, total_integers)) {
+                if (freq_block.data.size() == 1) ++num_singletons;
+                if (filter(freq_block, total_integers) or freq_block.data.size() == 1) {
                     block_type block;
                     block.freq = freq_block.freq;
                     block.data.swap(freq_block.data);
@@ -90,7 +92,8 @@ namespace ds2i {
                 }
             }
             logger() << "DONE" << std::endl;
-            logger() << "selected " << blocks.size() << " blocks" << std::endl;
+            logger() << num_singletons << " singletons" << std::endl;
+            logger() << "saved " << blocks.size() << " blocks" << std::endl;
 
             logger() << "sorting..." << std::endl;
             freq_sorter sorter;
@@ -108,6 +111,7 @@ namespace ds2i {
             logger() << "reading block stats (total_integers = " << total_integers
                      << "; num_blocks = " << num_blocks << ")" << std::endl;
             blocks.reserve(num_blocks);
+            uint32_t num_singletons = 0;
             for (uint32_t i = 0; i < num_blocks; ++i) {
                 in.read(reinterpret_cast<char*>(&size), bytes);
                 in.read(reinterpret_cast<char*>(&freq), bytes);
@@ -115,8 +119,15 @@ namespace ds2i {
                 block.freq = freq;
                 block.data.resize(size);
                 in.read(reinterpret_cast<char*>(block.data.data()), size * bytes);
+                if (size == 1) {
+                    ++num_singletons;
+                    if (block.data.front() == 42) {
+                        std::cout << "42 found!" << std::endl;
+                    }
+                }
                 blocks.push_back(std::move(block));
             }
+            logger() << num_singletons << " singletons" << std::endl;
             logger() << "DONE" << std::endl;
         }
 

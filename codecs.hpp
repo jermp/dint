@@ -608,6 +608,16 @@ namespace ds2i {
                         // std::cout << "sub_block_size " << sub_block_size << std::endl;
                         uint32_t len = std::min<uint32_t>(sub_block_size, end - begin);
                         index = builder->lookup(begin, len);
+
+                        // if (len == 1) {
+                        //     std::cout << "looking for " << *begin << std::endl;
+                        //     if (index == dictionary_type::invalid_index) {
+                        //         std::cout << "**EXCEPTION**" << std::endl;
+                        //     } else {
+                        //         std::cout << "FOUND" << std::endl;
+                        //     }
+                        // }
+
                         if (index != dictionary_type::invalid_index) {
                             auto ptr = reinterpret_cast<uint8_t const*>(&index);
                             out.insert(out.end(), ptr, ptr + 2);

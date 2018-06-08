@@ -111,6 +111,7 @@ namespace ds2i {
             }
 
             void prepare_for_encoding() {
+                logger() << size() << " entries in the dictionary" << std::endl;
                 std::vector<uint32_t> run(256, 0);
                 uint8_t const* ptr = reinterpret_cast<uint8_t const*>(run.data());
                 uint32_t i = 1;
@@ -118,7 +119,7 @@ namespace ds2i {
                     uint64_t hash = hash_bytes64(byte_range(ptr, ptr + n * sizeof(uint32_t)));
                     m_map[hash] = i;
                 }
-                for (; i < num_entries; ++i) {
+                for (; i < size(); ++i) {
                     uint8_t const* ptr = reinterpret_cast<uint8_t const*>(get(i));
                     uint32_t entry_size = size(i);
                     uint64_t hash = hash_bytes64(byte_range(ptr, ptr + entry_size * sizeof(uint32_t)));

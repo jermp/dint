@@ -253,35 +253,25 @@ namespace ds2i {
                                uint32_t // assume less than 2^32 candidates
                                > map;
 
-            std::vector<uint64_t> id_lowerbounds(constants::max_fractal_steps + 1, 0);
-            uint32_t id = 0;
-            uint32_t curr_block_size = dictionary_type::max_entry_size;
-            uint32_t k = 0;
-
             length_freq_sorter sorter;
             std::sort(stats.blocks.begin(), stats.blocks.end(), sorter);
 
+            uint32_t id = 0;
             std::vector<uint32_t> candidates_ids;
             candidates_ids.reserve(stats.blocks.size());
             cost_filter cf;
-            for (auto const& block: stats.blocks)
-            {
+            for (auto const& block: stats.blocks) {
                 if (cf(block, stats.total_integers) or block.data.size() == 1) {
-                    if (block.data.size() == curr_block_size / 2) {
-                        id_lowerbounds[++k] = id;
-                        curr_block_size /= 2;
-                    }
                     map[block.hash()] = id;
                     candidates_ids.push_back(id);
                 }
                 ++id;
             }
 
+            logger() << "selected " << candidates_ids.size() << " candidates" << std::endl;
             assert(id == stats.blocks.size());
-            id_lowerbounds[constants::max_fractal_steps] = id;
 
-            curr_block_size = dictionary_type::max_entry_size;
-            k = 0;
+            uint32_t curr_block_size = dictionary_type::max_entry_size;
             for (uint32_t i = 0; i < candidates_ids.size(); ++i)
             {
                 if (builder.full()) break;
@@ -302,25 +292,19 @@ namespace ds2i {
                             uint32_t id = map[hash];
                             if (stats.blocks[id].freq >= block.freq) {
                                 stats.blocks[id].freq -= block.freq;
-                            } else {
-                                std::cout << "stats.blocks[" << id << "].freq = " << stats.blocks[id].freq
-                                          << " < " << block.freq << std::endl;
                             }
+                            // else {
+                            //     std::cout << "stats.blocks[" << id << "].freq = " << stats.blocks[id].freq
+                            //               << " < " << block.freq << std::endl;
+                            // }
                         }
                     }
                 }
 
                 if (size == curr_block_size / 2) {
                     logger() << "covering " << builder.coverage() << "% of integers "
-                             << "with entries of size " << size << std::endl;
+                             << "with entries of size " << curr_block_size << std::endl;
                     curr_block_size /= 2;
-                    ++k;
-                    // re-sort sub-blocks after decreasing their frequencies
-                    std::sort(
-                        stats.blocks.begin() + id_lowerbounds[k],
-                        stats.blocks.begin() + id_lowerbounds[k + 1],
-                        sorter
-                    );
                 }
             }
         }
