@@ -9,13 +9,12 @@
 #include "util.hpp"
 
 template<typename RandomAccessIterator>
-void rbo(RandomAccessIterator A,
-         RandomAccessIterator B,
+void rbo(RandomAccessIterator A, RandomAccessIterator B,
          uint64_t n, double p)
 {
     double weight = 1.0 - p;
     double rbo_min = 0.0;
-    double contrib = 0;
+    double contrib = 0.0;
     uint64_t overlap = 0;
 
     std::unordered_set<uint32_t> seen_A;
@@ -35,7 +34,7 @@ void rbo(RandomAccessIterator A,
         }
         seen_A.insert(A[i - 1]);
         seen_B.insert(B[i - 1]);
-        contrib = weight * double(overlap) / double(i);
+        contrib = weight * overlap / i;
         rbo_min += contrib;
         weight *= p;
     }
@@ -45,9 +44,9 @@ void rbo(RandomAccessIterator A,
     const double EPSILON = 1e-15;
     while (weight > EPSILON) {
         i++;
-        contrib = weight * overlap / double(i);
+        contrib = weight * overlap / i;
         rbo_min += contrib;
-        if (max_overlap == i-1) {
+        if (max_overlap == i - 1) {
             // both new elements must be the same novel one
             max_overlap += 1;
         } else {
@@ -55,12 +54,12 @@ void rbo(RandomAccessIterator A,
             // appeared already in the other list
             max_overlap += 2;
         }
-        rbo_max += weight * max_overlap / double(i);
+        rbo_max += weight * max_overlap / i;
         // prepare for the next pair of imaginary values
         weight *= p;
     }
     boost::format rbofmt("\t rbo(p = %1$.5f) = %2$.6f + %3$.6f (n=%4$7d, d=%5$7d)");
-    ds2i::logger() << rbofmt % p % rbo_min % (rbo_max-rbo_min) % n % (i-1) << std::endl;
+    ds2i::logger() << rbofmt % p % rbo_min % (rbo_max - rbo_min) % n % (i - 1) << std::endl;
 }
 
 int main(int argc, char** argv)
@@ -82,6 +81,10 @@ int main(int argc, char** argv)
     uint32_t x;
     while (in_A >> x) A.push_back(x);
     while (in_B >> x) B.push_back(x);
+
+    if (A.size() != B.size()) {
+        throw std::runtime_error("input files should contain the same number of lines");
+    }
 
     auto P = {0.7, 0.8, 0.9, 0.95, 0.99, 0.999, 0.999, 0.9999, 0.99999};
     for (auto p: P) {
