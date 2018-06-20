@@ -57,12 +57,14 @@ void decode(std::string const& type,
 
     dint_statistics stats(dictionary_type::num_entries);
 
+    bool emit_selectors = false;
+
     while (begin != end) {
         uint32_t n, universe;
         begin = header::read(begin, &n, &universe);
         auto start = clock_type::now();
         begin = Decoder::decode(begin, decoded.data(), universe, n, &dict
-                                , stats
+                                , stats, emit_selectors
                                 );
         auto finish = clock_type::now();
         std::chrono::duration<double> elapsed = finish - start;
@@ -90,12 +92,12 @@ void decode(std::string const& type,
     // std::cout << "\"ints_x_sec\": \"" << ints_x_sec << "\"";
     // std::cout << "}" << std::endl;
 
-    // uint64_t total_codewords = stats.codewords[0] +
-    //                            stats.codewords[1] +
-    //                            stats.codewords[2] ;
-    // uint64_t total_decoded_ints = stats.ints[0] +
-    //                               stats.ints[1] +
-    //                               stats.ints[2] ;
+    uint64_t total_codewords = stats.codewords[0] +
+                               stats.codewords[1] +
+                               stats.codewords[2] ;
+    uint64_t total_decoded_ints = stats.ints[0] +
+                                  stats.ints[1] +
+                                  stats.ints[2] ;
     // std::cout << "{";
     // std::cout << "\"filename\": \"" << encoded_data_filename << "\", ";
     // std::cout << "\"num_sequences\": \"" << num_decoded_lists << "\", ";
@@ -124,28 +126,79 @@ void decode(std::string const& type,
 
     // std::cout << "}" << std::endl;
 
-    {
-        std::vector<std::pair<uint32_t, uint64_t>> v;
-        v.reserve(dictionary_type::num_entries);
-
-        for (uint32_t i = dictionary_type::reserved;
-                      i < dict_size; ++i)
-        {
-            v.emplace_back(i, stats.freqs[i]);
-        }
-        std::sort(v.begin(), v.end(),
-            [](auto const& x, auto const& y) {
-                return x.second > y.second;
-            });
-        for (auto const& p: v) {
-            // std::cout << std::setw( 6) << p.first
-            //           << std::setw(23) << "freq: " << p.second << "; ";
-            // std::cout << "entry: ";
-            // dict.print(p.first);
-            std::cout << p.first << std::endl;
-        }
-        // std::cout << std::endl;
+    for (uint32_t i = 0; i < constants::max_fractal_steps; ++i) {
+        std::sort(stats.codewords_freqs[i].begin(),
+                  stats.codewords_freqs[i].end(),
+                  [](auto const& p_x, auto const& p_y) {
+                        return p_x.second > p_y.second;
+                  });
     }
+
+    // uint64_t total_covered_codewords = 0;
+    // for (uint32_t i = 0; i < constants::max_fractal_steps; ++i) {
+    //     auto const& freqs = stats.codewords_freqs[i];
+    //     uint64_t codewords = 0;
+    //     for (uint32_t k = 0; k < constants::top_k; ++k) {
+    //         codewords += freqs[k].second;
+    //         // std::cout << "index: " << freqs[k].first << "; freq: " << freqs[k].second << std::endl;
+    //     }
+    //     total_covered_codewords += codewords;
+    //     std::cout << "covering " << codewords * 100.0 / total_codewords // stats.codewords[1]
+    //               << "% of codewords "
+    //               << "with the " << constants::top_k << " most frequent codewords for "
+    //               << "targets of length " << (uint32_t(1) << i) << std::endl;
+    // }
+    // std::cout << "total covered codewords: "
+    //           << total_covered_codewords * 100.0 / total_codewords // stats.codewords[1]
+    //           << "%" << std::endl;
+
+    for (uint32_t i = 0; i < constants::max_fractal_steps; ++i) {
+        std::sort(stats.codewords_freqs[i].begin(),
+                  stats.codewords_freqs[i].begin() + constants::top_k,
+                  [](auto const& p_x, auto const& p_y) {
+                        return p_x.first < p_y.first;
+                  });
+    }
+
+    // for (uint32_t i = 0; i < constants::max_fractal_steps; ++i) {
+    //     auto const& freqs = stats.codewords_freqs[i];
+    //     for (uint32_t k = 0; k < constants::top_k; ++k) {
+    //         std::cout << "index: " << freqs[k].first << "; freq: " << freqs[k].second << std::endl;
+    //     }
+    // }
+
+    begin = (uint8_t const*) file.data();
+    emit_selectors = true;
+    while (begin != end) {
+        uint32_t n, universe;
+        begin = header::read(begin, &n, &universe);
+        begin = Decoder::decode(begin, decoded.data(), universe, n, &dict
+                                , stats, emit_selectors
+                                );
+    }
+
+    // {
+    //     std::vector<std::pair<uint32_t, uint64_t>> v;
+    //     v.reserve(dictionary_type::num_entries);
+
+    //     for (uint32_t i = dictionary_type::reserved;
+    //                   i < dict_size; ++i)
+    //     {
+    //         v.emplace_back(i, stats.freqs[i]);
+    //     }
+    //     std::sort(v.begin(), v.end(),
+    //         [](auto const& x, auto const& y) {
+    //             return x.second > y.second;
+    //         });
+    //     for (auto const& p: v) {
+    //         // std::cout << std::setw( 6) << p.first
+    //         //           << std::setw(23) << "freq: " << p.second << "; ";
+    //         // std::cout << "entry: ";
+    //         // dict.print(p.first);
+    //         std::cout << p.first << std::endl;
+    //     }
+    //     // std::cout << std::endl;
+    // }
 
     // {
     //     std::cout << "decoded " << stats.exceptions_freqs.size() << " distinct exceptions" << std::endl;

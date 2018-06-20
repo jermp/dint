@@ -82,7 +82,7 @@ void check(char const* collection_filename,
             begin = Decoder::decode(begin,
                                     decoded.data(),
                                     universe, n, &dict
-                                    , stats
+                                    , stats, false
                                     );
             total_decoded_ints += n;
 

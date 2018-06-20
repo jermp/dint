@@ -322,11 +322,13 @@ namespace ds2i {
       }
     };
 
-    struct qmx_block {
-      static const uint64_t block_size = constants::block_size;
-      static const uint64_t overflow = 512; // qmx can potentially overshoot...
-      static void encode(uint32_t const *in, uint32_t sum_of_values, size_t n,
-                         std::vector<uint8_t> &out) {
+    struct qmx_block
+    {
+        static const uint64_t block_size = constants::block_size;
+        static const uint64_t overflow = 512; // qmx can potentially overshoot...
+
+        static void encode(uint32_t const *in, uint32_t sum_of_values, size_t n,
+                           std::vector<uint8_t> &out) {
             assert(n <= block_size);
             if (n < block_size) {
                 interpolative_block::encode(in, sum_of_values, n, out);
@@ -338,23 +340,23 @@ namespace ds2i {
             out_len = qmx_codec.encode(buf.data(),in);
             TightVariableByte::encode_single(out_len, out);
             out.insert(out.end(), buf.data(), buf.data() + out_len);
-      }
-
-      // we only allow varint to be inlined (others have DS2I_NOILINE)
-      static uint8_t const *decode(uint8_t const *in, uint32_t *out,
-                                   uint32_t sum_of_values, size_t n) {
-        static QMX::codec<block_size> qmx_codec; // decodeBlock is thread-safe
-        assert(n <= block_size);
-
-        if (DS2I_UNLIKELY(n < block_size)) {
-            return interpolative_block::decode(in, out, sum_of_values, n);
         }
 
-        uint32_t enc_len = 0;
-        in = TightVariableByte::decode(in, &enc_len, 1);
-        qmx_codec.decode(out,in, enc_len);
-        return in + enc_len;
-      }
+        // we only allow varint to be inlined (others have DS2I_NOILINE)
+        static uint8_t const *decode(uint8_t const *in, uint32_t *out,
+                                   uint32_t sum_of_values, size_t n) {
+            static QMX::codec<block_size> qmx_codec; // decodeBlock is thread-safe
+            assert(n <= block_size);
+
+            if (DS2I_UNLIKELY(n < block_size)) {
+                return interpolative_block::decode(in, out, sum_of_values, n);
+            }
+
+            uint32_t enc_len = 0;
+            in = TightVariableByte::decode(in, &enc_len, 1);
+            qmx_codec.decode(out,in, enc_len);
+            return in + enc_len;
+        }
     };
 
     struct vbyte_block {
@@ -622,9 +624,15 @@ namespace ds2i {
         template<typename Builder>
         static void encode(Builder const& builder,
                            uint32_t const* in,
+                           uint32_t sum_of_values,
                            uint32_t n,
                            std::vector<uint8_t>& out)
         {
+            if (n < block_size) {
+                interpolative_block::encode(in, sum_of_values, n, out);
+                return;
+            }
+
             uint32_t const* begin = in;
             uint32_t const* end = begin + n;
 
@@ -661,8 +669,51 @@ namespace ds2i {
                         uint32_t len = std::min<uint32_t>(sub_block_size, end - begin);
                         index = builder.lookup(begin, len);
                         if (index != Builder::invalid_index) {
-                            auto ptr = reinterpret_cast<uint8_t const*>(&index);
-                            out.insert(out.end(), ptr, ptr + 2);
+
+                            // find now the longest substring in the history [in, begin)
+
+                            // uint64_t m = begin - in;
+                            // uint64_t max_substr_len = 0;
+                            // for (uint64_t i = 0; i < m; ++i) {
+                            //     auto l = in + i;
+                            //     auto r = begin;
+                            //     uint64_t substr_len = 0;
+                            //     for (uint64_t j = 0; j < block_size - m; ++j) {
+                            //         if (*l == *r) {
+                            //             ++substr_len;
+                            //             ++l;
+                            //             ++r;
+                            //         } else {
+                            //             if (substr_len > max_substr_len) {
+                            //                 max_substr_len = substr_len;
+                            //             }
+                            //             break;
+                            //         }
+                            //     }
+                            // }
+
+                            // if (max_substr_len > len) {
+                            //     // // 1. insert two bytes for signalling the copy back
+                            //     // out.insert(out.end(), 0);
+                            //     // out.insert(out.end(), 0);
+
+                            //     // // 2. insert 1 byte as the backward pointer
+                            //     // out.insert(out.end(), 0);
+
+                            //     // // 3. insert 1 byte as the length
+                            //     // out.insert(out.end(), 0);
+
+                            //     len = max_substr_len;
+
+                            //     std::cout << len << std::endl;
+
+                            // }
+
+                            // else {
+                                auto ptr = reinterpret_cast<uint8_t const*>(&index);
+                                out.insert(out.end(), ptr, ptr + 2);
+                            // }
+
                             begin += len;
                             break;
                         }
@@ -684,8 +735,13 @@ namespace ds2i {
         static uint8_t const* decode(Dictionary const& dict,
                                      uint8_t const* in,
                                      uint32_t* out,
+                                     uint32_t sum_of_values,
                                      size_t n)
         {
+            if (DS2I_UNLIKELY(n < block_size)) {
+                return interpolative_block::decode(in, out, sum_of_values, n);
+            }
+
             uint16_t const* ptr = reinterpret_cast<uint16_t const*>(in);
             for (size_t i = 0; i != n; ++ptr)
             {

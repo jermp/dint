@@ -147,5 +147,10 @@ target_link_libraries(rbo
   ${Boost_LIBRARIES}
   )
 
+add_executable(print_selectors_stats print_selectors_stats.cpp)
+target_link_libraries(print_selectors_stats
+  ${Boost_LIBRARIES}
+  )
+
 enable_testing()
 add_subdirectory(test)

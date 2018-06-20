@@ -549,7 +549,16 @@ namespace ds2i {
             , codewords_distr(6, 0)
             , exceptions(4, 0)
             , freqs(num_entries, 0)
-        {}
+            , codewords_freqs(constants::max_fractal_steps,
+                              std::vector<std::pair<uint64_t, uint64_t>>(constants::num_entries))
+        {
+            for (auto& freqs: codewords_freqs) {
+                for (uint64_t i = 0; i < constants::num_entries; ++i) {
+                    freqs[i].first = i;
+                    freqs[i].second = 0;
+                }
+            }
+        }
 
         std::vector<uint64_t> ints;       // 0:runs; 1:table; 2:exceptions
         std::vector<uint64_t> codewords;  // 0:runs; 1:table; 2:exceptions
@@ -562,6 +571,9 @@ namespace ds2i {
 
         // (exception, frequency)
         std::unordered_map<uint32_t, uint64_t> exceptions_freqs;
+
+        // (index, frequency)
+        std::vector<std::vector<std::pair<uint64_t, uint64_t>>> codewords_freqs;
     };
 
     struct dint {
@@ -643,7 +655,8 @@ namespace ds2i {
                                      uint32_t /*universe*/, size_t n,
                                      dictionary_type const* dict
                                      ,
-                                     dint_statistics& stats
+                                     dint_statistics& stats,
+                                     bool emit_selectors
                                      )
         {
             uint16_t const* ptr = reinterpret_cast<uint16_t const*>(in);
@@ -663,6 +676,43 @@ namespace ds2i {
                     }
 
                     stats.freqs[index] += 1;
+
+                    uint64_t selector = ceil_log2(decoded_ints);
+                    auto& f = stats.codewords_freqs[selector];
+                    if (emit_selectors)
+                    {
+                        auto p = std::make_pair<uint64_t, uint64_t>(index, 0);
+
+                        // bool found = std::binary_search(f.begin(), f.begin() + constants::top_k, p,
+                        //                     [](auto const& p_x, auto const& p_y) {
+                        //                         return p_x.first < p_y.first;
+                        //                     });
+
+                        auto it = std::lower_bound(f.begin(), f.begin() + constants::top_k, p,
+                                    [](auto const& p_x, auto const& p_y) {
+                                        return p_x.first < p_y.first;
+                                    });
+                        if ((*it).first == p.first) {
+                            uint32_t rank = std::distance(f.begin(), it);
+                            if (rank < 85) {
+                                std::cout << "0\n";
+                            } else if (rank < 170) {
+                                std::cout << "1\n";
+                            } else {
+                                std::cout << "2\n";
+                            }
+                        } else {
+                            std::cout << "3\n";
+                        }
+                        // if (selector <= 2 and found) {
+                        //     std::cout << selector << "\n";
+                        // } else {
+                        //     std::cout << "3\n";
+                        // }
+
+                    } else {
+                        f[index].second += 1;
+                    }
 
                 } else {
                     static const uint32_t run_lengths[6] = {1, // exception

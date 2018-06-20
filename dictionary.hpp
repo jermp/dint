@@ -21,7 +21,18 @@ namespace ds2i {
         static const uint32_t num_entries = t_num_entries;
         static const uint32_t max_entry_size = t_max_entry_size;
         static const uint32_t invalid_index = uint32_t(-1);
-        static const uint32_t reserved = 6; // 1 for exceptions
+        static const uint32_t reserved = 6;
+
+                                            // 6 reserved entries:
+                                            // 1 for exception header
+                                            // 5 for runs
+
+                                            // 10 reserved entries:
+                                            // 1 for exception header
+                                            // 1 for exception 1 byte
+                                            // 1 for exception 2 bytes
+                                            // 1 for exception 3 bytes
+                                            // 1 for exception 4 bytes
                                             // 5 for runs
 
         struct builder
@@ -101,7 +112,7 @@ namespace ds2i {
                 double cost_saving = compute_saving(entry_size, freq, m_total_integers);
                 m_total_coverage += freq * entry_size * 100.0 / m_total_integers;
                 m_final_bpi -= cost_saving;
-                if (m_size % 1000 == 0) {
+                if (m_size % 5000 == 0) {
                     logger() << "entries in dictionary " << m_size << "/" << num_entries << std::endl;
                     logger() << "current bits x integer: " << m_final_bpi << std::endl;
                     logger() << "covering " << m_total_coverage << "% of integers" << std::endl;

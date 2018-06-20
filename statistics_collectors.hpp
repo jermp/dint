@@ -1,5 +1,6 @@
 #pragma once
 
+#include "hash_utils.hpp"
 #include "dint_configuration.hpp"
 
 namespace ds2i {
@@ -88,7 +89,6 @@ namespace ds2i {
         static void collect(std::vector<uint32_t>& buf, map_type& bmap) {
             auto b = buf.data();
             for (uint32_t block_size = max_block_size; block_size != 0; block_size /= 2) {
-            // for (uint32_t block_size = 1; block_size <= max_block_size; block_size *= 2) {
                 uint32_t blocks = buf.size() / block_size;
                 for (uint32_t i = 0, pos = 0; i < blocks; ++i, pos += block_size) {
                     increase_frequency(b + pos, block_size, bmap);
@@ -110,7 +110,6 @@ namespace ds2i {
             auto b = buf.data();
             uint32_t blocks = buf.size() / max_block_size;
             for (uint32_t i = 0, pos = 0; i < blocks; ++i, pos += max_block_size) {
-                // for (uint32_t block_size = 1; block_size <= max_block_size; block_size *= 2) {
                 for (uint32_t block_size = max_block_size; block_size != 0; block_size /= 2) {
                     uint32_t amount = max_block_size / block_size;
                     increase_frequency(b + pos, block_size, bmap, amount);

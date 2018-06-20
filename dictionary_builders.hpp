@@ -260,18 +260,49 @@ namespace ds2i {
             std::vector<uint32_t> candidates_ids;
             candidates_ids.reserve(stats.blocks.size());
             cost_filter cf;
+
+            std::vector<uint64_t> offsets(constants::max_fractal_steps + 1, 0);
+
+            uint32_t curr_block_size = dictionary_type::max_entry_size;
+            int k = 0;
+            // uint32_t i = 0;
+
             for (auto const& block: stats.blocks) {
-                if (cf(block, stats.total_integers) or block.data.size() == 1) {
+
+                if (block.data.size() == curr_block_size / 2) {
+                    offsets[++k] = candidates_ids.size();
+                    curr_block_size /= 2;
+                    // i = 0;
+                }
+
+                if (//i < constants::top_k and
+                    (cf(block, stats.total_integers) or block.data.size() == 1)) {
                     map[block.hash()] = id;
                     candidates_ids.push_back(id);
                 }
                 ++id;
+                // ++i;
             }
+
+            offsets[constants::max_fractal_steps] = candidates_ids.size();
 
             logger() << "selected " << candidates_ids.size() << " candidates" << std::endl;
             assert(id == stats.blocks.size());
 
-            uint32_t curr_block_size = dictionary_type::max_entry_size;
+            curr_block_size = dictionary_type::max_entry_size;
+            k = 0;
+
+            uint64_t total_covered_ints = 0;
+            uint64_t covered_ints = 0;
+            for (uint32_t i = 0; i < constants::top_k; ++i) {
+                covered_ints += curr_block_size * stats.blocks[candidates_ids[i]].freq;
+            }
+            total_covered_ints += covered_ints;
+            std::cout << "covering " << covered_ints * 100.0 / stats.total_integers
+                      << "% integers with " << constants::top_k << "-top entries of size " << curr_block_size
+                      << std::endl;
+            covered_ints = 0;
+
             for (uint32_t i = 0; i < candidates_ids.size(); ++i)
             {
                 if (builder.full()) break;
@@ -302,10 +333,71 @@ namespace ds2i {
                 }
 
                 if (size == curr_block_size / 2) {
-                    logger() << "covering " << builder.coverage() << "% of integers "
+                    logger() << "covering " << builder.coverage() << "% integers "
                              << "with entries of size " << curr_block_size << std::endl;
                     curr_block_size /= 2;
+
+                    ++k;
+                    // re-sort sub-blocks after decreasing their frequencies
+                    std::sort(
+                        stats.blocks.begin() + offsets[k],
+                        stats.blocks.begin() + offsets[k + 1],
+                        sorter
+                    );
+
+                    uint32_t id = offsets[k];
+                    for (uint32_t i = 0; i < constants::top_k; ++i, ++id) {
+                        covered_ints += curr_block_size * stats.blocks[id].freq;
+                    }
+                    total_covered_ints += covered_ints;
+                    std::cout << "covering " << covered_ints * 100.0 / stats.total_integers
+                              << "% integers with " << constants::top_k << "-top entries of size " << curr_block_size
+                              << std::endl;
+                    covered_ints = 0;
                 }
+            }
+
+            std::cout << "covered " << total_covered_ints * 100.0 / stats.total_integers
+                      << "% integers" << std::endl;
+            std::cout << std::endl;
+
+            uint32_t top_k = constants::top_k;
+            while (top_k < 4096)
+            {
+                top_k *= 2;
+                uint32_t i = 0;
+                curr_block_size = dictionary_type::max_entry_size;
+                covered_ints = 0;
+                total_covered_ints = 0;
+                for (auto id: candidates_ids)
+                {
+                    size_t size = stats.blocks[id].data.size();
+                    if (size == curr_block_size / 2)
+                    {
+                        std::cout << "covering " << covered_ints * 100.0 / stats.total_integers
+                                  << "% integers with " << top_k << "-top entries of size " << curr_block_size
+                                  << std::endl;
+
+                        total_covered_ints += covered_ints;
+
+                        covered_ints = 0;
+                        i = 0;
+                        curr_block_size /= 2;
+                    }
+
+                    if (i < top_k) {
+                        covered_ints += size * stats.blocks[id].freq;
+                    }
+
+                    ++i;
+                }
+
+                std::cout << "covering " << covered_ints * 100.0 / stats.total_integers
+                          << "% integers with " << top_k << "-top entries of size 1"
+                          << std::endl;
+                std::cout << "covered " << total_covered_ints * 100.0 / stats.total_integers
+                          << "% integers" << std::endl;
+                std::cout << std::endl;
             }
         }
     };

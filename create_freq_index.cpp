@@ -83,13 +83,15 @@ void create_collection(std::string input_basename,
     boost::progress_display progress(input.num_postings());
 
     for (auto const& plist: input) {
-        if (plist.docs.size() > constants::min_size) {
+        uint64_t n = plist.docs.size();
+        if (n > constants::min_size) {
             uint64_t freqs_sum = std::accumulate(plist.freqs.begin(),
                                                  plist.freqs.end(), uint64_t(0));
-            builder.add_posting_list(plist.docs.size(), plist.docs.begin(),
+            builder.add_posting_list(n,
+                                     plist.docs.begin(),
                                      plist.freqs.begin(), freqs_sum);
-            plog.done_sequence(plist.docs.size());
-            progress += plist.docs.size() + plist.freqs.size() + 2;
+            plog.done_sequence(n);
+            progress += n + plist.freqs.size() + 2;
         }
     }
 

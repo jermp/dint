@@ -63,19 +63,21 @@ namespace ds2i {
             for (; it != input.end(); ++it) {
                 auto const& list = *it;
                 size_t n = list.size();
-                total_integers += n;
-                progress += n + 1;
-                buf.reserve(n);
-                uint32_t prev = compute_gaps ? -1 : 0;
-                auto it = list.begin();
-                for (uint32_t i = 0; i < n; ++i, ++it) {
-                    buf.push_back(*it - prev - 1);
-                    if (compute_gaps) {
-                        prev = *it;
+                if (n > constants::min_size) {
+                    total_integers += n;
+                    progress += n + 1;
+                    buf.reserve(n);
+                    uint32_t prev = compute_gaps ? -1 : 0;
+                    auto it = list.begin();
+                    for (uint32_t i = 0; i < n; ++i, ++it) {
+                        buf.push_back(*it - prev - 1);
+                        if (compute_gaps) {
+                            prev = *it;
+                        }
                     }
+                    Collector::collect(buf, block_map);
+                    buf.clear();
                 }
-                Collector::collect(buf, block_map);
-                buf.clear();
             }
 
             logger() << "selecting entries..." << std::endl;
