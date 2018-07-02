@@ -9,8 +9,8 @@ namespace ds2i {
     struct dict_posting_list {
 
         template <typename DocsIterator, typename FreqsIterator>
-        static void write(typename Dictionary::builder const& docs_dict_builder,
-                          typename Dictionary::builder const& freqs_dict_builder,
+        static void write(typename Dictionary::builder& docs_dict_builder,
+                          typename Dictionary::builder& freqs_dict_builder,
                           std::vector<uint8_t>& out, uint32_t n,
                           DocsIterator docs_begin, FreqsIterator freqs_begin)
         {

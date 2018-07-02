@@ -49,6 +49,10 @@ namespace ds2i {
         return (x > 1) ? succinct::broadword::msb(x - 1) + 1 : 0;
     }
 
+    inline uint64_t floor_log2(const uint64_t x) {
+        return (x > 1) ? succinct::broadword::msb(x) : 0;
+    }
+
     inline std::ostream& logger()
     {
         time_t t = std::time(nullptr);

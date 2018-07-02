@@ -622,7 +622,7 @@ namespace ds2i {
         // }
 
         template<typename Builder>
-        static void encode(Builder const& builder,
+        static void encode(Builder& builder, // TODO: restore constness
                            uint32_t const* in,
                            uint32_t sum_of_values,
                            uint32_t n,
@@ -660,12 +660,16 @@ namespace ds2i {
 
                 if (index < Builder::reserved) {
                     auto ptr = reinterpret_cast<uint8_t const*>(&index);
-                    out.insert(out.end(), ptr, ptr + 2);
+                    out.insert(out.end(), ptr, ptr + 2); // b = 16
+                    // out.insert(out.end(), ptr, ptr + 1); // b = 8
                     begin += std::min<uint64_t>(run_size, end - begin);
+                    ++builder.codewords;
                 } else {
-                    for (uint32_t sub_block_size  = Builder::max_entry_size;
-                                  sub_block_size != 0; sub_block_size /= 2)
+                    // for (uint32_t sub_block_size = Builder::max_entry_size;
+                    //               sub_block_size != 0; sub_block_size /= 2)
+                    for (uint32_t s = 0; s < constants::max_fractal_steps; ++s)
                     {
+                        uint32_t sub_block_size = constants::target_sizes[s];
                         uint32_t len = std::min<uint32_t>(sub_block_size, end - begin);
                         index = builder.lookup(begin, len);
                         if (index != Builder::invalid_index) {
@@ -711,17 +715,23 @@ namespace ds2i {
 
                             // else {
                                 auto ptr = reinterpret_cast<uint8_t const*>(&index);
-                                out.insert(out.end(), ptr, ptr + 2);
+                                out.insert(out.end(), ptr, ptr + 2); // b = 16
+                                // out.insert(out.end(), ptr, ptr + 1); // b = 8
                             // }
+
+                            ++builder.codewords;
 
                             begin += len;
                             break;
                         }
                     }
 
-                    if (index == Builder::invalid_index) {
+                    if (index == Builder::invalid_index)
+                    {
                         out.insert(out.end(), 0);
                         out.insert(out.end(), 0);
+                        ++builder.exceptions;
+
                         uint32_t exception = *begin;
                         auto ptr = reinterpret_cast<uint8_t const*>(&exception);
                         out.insert(out.end(), ptr, ptr + 4);
@@ -742,12 +752,13 @@ namespace ds2i {
                 return interpolative_block::decode(in, out, sum_of_values, n);
             }
 
-            uint16_t const* ptr = reinterpret_cast<uint16_t const*>(in);
+            uint16_t const* ptr = reinterpret_cast<uint16_t const*>(in); // b = 16
+            // uint8_t const* ptr = in; // b = 8
             for (size_t i = 0; i != n; ++ptr)
             {
                 uint32_t index = *ptr;
                 uint32_t decoded_ints = 1;
-                if (DS2I_LIKELY(index > 5)) {
+                if (DS2I_LIKELY(index > Dictionary::reserved - 1)) {
                     decoded_ints = dict.copy(index, out);
                 } else {
                     static const uint32_t run_lengths[6] = {1, // exception
@@ -756,6 +767,10 @@ namespace ds2i {
                     if (DS2I_UNLIKELY(decoded_ints == 1)) {
                         *out = *(reinterpret_cast<uint32_t const*>(++ptr));
                         ++ptr;
+
+                        // needed when b = 8
+                        // ++ptr;
+                        // ++ptr;
                     }
                 }
                 out += decoded_ints;

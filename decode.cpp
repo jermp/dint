@@ -64,7 +64,7 @@ void decode(std::string const& type,
         begin = header::read(begin, &n, &universe);
         auto start = clock_type::now();
         begin = Decoder::decode(begin, decoded.data(), universe, n, &dict
-                                , stats, emit_selectors
+                                // , stats, emit_selectors
                                 );
         auto finish = clock_type::now();
         std::chrono::duration<double> elapsed = finish - start;
@@ -126,13 +126,65 @@ void decode(std::string const& type,
 
     // std::cout << "}" << std::endl;
 
-    for (uint32_t i = 0; i < constants::max_fractal_steps; ++i) {
-        std::sort(stats.codewords_freqs[i].begin(),
-                  stats.codewords_freqs[i].end(),
-                  [](auto const& p_x, auto const& p_y) {
-                        return p_x.second > p_y.second;
-                  });
+    // sorting in decreasing frequency order
+    // for (uint32_t i = 0; i < constants::max_fractal_steps; ++i) {
+    //     std::sort(stats.codewords_freqs[i].begin(),
+    //               stats.codewords_freqs[i].end(),
+    //               [](auto const& p_x, auto const& p_y) {
+    //                     return p_x.second > p_y.second;
+    //               });
+    // }
+
+    // (index, frequency)
+    std::vector<std::pair<uint32_t, uint64_t>> v;
+    v.reserve(stats.freqs.size());
+
+    uint32_t index = 0;
+    for (auto f: stats.freqs) {
+        v.emplace_back(index, f);
+        ++index;
     }
+
+    std::sort(v.begin(), v.end(),
+        [](auto const& f_x, auto const& f_y) {
+            return f_x.second > f_y.second;
+        });
+
+    logger() << "computing space usage" << std::endl;
+    index = 0;
+    uint64_t bits = 0;
+    uint64_t sum_freqs = 0;
+    for (auto const& p: v) {
+        uint32_t frequency = p.second;
+        uint32_t codeword_bits = floor_log2(index + 2);
+        bits += codeword_bits * frequency;
+        ++index;
+        sum_freqs += frequency;
+    }
+
+    logger() << "total integers: " << num_decoded_ints << std::endl;
+    logger() << "total codewords: " << total_codewords << std::endl;
+    // logger() << "sum frequencies: " << sum_freqs << std::endl;
+    // logger() << "total bits: " << bits << std::endl;
+
+    double BPI_cw_fixed = total_codewords * 16.0 / num_decoded_ints;
+    double BPI_cw_variable = double(bits) / num_decoded_ints;
+    double BPI_cw_len = 4.0 * sum_freqs / num_decoded_ints;
+    double BPI_ex = stats.ints[2] * 32.0 / num_decoded_ints;
+
+    logger() << "BPI for variable-len. codewords: " << BPI_cw_variable << std::endl;
+    logger() << "BPI for codewords' lengths: " << BPI_cw_len << std::endl;
+    logger() << "BPI exceptions: " << BPI_ex << std::endl;
+
+    logger() << "total BPI for fixed-len. codewords: " << BPI_cw_fixed << std::endl;
+    logger() << "total BPI for variable-len. codewords: " << BPI_cw_variable + BPI_cw_len + BPI_ex << std::endl;
+
+    // substitute the freq value in freqs with their rank to derive the codeword
+    // index = 0;
+    // for (auto const& p: v) {
+    //     stats.freqs[p.first] = index;
+    //     ++index;
+    // }
 
     // uint64_t total_covered_codewords = 0;
     // for (uint32_t i = 0; i < constants::max_fractal_steps; ++i) {
@@ -152,13 +204,13 @@ void decode(std::string const& type,
     //           << total_covered_codewords * 100.0 / total_codewords // stats.codewords[1]
     //           << "%" << std::endl;
 
-    for (uint32_t i = 0; i < constants::max_fractal_steps; ++i) {
-        std::sort(stats.codewords_freqs[i].begin(),
-                  stats.codewords_freqs[i].begin() + constants::top_k,
-                  [](auto const& p_x, auto const& p_y) {
-                        return p_x.first < p_y.first;
-                  });
-    }
+    // for (uint32_t i = 0; i < constants::max_fractal_steps; ++i) {
+    //     std::sort(stats.codewords_freqs[i].begin(),
+    //               stats.codewords_freqs[i].begin() + constants::top_k,
+    //               [](auto const& p_x, auto const& p_y) {
+    //                     return p_x.first < p_y.first;
+    //               });
+    // }
 
     // for (uint32_t i = 0; i < constants::max_fractal_steps; ++i) {
     //     auto const& freqs = stats.codewords_freqs[i];
@@ -167,15 +219,15 @@ void decode(std::string const& type,
     //     }
     // }
 
-    begin = (uint8_t const*) file.data();
-    emit_selectors = true;
-    while (begin != end) {
-        uint32_t n, universe;
-        begin = header::read(begin, &n, &universe);
-        begin = Decoder::decode(begin, decoded.data(), universe, n, &dict
-                                , stats, emit_selectors
-                                );
-    }
+    // begin = (uint8_t const*) file.data();
+    // emit_selectors = true;
+    // while (begin != end) {
+    //     uint32_t n, universe;
+    //     begin = header::read(begin, &n, &universe);
+    //     begin = Decoder::decode(begin, decoded.data(), universe, n, &dict
+    //                             , stats, emit_selectors
+    //                             );
+    // }
 
     // {
     //     std::vector<std::pair<uint32_t, uint64_t>> v;

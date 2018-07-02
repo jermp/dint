@@ -611,12 +611,15 @@ namespace ds2i {
 
                 if (index < dictionary_type::reserved) {
                     auto ptr = reinterpret_cast<uint8_t const*>(&index);
-                    out.insert(out.end(), ptr, ptr + 2);
+                    out.insert(out.end(), ptr, ptr + 2); // b = 16
+                    // out.insert(out.end(), ptr, ptr + 1); // b = 8
                     begin += std::min<uint64_t>(run_size, end - begin);
                 } else {
-                    for (uint32_t sub_block_size = dictionary_type::max_entry_size;
-                                  sub_block_size != 0; sub_block_size /= 2)
+                    // for (uint32_t sub_block_size = dictionary_type::max_entry_size;
+                    //               sub_block_size != 0; sub_block_size /= 2)
+                    for (uint32_t s = 0; s < constants::max_fractal_steps; ++s)
                     {
+                        uint32_t sub_block_size = constants::target_sizes[s];
                         // std::cout << "sub_block_size " << sub_block_size << std::endl;
                         uint32_t len = std::min<uint32_t>(sub_block_size, end - begin);
                         index = builder->lookup(begin, len);
@@ -632,7 +635,8 @@ namespace ds2i {
 
                         if (index != dictionary_type::invalid_index) {
                             auto ptr = reinterpret_cast<uint8_t const*>(&index);
-                            out.insert(out.end(), ptr, ptr + 2);
+                            out.insert(out.end(), ptr, ptr + 2); // b = 16
+                            // out.insert(out.end(), ptr, ptr + 1); // b = 8
                             begin += len;
                             break;
                         }
@@ -654,116 +658,126 @@ namespace ds2i {
                                      uint32_t* out,
                                      uint32_t /*universe*/, size_t n,
                                      dictionary_type const* dict
-                                     ,
-                                     dint_statistics& stats,
-                                     bool emit_selectors
+                                     // ,
+                                     // dint_statistics& stats,
+                                     // bool emit_selectors
                                      )
         {
             uint16_t const* ptr = reinterpret_cast<uint16_t const*>(in);
+            // uint8_t const* ptr = in;
             for (size_t i = 0; i != n; ++ptr) {
                 uint32_t index = *ptr;
                 uint32_t decoded_ints = 1;
 
-                if (DS2I_LIKELY(index > 5))
+                // if (emit_selectors) {
+                //     // index = stats.freqs[index];
+                //     // uint32_t codeword_bits = floor_log2(index + 2);
+                //     // std::cout << codeword_bits << "\n";
+                // } else {
+                //     stats.freqs[index] += 1;
+                // }
+
+                if (DS2I_LIKELY(index > dictionary_type::reserved - 1))
                 {
                     decoded_ints = dict->copy(index, out);
 
-                    stats.ints[1] += decoded_ints;
-                    stats.codewords[1] += 1;
+                    // stats.ints[1] += decoded_ints;
+                    // stats.codewords[1] += 1;
 
-                    if (decoded_ints == 1) {
-                        stats.codewords_distr[4] += 1;
-                    }
+                    // if (decoded_ints == 1) {
+                    //     stats.codewords_distr[4] += 1;
+                    // }
 
-                    stats.freqs[index] += 1;
+                    // uint64_t selector = ceil_log2(decoded_ints);
+                    // auto& f = stats.codewords_freqs[selector];
+                    // if (emit_selectors)
+                    // {
+                    //     // auto p = std::make_pair<uint64_t, uint64_t>(index, 0);
 
-                    uint64_t selector = ceil_log2(decoded_ints);
-                    auto& f = stats.codewords_freqs[selector];
-                    if (emit_selectors)
-                    {
-                        auto p = std::make_pair<uint64_t, uint64_t>(index, 0);
+                    //     // // bool found = std::binary_search(f.begin(), f.begin() + constants::top_k, p,
+                    //     // //                     [](auto const& p_x, auto const& p_y) {
+                    //     // //                         return p_x.first < p_y.first;
+                    //     // //                     });
 
-                        // bool found = std::binary_search(f.begin(), f.begin() + constants::top_k, p,
-                        //                     [](auto const& p_x, auto const& p_y) {
-                        //                         return p_x.first < p_y.first;
-                        //                     });
-
-                        auto it = std::lower_bound(f.begin(), f.begin() + constants::top_k, p,
-                                    [](auto const& p_x, auto const& p_y) {
-                                        return p_x.first < p_y.first;
-                                    });
-                        if ((*it).first == p.first) {
-                            uint32_t rank = std::distance(f.begin(), it);
-                            if (rank < 85) {
-                                std::cout << "0\n";
-                            } else if (rank < 170) {
-                                std::cout << "1\n";
-                            } else {
-                                std::cout << "2\n";
-                            }
-                        } else {
-                            std::cout << "3\n";
-                        }
-                        // if (selector <= 2 and found) {
-                        //     std::cout << selector << "\n";
-                        // } else {
-                        //     std::cout << "3\n";
-                        // }
-
-                    } else {
-                        f[index].second += 1;
-                    }
+                    //     // auto it = std::lower_bound(f.begin(), f.begin() + constants::top_k, p,
+                    //     //             [](auto const& p_x, auto const& p_y) {
+                    //     //                 return p_x.first < p_y.first;
+                    //     //             });
+                    //     // if ((*it).first == p.first) {
+                    //     //     uint32_t rank = std::distance(f.begin(), it);
+                    //     //     if (rank < 85) {
+                    //     //         std::cout << "0\n";
+                    //     //     } else if (rank < 170) {
+                    //     //         std::cout << "1\n";
+                    //     //     } else {
+                    //     //         std::cout << "2\n";
+                    //     //     }
+                    //     // } else {
+                    //     //     std::cout << "3\n";
+                    //     // }
+                    //     // // if (selector <= 2 and found) {
+                    //     // //     std::cout << selector << "\n";
+                    //     // // } else {
+                    //     // //     std::cout << "3\n";
+                    //     // // }
+                    // } else {
+                    //     f[index].second += 1;
+                    // }
 
                 } else {
                     static const uint32_t run_lengths[6] = {1, // exception
                                                             256, 128, 64, 32, 16};
                     decoded_ints = run_lengths[index]; // runs of 256, 128, 64, 32 or 16 ints
+
                     if (DS2I_UNLIKELY(decoded_ints == 1)) {
                         uint32_t exception = *(reinterpret_cast<uint32_t const*>(++ptr));
                         *out = exception;
                         ++ptr;
 
-                        stats.ints[2] += 1;
-                        stats.codewords[2] += 3;
-                        stats.codewords_distr[5] += 3;
+                        // stats.ints[2] += 1;
+                        // stats.codewords[2] += 3;
+                        // stats.codewords_distr[5] += 3;
 
-                        if (exception < 256) {
-                            stats.exceptions[0] += 1;
-                        } else if (exception < 65536) {
-                            stats.exceptions[1] += 1;
-                        } else if (exception < 16777216) {
-                            stats.exceptions[2] += 1;
-                        } else {
-                            stats.exceptions[3] += 1;
-                        }
+                        // if (exception < 256) {
+                        //     stats.exceptions[0] += 1;
+                        // } else if (exception < 65536) {
+                        //     stats.exceptions[1] += 1;
+                        // } else if (exception < 16777216) {
+                        //     stats.exceptions[2] += 1;
+                        // } else {
+                        //     stats.exceptions[3] += 1;
+                        // }
 
-                        auto it = stats.exceptions_freqs.find(exception);
-                        if (it != stats.exceptions_freqs.end()) {
-                            (*it).second += 1;
-                        } else {
-                            stats.exceptions_freqs[exception] = 1;
-                        }
+                        // auto it = stats.exceptions_freqs.find(exception);
+                        // if (it != stats.exceptions_freqs.end()) {
+                        //     (*it).second += 1;
+                        // } else {
+                        //     stats.exceptions_freqs[exception] = 1;
+                        // }
 
+                        // needed when b = 8
+                        // ++ptr;
+                        // ++ptr;
                     }
-                    else {
+                    // else {
 
-                        stats.ints[0] += decoded_ints;
-                        stats.codewords[0] += 1;
-                    }
+                    //     stats.ints[0] += decoded_ints;
+                    //     stats.codewords[0] += 1;
+                    // }
                 }
 
                 out += decoded_ints;
                 i += decoded_ints;
 
-                if (decoded_ints >= 16) {
-                    stats.codewords_distr[0] += 1;
-                } else if (decoded_ints == 8) {
-                    stats.codewords_distr[1] += 1;
-                } else if (decoded_ints == 4) {
-                    stats.codewords_distr[2] += 1;
-                } else if (decoded_ints == 2) {
-                    stats.codewords_distr[3] += 1;
-                }
+                // if (decoded_ints >= 16) {
+                //     stats.codewords_distr[0] += 1;
+                // } else if (decoded_ints == 8) {
+                //     stats.codewords_distr[1] += 1;
+                // } else if (decoded_ints == 4) {
+                //     stats.codewords_distr[2] += 1;
+                // } else if (decoded_ints == 2) {
+                //     stats.codewords_distr[3] += 1;
+                // }
             }
 
             return reinterpret_cast<uint8_t const*>(ptr);

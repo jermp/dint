@@ -88,12 +88,21 @@ namespace ds2i {
 
         static void collect(std::vector<uint32_t>& buf, map_type& bmap) {
             auto b = buf.data();
-            for (uint32_t block_size = max_block_size; block_size != 0; block_size /= 2) {
+
+            for (uint32_t s = 0; s < constants::max_fractal_steps; ++s) {
+                uint32_t block_size = constants::target_sizes[s];
                 uint32_t blocks = buf.size() / block_size;
                 for (uint32_t i = 0, pos = 0; i < blocks; ++i, pos += block_size) {
                     increase_frequency(b + pos, block_size, bmap);
                 }
             }
+
+            // for (uint32_t block_size = max_block_size; block_size != 0; block_size /= 2) {
+            //     uint32_t blocks = buf.size() / block_size;
+            //     for (uint32_t i = 0, pos = 0; i < blocks; ++i, pos += block_size) {
+            //         increase_frequency(b + pos, block_size, bmap);
+            //     }
+            // }
         }
     };
 
@@ -114,6 +123,24 @@ namespace ds2i {
                     uint32_t amount = max_block_size / block_size;
                     increase_frequency(b + pos, block_size, bmap, amount);
                 }
+            }
+        }
+    };
+
+    template<uint32_t t_max_block_size>
+    struct fixed
+    {
+        static const uint32_t max_block_size = t_max_block_size;
+
+        static std::string type() {
+            return "fixed";
+        }
+
+        static void collect(std::vector<uint32_t>& buf, map_type& bmap) {
+            auto b = buf.data();
+            uint32_t blocks = buf.size() / max_block_size;
+            for (uint32_t i = 0, pos = 0; i < blocks; ++i, pos += max_block_size) {
+                increase_frequency(b + pos, max_block_size, bmap);
             }
         }
     };

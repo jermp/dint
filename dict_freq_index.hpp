@@ -33,10 +33,9 @@ namespace ds2i {
                                   uint64_t /* occurrences */)
             {
                 if (!n) throw std::invalid_argument("List must be nonempty");
-                dict_posting_list<dictionary_type, coder_type>::write(m_docs_dict_builder,
-                                                   m_freqs_dict_builder,
-                                                   m_lists, n,
-                                                   docs_begin, freqs_begin);
+                typedef dict_posting_list<dictionary_type, coder_type> sequence_type;
+                sequence_type::write(m_docs_dict_builder, m_freqs_dict_builder,
+                                     m_lists, n, docs_begin, freqs_begin);
                 m_endpoints.push_back(m_lists.size());
             }
 
@@ -64,6 +63,11 @@ namespace ds2i {
                 dfi.m_size = m_endpoints.size() - 1;
                 dfi.m_num_docs = m_num_docs;
                 dfi.m_lists.steal(m_lists);
+
+                std::cout << "docs codewords: " << m_docs_dict_builder.codewords << std::endl;
+                std::cout << "docs exceptions: " << m_docs_dict_builder.exceptions << std::endl;
+                std::cout << "freqs codewords: " << m_freqs_dict_builder.codewords << std::endl;
+                std::cout << "freqs exceptions: " << m_freqs_dict_builder.exceptions << std::endl;
 
                 m_docs_dict_builder.build(dfi.m_docs_dict);
                 m_freqs_dict_builder.build(dfi.m_freqs_dict);
@@ -111,8 +115,8 @@ namespace ds2i {
                     }
                 }
 
-                builder.print_entries(dictionary_file + ".log");
-                builder.print_indexes(dictionary_file + ".rbo_input.estimated");
+                // builder.print_entries(dictionary_file + ".log");
+                // builder.print_indexes(dictionary_file + ".rbo_input.estimated");
             }
         };
 

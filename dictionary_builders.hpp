@@ -401,4 +401,35 @@ namespace ds2i {
             }
         }
     };
+
+    template<typename Dictionary, typename Statistics>
+    struct long_strings_only
+    {
+        typedef Dictionary dictionary_type;
+        typedef Statistics statistics_type;
+
+        static std::string type() {
+            return "LSO-" + std::to_string(dictionary_type::num_entries) +
+                      "-" + std::to_string(dictionary_type::max_entry_size);
+        }
+
+        static auto filter() {
+            cost_filter filter(constants::eps / 1000);
+            return filter;
+        }
+
+        static void build(typename dictionary_type::builder& builder,
+                          statistics_type& stats)
+        {
+            logger() << "building " << type() << " dictionary for " << stats.total_integers << std::endl;
+            builder.init(stats.total_integers);
+
+            for (auto const& block: stats.blocks) {
+                builder.append(block.data.data(),
+                               block.data.size(),
+                               block.freq);
+                if (builder.full()) break;
+            }
+        }
+    };
 }
