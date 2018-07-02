@@ -132,7 +132,7 @@ namespace ds2i {
     //             std::vector<uint32_t> run(256, 0);
     //             uint8_t const* ptr = reinterpret_cast<uint8_t const*>(run.data());
     //             uint32_t i = 1;
-    //             for (uint32_t n = 256; n < max_entry_size; n /= 2, ++i) {
+    //             for (uint32_t n = 256; n >= max_entry_size; n /= 2, ++i) {
     //                 uint64_t hash = hash_bytes64(byte_range(ptr, ptr + n * sizeof(uint32_t)));
     //                 m_map[hash] = i;
     //             }
@@ -464,7 +464,7 @@ namespace ds2i {
     //             std::vector<uint32_t> run(256, 0);
     //             uint8_t const* ptr = reinterpret_cast<uint8_t const*>(run.data());
     //             uint32_t i = 1;
-    //             for (uint32_t n = 256; n < max_entry_size; n /= 2, ++i) {
+    //             for (uint32_t n = 256; n >= max_entry_size; n /= 2, ++i) {
     //                 uint64_t hash = hash_bytes64(byte_range(ptr, ptr + n * sizeof(uint32_t)));
     //                 m_map[hash] = i;
     //             }
@@ -601,7 +601,7 @@ namespace ds2i {
         static const uint32_t max_entry_size = t_max_entry_size;
         static const uint32_t invalid_index = uint32_t(-1);
         static const uint32_t reserved = 6; // 1 for exceptions
-                                            // 5 for runs
+                                            // 5 for runs: 256, 128, 64, 32 and 16
 
         struct builder
         {
@@ -622,12 +622,11 @@ namespace ds2i {
 
             void init(uint64_t total_integers = 0) {
                 m_size = reserved;
-
                 // at the beginning, everything is exception(al)
                 m_final_bpi = constants::initial_bpi;
                 m_total_coverage = 0.0;
                 m_total_integers = total_integers;
-
+                m_table.reserve(num_entries);
                 m_offsets.reserve(2 * num_entries);
                 for (uint32_t i = 0; i < reserved; ++i) { // unused offsets
                     m_offsets.push_back(0);
@@ -650,7 +649,7 @@ namespace ds2i {
             }
 
             void write(std::ofstream& dictionary_file) const {
-                logger() << "saving " << m_size << " entries" << std::endl;
+                // logger() << "saving " << m_size << " entries" << std::endl;
                 uint32_t offsets_size = m_offsets.size();
                 uint32_t table_size = m_table.size();
                 dictionary_file.write(reinterpret_cast<char const*>(&m_size), sizeof(uint32_t));
@@ -664,13 +663,36 @@ namespace ds2i {
                 uint32_t offsets_size = 0;
                 uint32_t table_size = 0;
                 dictionary_file.read(reinterpret_cast<char*>(&m_size), sizeof(uint32_t));
-                logger() << "loading " << m_size << " entries" << std::endl;
+                // logger() << "loading " << m_size << " entries" << std::endl;
                 dictionary_file.read(reinterpret_cast<char*>(&offsets_size), sizeof(uint32_t));
                 dictionary_file.read(reinterpret_cast<char*>(&table_size), sizeof(uint32_t));
+                // logger() << "offsets_size " << offsets_size << std::endl;
+                // logger() << "table_size " << table_size << std::endl;
                 m_table.resize(table_size);
                 m_offsets.resize(offsets_size);
                 dictionary_file.read(reinterpret_cast<char*>(m_offsets.data()), offsets_size * sizeof(uint32_t));
                 dictionary_file.read(reinterpret_cast<char*>(m_table.data()), table_size * sizeof(uint32_t));
+
+                // for (auto x: m_offsets) {
+                //     std::cerr << x << " ";
+                // }
+                // std::cerr << std::endl;
+
+                // for (uint32_t i = 2 * reserved, j = reserved; i < 2 * m_size; i += 2, ++j) {
+                //     uint32_t s = m_offsets[i];
+                //     std::cerr << "size: " << s << std::endl;
+                //     if (s != size(j)) {
+                //         std::cerr << "ERROR: got " << size(j) << ", but expected " << s << std::endl;
+                //     }
+                //     uint32_t offset = m_offsets[i + 1];
+                //     std::cerr << "offset: " << offset << std::endl;
+                //     auto ptr = get(j);
+                //     for (uint32_t k = 0; k < s; ++k) {
+                //         std::cerr << *ptr << " ";
+                //         ++ptr;
+                //     }
+                //     std::cerr << std::endl;
+                // }
             }
 
             bool full() {
@@ -706,14 +728,11 @@ namespace ds2i {
                 assert(constants::target_sizes[0] == max_entry_size);
                 for (uint32_t s = 1; s < constants::max_fractal_steps; ++s) {
                     uint32_t target_size = constants::target_sizes[s];
-                    auto ptr = entry;
-                    uint64_t hash = hash_bytes64(ptr, target_size);
-                    if (m_set.find(hash) == m_set.cend())
-                    {
+                    uint64_t hash = hash_bytes64(entry, target_size);
+                    if (m_set.find(hash) == m_set.cend()) {
                         m_offsets.push_back(target_size);
                         m_offsets.push_back(entry_offset);
                         m_set.insert(hash);
-
                         ++m_size;
                         if (full()) return false;
                     }
@@ -725,12 +744,20 @@ namespace ds2i {
             void prepare_for_encoding() {
                 std::vector<uint32_t> run(256, 0);
                 uint32_t i = 1;
-                for (uint32_t n = 256; n < max_entry_size; n /= 2, ++i) {
+                for (uint32_t n = 256; n >= max_entry_size; n /= 2, ++i) {
+                    // logger() << "run of size " << n << " with codeword " << i << std::endl;
                     uint64_t hash = hash_bytes64(run.data(), n);
                     m_map[hash] = i;
                 }
                 for (; i < num_entries; ++i) {
                     uint32_t entry_size = size(i);
+                    // logger() << "entry of size " << entry_size << ": ";
+                    // auto ptr = get(i);
+                    // for (uint32_t k = 0; k < entry_size; ++k) {
+                    //     std::cerr << *ptr << " ";
+                    //     ++ptr;
+                    // }
+                    // std::cerr << std::endl;
                     uint64_t hash = hash_bytes64(get(i), entry_size);
                     m_map[hash] = i;
                 }
@@ -819,7 +846,14 @@ namespace ds2i {
             uint32_t size = m_offsets[i * 2];
             uint32_t offset = m_offsets[i * 2 + 1];
             uint32_t const* ptr = &m_table[offset];
-            memcpy(out, ptr, max_entry_size * sizeof(uint32_t));
+
+            // NOTE: if we copy max_entry_size, then we cannot
+            // skip anymore because we will not have 0s: must be overwritten
+            // this is also true for the packed variant as well
+
+            memcpy(out, ptr, max_entry_size * sizeof(uint32_t)); // NOTE: this will decode uncorrectly, since we will copy some garbage
+            // memcpy(out, ptr, size * sizeof(uint32_t));
+
             return size;
         }
 
