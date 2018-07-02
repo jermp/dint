@@ -706,56 +706,18 @@ namespace ds2i {
                 assert(constants::target_sizes[0] == max_entry_size);
                 for (uint32_t s = 1; s < constants::max_fractal_steps; ++s) {
                     uint32_t target_size = constants::target_sizes[s];
-                    // uint32_t n = 1;
-                    // if (target_size == 1) {
-                    //     n = max_entry_size;
-                    // }
-
                     auto ptr = entry;
-                    // for (uint32_t i = 0; i < n; ++i) {
-                        uint64_t hash = hash_bytes64(ptr, target_size);
-                        if (m_set.find(hash) != m_set.cend())
-                        {
-                            // bool found = true;
-                            // uint32_t base = 0;
-                            // for (; !found and base < entry_offset; base += max_entry_size) {
-                            //     auto ptrptr = ptr;
-                            //     found = true;
-                            //     for (uint32_t i = 0; i < target_size; ++i, ++ptrptr) {
-                            //         if (m_table[base + i] != *ptrptr) {
-                            //             found = false;
-                            //             break;
-                            //         }
-                            //     }
-                            // }
+                    uint64_t hash = hash_bytes64(ptr, target_size);
+                    if (m_set.find(hash) == m_set.cend())
+                    {
+                        m_offsets.push_back(target_size);
+                        m_offsets.push_back(entry_offset);
+                        m_set.insert(hash);
 
-                            // m_offsets.push_back(target_size);
-                            // m_offsets.push_back(base);
-
-                        } else {
-                            m_offsets.push_back(target_size);
-                            m_offsets.push_back(entry_offset);
-                            m_set.insert(hash);
-
-                            ++m_size;
-                            if (full()) return false;
-                        }
-
-                        // ++m_size;
-                        // ++ptr;
-                        // if (full()) return false;
-                    // }
+                        ++m_size;
+                        if (full()) return false;
+                    }
                 }
-
-                // // logging: USELESS
-                // double cost_saving = compute_saving(entry_size, freq, m_total_integers);
-                // m_total_coverage += freq * entry_size * 100.0 / m_total_integers;
-                // m_final_bpi -= cost_saving;
-                // if (m_size % 1000 == 0) {
-                //     logger() << "entries in dictionary " << m_size << "/" << num_entries << std::endl;
-                //     logger() << "current bits x integer: " << m_final_bpi << std::endl;
-                //     logger() << "covering " << m_total_coverage << "% of integers" << std::endl;
-                // }
 
                 return true;
             }
