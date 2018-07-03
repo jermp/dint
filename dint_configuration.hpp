@@ -15,10 +15,10 @@ namespace ds2i {
         /********/
 
         // b = 16, l = 16
-        static const uint32_t max_fractal_steps = 5;
-        static const uint32_t max_entry_size = 16;
-        static const uint32_t target_sizes[5] = {16, 8, 4, 2, 1};
-        static const uint32_t num_entries = 65536;
+        // static const uint32_t max_fractal_steps = 5;
+        // static const uint32_t max_entry_size = 16;
+        // static const uint32_t target_sizes[5] = {16, 8, 4, 2, 1};
+        // static const uint32_t num_entries = 65536;
 
         // b = 16, l = 12
         // static const uint32_t max_fractal_steps = 5;
@@ -27,9 +27,10 @@ namespace ds2i {
         // static const uint32_t num_entries = 65536;
 
         // b = 16, l = 8
-        // static const uint32_t max_fractal_steps = 4;
-        // static const uint32_t max_entry_size = 8;
-        // static const uint32_t num_entries = 65536;
+        static const uint32_t max_fractal_steps = 4;
+        static const uint32_t max_entry_size = 8;
+        static const uint32_t target_sizes[4] = {8, 4, 2, 1};
+        static const uint32_t num_entries = 65536;
 
         // b = 16, l = 4
         // static const uint32_t max_fractal_steps = 3;

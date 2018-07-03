@@ -57,14 +57,17 @@ void decode(std::string const& type,
 
     dint_statistics stats(dictionary_type::num_entries);
 
-    bool emit_selectors = false;
+    // bool emit_selectors = false;
 
     while (begin != end) {
         uint32_t n, universe;
         begin = header::read(begin, &n, &universe);
+        // if (n < 8)
+        //     std::cout << "n = " << n << "; universe = " << universe << std::endl;
         auto start = clock_type::now();
         begin = Decoder::decode(begin, decoded.data(), universe, n, &dict
-                                // , stats, emit_selectors
+                                // , stats
+                                // , emit_selectors
                                 );
         auto finish = clock_type::now();
         std::chrono::duration<double> elapsed = finish - start;
@@ -92,12 +95,30 @@ void decode(std::string const& type,
     // std::cout << "\"ints_x_sec\": \"" << ints_x_sec << "\"";
     // std::cout << "}" << std::endl;
 
-    uint64_t total_codewords = stats.codewords[0] +
-                               stats.codewords[1] +
-                               stats.codewords[2] ;
-    uint64_t total_decoded_ints = stats.ints[0] +
-                                  stats.ints[1] +
-                                  stats.ints[2] ;
+    // uint64_t total_codewords = 0;
+    // uint64_t total_decoded_ints = 0;
+    // for (int i = 0; i < stats.codewords_distr.size(); ++i) {
+    //     total_codewords += stats.codewords_distr[i];
+    //     total_decoded_ints += stats.ints_distr[i];
+    // }
+
+    // std::cout << "total_codewords " << total_codewords << std::endl;
+    // std::cout << "total_decoded_ints " << total_decoded_ints << std::endl;
+
+    // for (int i = 0; i < stats.codewords_distr.size(); ++i) {
+    //     if (i == 0) std::cout << "freq:\n";
+    //     else if (i == stats.codewords_distr.size() - 1) std::cout << "rare:\n";
+    //     else std::cout << (uint32_t(1) << (i - 1)) << ":\n";
+    //     std::cout << "\t codewords: " << stats.codewords_distr[i] * 100.0 / total_codewords << "%" << std::endl;
+    //     std::cout << "\t integers: " << stats.ints_distr[i] * 100.0 / total_decoded_ints << "%" << std::endl;
+    // }
+
+
+
+
+
+
+    // NOTE: old stuff
     // std::cout << "{";
     // std::cout << "\"filename\": \"" << encoded_data_filename << "\", ";
     // std::cout << "\"num_sequences\": \"" << num_decoded_lists << "\", ";
@@ -136,48 +157,48 @@ void decode(std::string const& type,
     // }
 
     // (index, frequency)
-    std::vector<std::pair<uint32_t, uint64_t>> v;
-    v.reserve(stats.freqs.size());
+    // std::vector<std::pair<uint32_t, uint64_t>> v;
+    // v.reserve(stats.freqs.size());
 
-    uint32_t index = 0;
-    for (auto f: stats.freqs) {
-        v.emplace_back(index, f);
-        ++index;
-    }
+    // uint32_t index = 0;
+    // for (auto f: stats.freqs) {
+    //     v.emplace_back(index, f);
+    //     ++index;
+    // }
 
-    std::sort(v.begin(), v.end(),
-        [](auto const& f_x, auto const& f_y) {
-            return f_x.second > f_y.second;
-        });
+    // std::sort(v.begin(), v.end(),
+    //     [](auto const& f_x, auto const& f_y) {
+    //         return f_x.second > f_y.second;
+    //     });
 
-    logger() << "computing space usage" << std::endl;
-    index = 0;
-    uint64_t bits = 0;
-    uint64_t sum_freqs = 0;
-    for (auto const& p: v) {
-        uint32_t frequency = p.second;
-        uint32_t codeword_bits = floor_log2(index + 2);
-        bits += codeword_bits * frequency;
-        ++index;
-        sum_freqs += frequency;
-    }
+    // logger() << "computing space usage" << std::endl;
+    // index = 0;
+    // uint64_t bits = 0;
+    // uint64_t sum_freqs = 0;
+    // for (auto const& p: v) {
+    //     uint32_t frequency = p.second;
+    //     uint32_t codeword_bits = floor_log2(index + 2);
+    //     bits += codeword_bits * frequency;
+    //     ++index;
+    //     sum_freqs += frequency;
+    // }
 
-    logger() << "total integers: " << num_decoded_ints << std::endl;
-    logger() << "total codewords: " << total_codewords << std::endl;
-    // logger() << "sum frequencies: " << sum_freqs << std::endl;
-    // logger() << "total bits: " << bits << std::endl;
+    // logger() << "total integers: " << num_decoded_ints << std::endl;
+    // logger() << "total codewords: " << total_codewords << std::endl;
+    // // logger() << "sum frequencies: " << sum_freqs << std::endl;
+    // // logger() << "total bits: " << bits << std::endl;
 
-    double BPI_cw_fixed = total_codewords * 16.0 / num_decoded_ints;
-    double BPI_cw_variable = double(bits) / num_decoded_ints;
-    double BPI_cw_len = 4.0 * sum_freqs / num_decoded_ints;
-    double BPI_ex = stats.ints[2] * 32.0 / num_decoded_ints;
+    // double BPI_cw_fixed = total_codewords * 16.0 / num_decoded_ints;
+    // double BPI_cw_variable = double(bits) / num_decoded_ints;
+    // double BPI_cw_len = 4.0 * sum_freqs / num_decoded_ints;
+    // double BPI_ex = stats.ints[2] * 32.0 / num_decoded_ints;
 
-    logger() << "BPI for variable-len. codewords: " << BPI_cw_variable << std::endl;
-    logger() << "BPI for codewords' lengths: " << BPI_cw_len << std::endl;
-    logger() << "BPI exceptions: " << BPI_ex << std::endl;
+    // logger() << "BPI for variable-len. codewords: " << BPI_cw_variable << std::endl;
+    // logger() << "BPI for codewords' lengths: " << BPI_cw_len << std::endl;
+    // logger() << "BPI exceptions: " << BPI_ex << std::endl;
 
-    logger() << "total BPI for fixed-len. codewords: " << BPI_cw_fixed << std::endl;
-    logger() << "total BPI for variable-len. codewords: " << BPI_cw_variable + BPI_cw_len + BPI_ex << std::endl;
+    // logger() << "total BPI for fixed-len. codewords: " << BPI_cw_fixed << std::endl;
+    // logger() << "total BPI for variable-len. codewords: " << BPI_cw_variable + BPI_cw_len + BPI_ex << std::endl;
 
     // substitute the freq value in freqs with their rank to derive the codeword
     // index = 0;
@@ -306,21 +327,21 @@ int main(int argc, char** argv) {
 
     logger() << cmd << std::endl;
 
-    decode<dint>(type, encoded_data_filename, dictionary_filename);
+    // decode<dint>(type, encoded_data_filename, dictionary_filename);
 
-//     if (false) {
-// #define LOOP_BODY(R, DATA, T)                                          \
-//         } else if (type == BOOST_PP_STRINGIZE(T)) {                    \
-//             decode<BOOST_PP_CAT(T, )>                                  \
-//                 (type, encoded_data_filename, dictionary_filename);    \
-//             /**/
+    if (false) {
+#define LOOP_BODY(R, DATA, T)                                          \
+        } else if (type == BOOST_PP_STRINGIZE(T)) {                    \
+            decode<BOOST_PP_CAT(T, )>                                  \
+                (type, encoded_data_filename, dictionary_filename);    \
+            /**/
 
-//         BOOST_PP_SEQ_FOR_EACH(LOOP_BODY, _, CODECS);
-// #undef LOOP_BODY
-//     } else {
-//         logger() << "ERROR: unknown type '"
-//                  << type << "'" << std::endl;
-//     }
+        BOOST_PP_SEQ_FOR_EACH(LOOP_BODY, _, CODECS);
+#undef LOOP_BODY
+    } else {
+        logger() << "ERROR: unknown type '"
+                 << type << "'" << std::endl;
+    }
 
     return 0;
 }

@@ -54,16 +54,18 @@ namespace ds2i {
                                 <constants::num_entries,
                                  constants::max_entry_size>;
 
-    using stats_collector_type = fixed< // adjusted, full, fixed
-                                    dictionary_type::max_entry_size
-                                    >;
+    using adjusted_collector_type = adjusted<dictionary_type::max_entry_size>;
+    using     full_collector_type =     full<dictionary_type::max_entry_size>;
+    using    fixed_collector_type =    fixed<dictionary_type::max_entry_size>;
 
-    using block_stats_type = block_statistics<stats_collector_type>;
+    using adjusted_block_stats_type = block_statistics<adjusted_collector_type>;
+    using     full_block_stats_type = block_statistics<full_collector_type>;
+    using    fixed_block_stats_type = block_statistics<fixed_collector_type>;
 
-    using DSF = decreasing_static_frequencies<dictionary_type, block_stats_type>;
-    using PDF = prefix_discounted_frequencies<dictionary_type, block_stats_type>;
-    using LSS =     longest_to_shortest_sweep<dictionary_type, block_stats_type>;
-    using LSO =             long_strings_only<dictionary_type, block_stats_type>;
+    using DSF = decreasing_static_frequencies<dictionary_type, adjusted_block_stats_type>;
+    using PDF = prefix_discounted_frequencies<dictionary_type, full_block_stats_type>;
+    using LSS =     longest_to_shortest_sweep<dictionary_type, adjusted_block_stats_type>;
+    using LSO =             long_strings_only<dictionary_type, fixed_block_stats_type>;
 
     using DSF_block_dint_index = dict_freq_index<DSF, dint_block>;
     using PDF_block_dint_index = dict_freq_index<PDF, dint_block>;

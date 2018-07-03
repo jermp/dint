@@ -37,6 +37,7 @@ void encode(std::string const& type,
         builder.load(dictionary_file);
         logger() << "preparing for encoding..." << std::endl;
         builder.prepare_for_encoding();
+        builder.print();
     }
 
     uint64_t total_progress = input.num_postings();
@@ -160,21 +161,21 @@ int main(int argc, char** argv) {
 
     logger() << cmd << std::endl;
 
-    encode<dint>(type, collection_name, output_filename, dictionary_filename);
+    // encode<dint>(type, collection_name, output_filename, dictionary_filename);
 
-//     if (false) {
-// #define LOOP_BODY(R, DATA, T)                                                     \
-//         } else if (type == BOOST_PP_STRINGIZE(T)) {                               \
-//             encode<BOOST_PP_CAT(T, )>                                             \
-//                 (type, collection_name, output_filename, dictionary_filename);    \
-//             /**/
+    if (false) {
+#define LOOP_BODY(R, DATA, T)                                                     \
+        } else if (type == BOOST_PP_STRINGIZE(T)) {                               \
+            encode<BOOST_PP_CAT(T, )>                                             \
+                (type, collection_name, output_filename, dictionary_filename);    \
+            /**/
 
-//         BOOST_PP_SEQ_FOR_EACH(LOOP_BODY, _, CODECS);
-// #undef LOOP_BODY
-//     } else {
-//         logger() << "ERROR: unknown type '"
-//                  << type << "'" << std::endl;
-//     }
+        BOOST_PP_SEQ_FOR_EACH(LOOP_BODY, _, CODECS);
+#undef LOOP_BODY
+    } else {
+        logger() << "ERROR: unknown type '"
+                 << type << "'" << std::endl;
+    }
 
     return 0;
 }

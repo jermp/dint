@@ -298,12 +298,17 @@ namespace ds2i {
         };
 
         static void encode(uint32_t const* in,
-                           uint32_t /*universe*/, uint32_t n,
+                           uint32_t universe, uint32_t n,
                            std::vector<uint8_t>& out,
                            dictionary_type::builder const* /*builder*/)
         {
-            if (n == 1) {
-                TightVariableByte::encode_single(in[0], out);
+            // if (n == 1) {
+            //     TightVariableByte::encode_single(in[0], out);
+            //     return;
+            // }
+
+            if (n < 8) {
+                interpolative::encode(in, universe, n, out);
                 return;
             }
 
@@ -325,11 +330,15 @@ namespace ds2i {
         // we only allow varint to be inlined (others have DS2I_NOILINE)
         static uint8_t const* decode(uint8_t const* in,
                                      uint32_t* out,
-                                     uint32_t /*universe*/, uint32_t n,
+                                     uint32_t universe, uint32_t n,
                                      dictionary_type const* /*dict*/)
         {
-            if (DS2I_UNLIKELY(n == 1)) {
-                return TightVariableByte::decode(in, out, 1);
+            // if (DS2I_UNLIKELY(n == 1)) {
+            //     return TightVariableByte::decode(in, out, 1);
+            // }
+
+            if (DS2I_UNLIKELY(n < 8)) {
+                return interpolative::decode(in, out, universe, n);
             }
 
             static codec_type varint_codec; // decodeBlock is thread-safe
@@ -544,36 +553,12 @@ namespace ds2i {
     struct dint_statistics
     {
         dint_statistics(uint32_t num_entries)
-            : ints(3, 0)
-            , codewords(3, 0)
+            : ints_distr(6, 0)
             , codewords_distr(6, 0)
-            , exceptions(4, 0)
-            , freqs(num_entries, 0)
-            , codewords_freqs(constants::max_fractal_steps,
-                              std::vector<std::pair<uint64_t, uint64_t>>(constants::num_entries))
-        {
-            for (auto& freqs: codewords_freqs) {
-                for (uint64_t i = 0; i < constants::num_entries; ++i) {
-                    freqs[i].first = i;
-                    freqs[i].second = 0;
-                }
-            }
-        }
+        {}
 
-        std::vector<uint64_t> ints;       // 0:runs; 1:table; 2:exceptions
-        std::vector<uint64_t> codewords;  // 0:runs; 1:table; 2:exceptions
-
-        std::vector<uint64_t> codewords_distr;  // 0:16+; 1:8; 2:4; 3:2; 4:1; 5:exceptions
-
-        std::vector<uint64_t> exceptions; // 0: < 2^8 ; 1: >= 2^8 and < 2^16 ; 2: >= 2^16 and < 2^24 : 3: >= 2^24
-
-        std::vector<uint64_t> freqs;
-
-        // (exception, frequency)
-        std::unordered_map<uint32_t, uint64_t> exceptions_freqs;
-
-        // (index, frequency)
-        std::vector<std::vector<std::pair<uint64_t, uint64_t>>> codewords_freqs;
+        std::vector<uint64_t> ints_distr;       // 0:runs; 1:1; 2:2; 3:4; 4:8; 5:exceptions
+        std::vector<uint64_t> codewords_distr;  // 0:runs; 1:1; 2:2; 3:4; 4:8; 5:exceptions
     };
 
     struct dint {
@@ -615,23 +600,12 @@ namespace ds2i {
                     // out.insert(out.end(), ptr, ptr + 1); // b = 8
                     begin += std::min<uint64_t>(run_size, end - begin);
                 } else {
-                    // for (uint32_t sub_block_size = dictionary_type::max_entry_size;
-                    //               sub_block_size != 0; sub_block_size /= 2)
+
                     for (uint32_t s = 0; s < constants::max_fractal_steps; ++s)
                     {
                         uint32_t sub_block_size = constants::target_sizes[s];
-                        // std::cout << "sub_block_size " << sub_block_size << std::endl;
                         uint32_t len = std::min<uint32_t>(sub_block_size, end - begin);
                         index = builder->lookup(begin, len);
-
-                        // if (len == 1) {
-                        //     std::cout << "looking for " << *begin << std::endl;
-                        //     if (index == dictionary_type::invalid_index) {
-                        //         std::cout << "**EXCEPTION**" << std::endl;
-                        //     } else {
-                        //         std::cout << "FOUND" << std::endl;
-                        //     }
-                        // }
 
                         if (index != dictionary_type::invalid_index) {
                             auto ptr = reinterpret_cast<uint8_t const*>(&index);
@@ -659,8 +633,7 @@ namespace ds2i {
                                      uint32_t /*universe*/, size_t n,
                                      dictionary_type const* dict
                                      // ,
-                                     // dint_statistics& stats,
-                                     // bool emit_selectors
+                                     // dint_statistics& stats
                                      )
         {
             uint16_t const* ptr = reinterpret_cast<uint16_t const*>(in);
@@ -669,59 +642,13 @@ namespace ds2i {
                 uint32_t index = *ptr;
                 uint32_t decoded_ints = 1;
 
-                // if (emit_selectors) {
-                //     // index = stats.freqs[index];
-                //     // uint32_t codeword_bits = floor_log2(index + 2);
-                //     // std::cout << codeword_bits << "\n";
-                // } else {
-                //     stats.freqs[index] += 1;
-                // }
-
                 if (DS2I_LIKELY(index > dictionary_type::reserved - 1))
                 {
                     decoded_ints = dict->copy(index, out);
 
-                    // stats.ints[1] += decoded_ints;
-                    // stats.codewords[1] += 1;
-
                     // if (decoded_ints == 1) {
-                    //     stats.codewords_distr[4] += 1;
-                    // }
-
-                    // uint64_t selector = ceil_log2(decoded_ints);
-                    // auto& f = stats.codewords_freqs[selector];
-                    // if (emit_selectors)
-                    // {
-                    //     // auto p = std::make_pair<uint64_t, uint64_t>(index, 0);
-
-                    //     // // bool found = std::binary_search(f.begin(), f.begin() + constants::top_k, p,
-                    //     // //                     [](auto const& p_x, auto const& p_y) {
-                    //     // //                         return p_x.first < p_y.first;
-                    //     // //                     });
-
-                    //     // auto it = std::lower_bound(f.begin(), f.begin() + constants::top_k, p,
-                    //     //             [](auto const& p_x, auto const& p_y) {
-                    //     //                 return p_x.first < p_y.first;
-                    //     //             });
-                    //     // if ((*it).first == p.first) {
-                    //     //     uint32_t rank = std::distance(f.begin(), it);
-                    //     //     if (rank < 85) {
-                    //     //         std::cout << "0\n";
-                    //     //     } else if (rank < 170) {
-                    //     //         std::cout << "1\n";
-                    //     //     } else {
-                    //     //         std::cout << "2\n";
-                    //     //     }
-                    //     // } else {
-                    //     //     std::cout << "3\n";
-                    //     // }
-                    //     // // if (selector <= 2 and found) {
-                    //     // //     std::cout << selector << "\n";
-                    //     // // } else {
-                    //     // //     std::cout << "3\n";
-                    //     // // }
-                    // } else {
-                    //     f[index].second += 1;
+                    //     stats.ints_distr[1] += 1;
+                    //     stats.codewords_distr[1] += 1;
                     // }
 
                 } else {
@@ -734,49 +661,30 @@ namespace ds2i {
                         *out = exception;
                         ++ptr;
 
-                        // stats.ints[2] += 1;
-                        // stats.codewords[2] += 3;
+                        // stats.ints_distr[5] += 1;
                         // stats.codewords_distr[5] += 3;
-
-                        // if (exception < 256) {
-                        //     stats.exceptions[0] += 1;
-                        // } else if (exception < 65536) {
-                        //     stats.exceptions[1] += 1;
-                        // } else if (exception < 16777216) {
-                        //     stats.exceptions[2] += 1;
-                        // } else {
-                        //     stats.exceptions[3] += 1;
-                        // }
-
-                        // auto it = stats.exceptions_freqs.find(exception);
-                        // if (it != stats.exceptions_freqs.end()) {
-                        //     (*it).second += 1;
-                        // } else {
-                        //     stats.exceptions_freqs[exception] = 1;
-                        // }
 
                         // needed when b = 8
                         // ++ptr;
                         // ++ptr;
                     }
-                    // else {
-
-                    //     stats.ints[0] += decoded_ints;
-                    //     stats.codewords[0] += 1;
-                    // }
                 }
 
                 out += decoded_ints;
                 i += decoded_ints;
 
                 // if (decoded_ints >= 16) {
+                //     stats.ints_distr[0] += decoded_ints;
                 //     stats.codewords_distr[0] += 1;
                 // } else if (decoded_ints == 8) {
-                //     stats.codewords_distr[1] += 1;
+                //     stats.ints_distr[4] += 8;
+                //     stats.codewords_distr[4] += 1;
                 // } else if (decoded_ints == 4) {
-                //     stats.codewords_distr[2] += 1;
-                // } else if (decoded_ints == 2) {
+                //     stats.ints_distr[3] += 4;
                 //     stats.codewords_distr[3] += 1;
+                // } else if (decoded_ints == 2) {
+                //     stats.ints_distr[2] += 2;
+                //     stats.codewords_distr[2] += 1;
                 // }
             }
 
