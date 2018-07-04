@@ -68,6 +68,8 @@ namespace ds2i {
                 std::cout << "docs exceptions: " << m_docs_dict_builder.exceptions << std::endl;
                 std::cout << "freqs codewords: " << m_freqs_dict_builder.codewords << std::endl;
                 std::cout << "freqs exceptions: " << m_freqs_dict_builder.exceptions << std::endl;
+                std::cout << "docs codewords_for_runs: " << m_docs_dict_builder.codewords_for_runs << std::endl;
+                std::cout << "freqs codewords_for_runs: " << m_freqs_dict_builder.codewords_for_runs << std::endl;
 
                 m_docs_dict_builder.build(dfi.m_docs_dict);
                 m_freqs_dict_builder.build(dfi.m_freqs_dict);

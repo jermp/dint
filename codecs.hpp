@@ -566,7 +566,7 @@ namespace ds2i {
         static void encode(uint32_t const* in,
                            uint32_t /*universe*/, uint32_t n,
                            std::vector<uint8_t>& out,
-                           dictionary_type::builder const* builder
+                           dictionary_type::builder* builder
                            )
         {
             uint32_t const* begin = in;
@@ -588,6 +588,18 @@ namespace ds2i {
                         break;
                     }
                 }
+
+                // if (longest_run_size >=  16 and
+                //     (
+                //         longest_run_size != 256 and
+                //         longest_run_size != 128 and
+                //         longest_run_size !=  64 and
+                //         longest_run_size !=  32
+                //     )
+                //     )
+                // {
+                //     builder->codewords_for_runs += 2;
+                // }
 
                 while (longest_run_size < run_size and run_size != 8) {
                     run_size /= 2;
@@ -618,7 +630,7 @@ namespace ds2i {
 
                     if (index == dictionary_type::invalid_index) {
                         out.insert(out.end(), 0);
-                        out.insert(out.end(), 0);
+                        out.insert(out.end(), 0);  // comment if b = 8
                         uint32_t exception = *begin;
                         auto ptr = reinterpret_cast<uint8_t const*>(&exception);
                         out.insert(out.end(), ptr, ptr + 4);
@@ -638,12 +650,20 @@ namespace ds2i {
         {
             uint16_t const* ptr = reinterpret_cast<uint16_t const*>(in);
             // uint8_t const* ptr = in;
+
             for (size_t i = 0; i != n; ++ptr) {
                 uint32_t index = *ptr;
                 uint32_t decoded_ints = 1;
 
                 if (DS2I_LIKELY(index > dictionary_type::reserved - 1))
                 {
+                    // NOTE1: on Gov2 and decoding the docIDs,
+                    // this IF if executed for 90.35% of the codewords
+
+                    // NOTE2: on Gov2 and decoding the docIDSs,
+                    // if we count the groups of 8 consecutive codewords that requires
+                    // only a copy, i.e., this IF, we cover 82.35% of the codewords
+
                     decoded_ints = dict->copy(index, out);
 
                     // if (decoded_ints == 1) {
@@ -651,7 +671,15 @@ namespace ds2i {
                     //     stats.codewords_distr[1] += 1;
                     // }
 
+                    // std::cout << "0\n";
+
                 } else {
+
+                    // NOTE: on Gov2 and decoding the docIDs,
+                    // this IF if executed for 9.64% of the codewords
+
+                    // std::cout << "1\n";
+
                     static const uint32_t run_lengths[6] = {1, // exception
                                                             256, 128, 64, 32, 16};
                     decoded_ints = run_lengths[index]; // runs of 256, 128, 64, 32 or 16 ints

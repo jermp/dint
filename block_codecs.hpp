@@ -726,12 +726,10 @@ namespace ds2i {
                         }
                     }
 
-                    if (index == Builder::invalid_index)
-                    {
+                    if (index == Builder::invalid_index) {
                         out.insert(out.end(), 0);
-                        out.insert(out.end(), 0);
+                        out.insert(out.end(), 0); // comment if b = 8
                         ++builder.exceptions;
-
                         uint32_t exception = *begin;
                         auto ptr = reinterpret_cast<uint8_t const*>(&exception);
                         out.insert(out.end(), ptr, ptr + 4);

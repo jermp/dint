@@ -109,6 +109,8 @@ void encode(std::string const& type,
     logger() << GiB_space << " [GiB]" << std::endl;
     logger() << "bits x integer: " << bpi_space << std::endl;
 
+    std::cout << "codewords_for_runs: " << builder.codewords_for_runs << std::endl;
+
     // stats to std output
     std::cout << "{";
     std::cout << "\"filename\": \"" << collection_name << "\", ";

@@ -38,6 +38,7 @@ namespace ds2i {
 
             uint64_t codewords = 0;
             uint64_t exceptions = 0;
+            uint64_t codewords_for_runs = 0;
 
             builder()
                 : m_pos(0)
@@ -312,12 +313,26 @@ namespace ds2i {
             uint32_t end = begin + max_entry_size;
             uint32_t size = m_table[end];
             uint32_t const* ptr = &m_table[begin];
+
+            // APPROACH 1: always copy 32 bytes, regardless the fact that
+            // most entries are 4-int long and require 16 bytes only
             memcpy(out, ptr, max_entry_size * sizeof(uint32_t));
 
 
-            // TODO: try SIMD here
-            // __m256i tmp = _mm256_load_si256((const __m256i *) &m_table[begin]);
-            // _mm256_storeu_si256((__m256i *) out, tmp);
+            // APPROACH 1: split the copy into 2 parts and copy
+            // additional 16 bytes only when necessary
+            // memcpy(out, ptr, 16);
+            // if (size == 8) {
+            //     memcpy(out + 4, ptr + 4, 16);
+            // }
+
+            // APPROACH 2: SIMD
+            // __m128i tmp_0 = _mm_loadu_si128((__m128i*) ptr);
+            // _mm_storeu_si128((__m128i*) out, tmp_0);
+            // if (size == 8) {
+            //     __m128i tmp_4 = _mm_loadu_si128((__m128i*) (ptr + 4));
+            //     _mm_storeu_si128((__m128i*)(out + 4), tmp_4);
+            // }
 
             return size;
         }
