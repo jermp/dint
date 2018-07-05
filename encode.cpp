@@ -97,7 +97,6 @@ void encode(std::string const& type,
             //              << output.size() * sizeof(output[0]) * 8.0 / num_total_ints << std::endl;
             // }
         }
-        break; // encode only first list
     }
 
     std::cerr << std::endl;

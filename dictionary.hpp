@@ -13,7 +13,7 @@
 
 #include <x86intrin.h>
 
-#define EXCEPTIONS 1
+#define EXCEPTIONS 2
 
 namespace ds2i {
 
@@ -25,15 +25,13 @@ namespace ds2i {
         static const uint32_t num_entries = t_num_entries;
         static const uint32_t max_entry_size = t_max_entry_size;
         static const uint32_t invalid_index = uint32_t(-1);
-        static const uint32_t reserved = EXCEPTIONS
-                                       + 5; // runs of 256, 128, 64, 32 and 16 0s
+        static const uint32_t reserved = EXCEPTIONS + 5;
 
         struct builder
         {
             static const uint32_t num_entries = dictionary::num_entries;
             static const uint32_t max_entry_size = dictionary::max_entry_size;
             static const uint32_t invalid_index = dictionary::invalid_index;
-            // static const uint32_t exception_codes = dictionary::exception_codes;
             static const uint32_t reserved = dictionary::reserved;
 
             uint64_t codewords = 0;
@@ -119,10 +117,11 @@ namespace ds2i {
                 return true;
             }
 
-            void prepare_for_encoding() {
+            void prepare_for_encoding()
+            {
                 std::vector<uint32_t> run(256, 0);
                 uint32_t i = EXCEPTIONS;
-                for (uint32_t n = 256; n >= max_entry_size; n /= 2, ++i) {
+                for (uint32_t n = 256; n >= 16; n /= 2, ++i) {
                     uint64_t hash = hash_bytes64(run.data(), n);
                     m_map[hash] = i;
                 }

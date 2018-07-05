@@ -64,8 +64,6 @@ void decode(std::string const& type,
     while (begin != end) {
         uint32_t n, universe;
         begin = header::read(begin, &n, &universe);
-        // if (n < 8)
-        //     std::cout << "n = " << n << "; universe = " << universe << std::endl;
         auto start = clock_type::now();
         begin = Decoder::decode(begin, decoded.data(), universe, n, &dict
                                 // , stats

@@ -572,15 +572,11 @@ namespace ds2i {
             uint32_t const* begin = in;
             uint32_t const* end = begin + n;
 
-            while (begin < end) {
-                // first, try runs of sizes 256, 128, 64, 32 and 16
+            while (begin < end)
+            {
                 uint32_t longest_run_size = 0;
-                static const uint32_t max_run_size = 256;
-                static const uint32_t min_run_size = 16;
-                uint32_t run_size = std::min<uint64_t>(max_run_size, end - begin);
+                uint32_t run_size = std::min<uint64_t>(256, end - begin);
                 uint32_t index = EXCEPTIONS;
-
-                // std::cout << "index " << index << std::endl;
 
                 for (uint32_t const* ptr  = begin;
                                      ptr != begin + run_size;
@@ -593,62 +589,50 @@ namespace ds2i {
                     }
                 }
 
-                if (longest_run_size >= min_run_size) {
-                    //                                     //  2    3    4   5   6
-                    // static const uint32_t run_lengths[] = {256, 128, 64, 32, 16};
-                    uint32_t k = max_run_size;
-                    while (longest_run_size < k and k > min_run_size) {
+                if (longest_run_size >= 16) {
+                    uint32_t k = 256;
+                    while (longest_run_size < k and k > 16) {
                         ++index;
                         k /= 2;
                     }
-                    auto ptr = reinterpret_cast<uint8_t const*>(&index);
-                    out.insert(out.end(), ptr, ptr + 2); // b = 16
-                    // out.insert(out.end(), ptr, ptr + 1); // b = 8
+                    write_index(index, out);
                     begin += k;
-
-                    // std::cout << "run_size " << run_size << "; index " << index << std::endl;
-
                 } else {
-
                     for (uint32_t s = 0; s < constants::num_target_sizes; ++s)
                     {
                         uint32_t sub_block_size = constants::target_sizes[s];
                         uint32_t len = std::min<uint32_t>(sub_block_size, end - begin);
                         index = builder->lookup(begin, len);
                         if (index != dictionary_type::invalid_index) {
-                            auto ptr = reinterpret_cast<uint8_t const*>(&index);
-                            out.insert(out.end(), ptr, ptr + 2); // b = 16
-                            // out.insert(out.end(), ptr, ptr + 1); // b = 8
+                            write_index(index, out);
                             begin += len;
                             break;
                         }
                     }
 
-                    if (index == dictionary_type::invalid_index) {
-
+                    if (index == dictionary_type::invalid_index)
+                    {
                         uint32_t exception = *begin;
                         auto ptr = reinterpret_cast<uint8_t const*>(&exception);
 
                         // USED WITH EXCEPTIONS = 1
-                        out.insert(out.end(), 0);
-                        out.insert(out.end(), 0); // comment if b = 8
-                        out.insert(out.end(), ptr, ptr + 4);
+                        // out.insert(out.end(), 0);
+                        // out.insert(out.end(), 0); // comment if b = 8
+                        // out.insert(out.end(), ptr, ptr + 4);
 
-                        // if (exception < 65536) {
-                        //     out.insert(out.end(), 0);
-                        //     out.insert(out.end(), 0); // comment if b = 8
-                        //     out.insert(out.end(), ptr, ptr + 2);
-                        // } else {
-                        //     out.insert(out.end(), 1);
-                        //     out.insert(out.end(), 1); // comment if b = 8
-                        //     out.insert(out.end(), ptr, ptr + 4);
-                        // }
+                        if (exception < 65536) {
+                            out.insert(out.end(), 0);
+                            out.insert(out.end(), 0); // comment if b = 8
+                            out.insert(out.end(), ptr, ptr + 2);
+                        } else {
+                            out.insert(out.end(), 1);
+                            out.insert(out.end(), 0); // comment if b = 8
+                            out.insert(out.end(), ptr, ptr + 4);
+                        }
 
                         begin += 1;
                     }
                 }
-
-                std::cout << begin - in << "/" << n << std::endl;
             }
         }
 
@@ -666,8 +650,6 @@ namespace ds2i {
             for (size_t i = 0; i != n; ++ptr) {
                 uint32_t index = *ptr;
                 uint32_t decoded_ints = 1;
-
-                // std::cout << "index: " << index << std::endl;
 
                 if (DS2I_LIKELY(index > dictionary_type::reserved - 1))
                 {
@@ -692,39 +674,29 @@ namespace ds2i {
                     // NOTE: on Gov2 and decoding the docIDs,
                     // this IF if executed for 9.64% of the codewords
 
-                    // std::cout << "1\n";
-
-                    static const uint32_t run_lengths[] = {//0, 1, // exception
-                                                           1,
+                    static const uint32_t run_lengths[] = {0, 1, // exception
                                                            256, 128, 64, 32, 16};
-                    decoded_ints = run_lengths[index]; // runs of 256, 128, 64, 32 or 16 ints
+                    decoded_ints = run_lengths[index];
 
                     if (DS2I_UNLIKELY(decoded_ints == 1)) {
-                        uint32_t exception = *(reinterpret_cast<uint32_t const*>(++ptr));
-                        std::cout << "exception: " << exception << std::endl;
-                        *out = exception;
+                        *out = *(reinterpret_cast<uint32_t const*>(++ptr));
                         ++ptr;
 
                         // stats.ints_distr[5] += 1;
                         // stats.codewords_distr[5] += 3;
 
                         // needed when b = 8
-                        // ++ptr;
-                        // ++ptr;
+                        // ptr += 2;
                     }
 
-                    // if (DS2I_UNLIKELY(decoded_ints == 0)) { // 2-byte exception
-                    //     // *out = *(reinterpret_cast<uint16_t const*>(++ptr)); // when b = 8
-                    //     uint32_t exception = *(++ptr);
-                    //     std::cout << "exception: " << exception << std::endl;
-                    //     *out = exception;
-                    //     decoded_ints = 1;
-                    //     // needed when b = 8
-                    //     // ptr += 1;
-                    // }
+                    if (DS2I_UNLIKELY(decoded_ints == 0)) { // 2-byte exception
+                        // *out = *(reinterpret_cast<uint16_t const*>(++ptr)); // when b = 8
+                        *out = *(++ptr);
+                        decoded_ints = 1;
+                        // needed when b = 8
+                        // ptr += 1;
+                    }
                 }
-
-                // std::cout << "decoded_ints: " << decoded_ints << std::endl;
 
                 out += decoded_ints;
                 i += decoded_ints;
@@ -742,11 +714,16 @@ namespace ds2i {
                 //     stats.ints_distr[2] += 2;
                 //     stats.codewords_distr[2] += 1;
                 // }
-
-                std::cout << i << "/" << n << std::endl;
             }
 
             return reinterpret_cast<uint8_t const*>(ptr);
+        }
+
+    private:
+        static void write_index(uint32_t index, std::vector<uint8_t>& out) {
+            auto ptr = reinterpret_cast<uint8_t const*>(&index);
+            out.insert(out.end(), ptr, ptr + 2); // b = 16
+            // out.insert(out.end(), ptr, ptr + 1); // b = 8
         }
     };
 
