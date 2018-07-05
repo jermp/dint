@@ -109,8 +109,8 @@ namespace ds2i {
                                                                       dictionary_builder::filter());
                     dictionary_builder::build(builder, statistics);
 
-                    logger() << "using " << builder.bpi() << " bits x integer" << std::endl;
-                    logger() << "covering " << builder.coverage() << "% of integers" << std::endl;
+                    // logger() << "using " << builder.bpi() << " bits x integer" << std::endl;
+                    // logger() << "covering " << builder.coverage() << "% of integers" << std::endl;
 
                     if (!builder.try_store_to_file(dictionary_file)) {
                         logger() << "cannot write dictionary to file";
@@ -178,8 +178,7 @@ namespace ds2i {
             (void)tmp;
         }
 
-        void swap(dict_freq_index& other)
-        {
+        void swap(dict_freq_index& other) {
             std::swap(m_params, other.m_params);
             std::swap(m_size, other.m_size);
             m_endpoints.swap(other.m_endpoints);
@@ -189,8 +188,7 @@ namespace ds2i {
         }
 
         template<typename Visitor>
-        void map(Visitor& visit)
-        {
+        void map(Visitor& visit) {
             visit
                 (m_params, "m_params")
                 (m_size, "m_size")

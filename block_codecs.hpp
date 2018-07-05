@@ -16,7 +16,7 @@
 namespace ds2i {
 
     namespace constants {
-        constexpr uint32_t block_size = 256;
+        static const uint32_t block_size = 256;
     }
 
     // workaround: VariableByte::decodeArray needs the buffer size, while we
@@ -514,113 +514,6 @@ namespace ds2i {
         static const uint64_t block_size = constants::block_size;
         static const uint64_t overflow = 512;
 
-        // template<class t_dict>
-        // static size_t encode(const t_dict& builder,
-        //                    uint32_t const *in,
-        //                    size_t n,
-        //                    std::vector<uint8_t>& out)
-        // {
-        //     size_t written_codes = 0;
-        //     assert(n <= block_size);
-        //     uint32_t const* begin = in;
-        //     uint32_t const* end = begin + n;
-
-        //     while (begin < end) {
-        //         // first, try runs of sizes 256, 128, 64, 32 and 16
-        //         uint32_t longest_run_size = 0;
-        //         uint32_t run_size = 256;
-        //         uint32_t index = 1;
-
-        //         for (uint32_t const* ptr  = begin;
-        //                              ptr != begin + std::min<uint64_t>(run_size, end - begin);
-        //                            ++ptr)
-        //         {
-        //             if (*ptr == 0) {
-        //                 ++longest_run_size;
-        //             } else {
-        //                 break;
-        //             }
-        //         }
-
-        //         while (longest_run_size < run_size and run_size != 8) {
-        //             run_size /= 2;
-        //             ++index;
-        //         }
-
-        //         if (index < t_dict::reserved) {
-        //             uint16_t codeword = index;
-        //             auto ptr = reinterpret_cast<uint8_t const*>(&codeword);
-        //             out.insert(out.end(), ptr, ptr + 2);
-        //             written_codes++;
-        //             begin += std::min<uint64_t>(run_size, end - begin);
-        //         } else {
-        //             for (uint32_t sub_block_size  = builder.max_entry_size();
-        //                           sub_block_size != 0; sub_block_size /= 2)
-        //             {
-        //                 uint32_t len = std::min<uint32_t>(sub_block_size, end - begin);
-        //                 index = builder.lookup(begin, len);
-        //                 if (index != t_dict::invalid_index) {
-        //                     auto ptr = reinterpret_cast<uint8_t const*>(&index);
-        //                     out.insert(out.end(), ptr, ptr + 2);
-        //                     written_codes++;
-        //                     begin += len;
-        //                     break;
-        //                 }
-        //             }
-
-        //             if (index == t_dict::invalid_index) {
-        //                 uint32_t exception = *begin;
-        //                 if(exception <= std::numeric_limits<uint16_t>::max()) {
-        //                   out.insert(out.end(), 0);
-        //                   uint16_t exception_u16 = exception;
-        //                   auto ptr = reinterpret_cast<uint8_t const*>(&exception_u16);
-        //                   out.insert(out.end(), ptr, ptr + 2);
-        //                   written_codes += 2;
-        //                 } else {
-        //                   out.insert(out.end(), 1);
-        //                   auto ptr = reinterpret_cast<uint8_t const*>(&exception);
-        //                   out.insert(out.end(), ptr, ptr + 4);
-        //                   written_codes += 3;
-        //                 }
-        //                 begin += 1;
-        //             }
-        //         }
-        //     }
-        //     return written_codes;
-        // }
-
-        // template<class t_dict>
-        // static uint8_t const* decode(t_dict const& dict,
-        //                              uint8_t const *in,
-        //                              uint32_t *out,
-        //                              size_t n)
-        // {
-        //     assert(n <= block_size);
-        //     auto ptr = reinterpret_cast<uint16_t const*>(in);
-        //     for (size_t i = 0; i != n; ++ptr) {
-        //         uint32_t index = *ptr;
-        //         uint32_t decoded_ints = 1;
-        //         if (DS2I_LIKELY(index > 5)) {
-        //             decoded_ints = dict.copy(index, out);
-        //         } else {
-        //             static const uint32_t run_lengths[] = {0,1, // exception
-        //                                                     256, 128, 64, 32, 16};
-        //             decoded_ints = run_lengths[index]; // runs of 256, 128, 64, 32 or 16 ints
-        //             if (DS2I_UNLIKELY(decoded_ints == 0)) {
-        //                 *out = *(++ptr);
-        //                 decoded_ints++;
-        //             }
-        //             if (DS2I_UNLIKELY(decoded_ints == 1)) {
-        //                 *out = *(reinterpret_cast<uint32_t const*>(++ptr));
-        //                 ++ptr;
-        //             }
-        //         }
-        //         out += decoded_ints;
-        //         i += decoded_ints;
-        //     }
-        //     return reinterpret_cast<uint8_t const*>(ptr);
-        // }
-
         template<typename Builder>
         static void encode(Builder& builder, // TODO: restore constness
                            uint32_t const* in,
@@ -640,7 +533,7 @@ namespace ds2i {
                 // first, try runs of sizes 256, 128, 64, 32 and 16
                 uint32_t longest_run_size = 0;
                 uint32_t run_size = 256;
-                uint32_t index = 1;
+                uint32_t index = EXCEPTIONS;
 
                 for (uint32_t const* ptr  = begin;
                                      ptr != begin + std::min<uint64_t>(run_size, end - begin);
@@ -667,72 +560,42 @@ namespace ds2i {
                 } else {
                     // for (uint32_t sub_block_size = Builder::max_entry_size;
                     //               sub_block_size != 0; sub_block_size /= 2)
-                    for (uint32_t s = 0; s < constants::max_fractal_steps; ++s)
+                    for (uint32_t s = 0; s < constants::num_target_sizes; ++s)
                     {
                         uint32_t sub_block_size = constants::target_sizes[s];
                         uint32_t len = std::min<uint32_t>(sub_block_size, end - begin);
                         index = builder.lookup(begin, len);
                         if (index != Builder::invalid_index) {
-
-                            // find now the longest substring in the history [in, begin)
-
-                            // uint64_t m = begin - in;
-                            // uint64_t max_substr_len = 0;
-                            // for (uint64_t i = 0; i < m; ++i) {
-                            //     auto l = in + i;
-                            //     auto r = begin;
-                            //     uint64_t substr_len = 0;
-                            //     for (uint64_t j = 0; j < block_size - m; ++j) {
-                            //         if (*l == *r) {
-                            //             ++substr_len;
-                            //             ++l;
-                            //             ++r;
-                            //         } else {
-                            //             if (substr_len > max_substr_len) {
-                            //                 max_substr_len = substr_len;
-                            //             }
-                            //             break;
-                            //         }
-                            //     }
-                            // }
-
-                            // if (max_substr_len > len) {
-                            //     // // 1. insert two bytes for signalling the copy back
-                            //     // out.insert(out.end(), 0);
-                            //     // out.insert(out.end(), 0);
-
-                            //     // // 2. insert 1 byte as the backward pointer
-                            //     // out.insert(out.end(), 0);
-
-                            //     // // 3. insert 1 byte as the length
-                            //     // out.insert(out.end(), 0);
-
-                            //     len = max_substr_len;
-
-                            //     std::cout << len << std::endl;
-
-                            // }
-
-                            // else {
-                                auto ptr = reinterpret_cast<uint8_t const*>(&index);
-                                out.insert(out.end(), ptr, ptr + 2); // b = 16
-                                // out.insert(out.end(), ptr, ptr + 1); // b = 8
-                            // }
-
+                            auto ptr = reinterpret_cast<uint8_t const*>(&index);
+                            out.insert(out.end(), ptr, ptr + 2); // b = 16
+                            // out.insert(out.end(), ptr, ptr + 1); // b = 8
                             ++builder.codewords;
-
                             begin += len;
                             break;
                         }
                     }
 
                     if (index == Builder::invalid_index) {
-                        out.insert(out.end(), 0);
-                        out.insert(out.end(), 0); // comment if b = 8
+
                         ++builder.exceptions;
                         uint32_t exception = *begin;
                         auto ptr = reinterpret_cast<uint8_t const*>(&exception);
-                        out.insert(out.end(), ptr, ptr + 4);
+
+                        // USED WITH EXCEPTIONS = 1
+                        // out.insert(out.end(), 0);
+                        // out.insert(out.end(), 0); // comment if b = 8
+                        // out.insert(out.end(), ptr, ptr + 4);
+
+                        if (exception < 65536) {
+                            out.insert(out.end(), 0);
+                            out.insert(out.end(), 0); // comment if b = 8
+                            out.insert(out.end(), ptr, ptr + 2);
+                        } else {
+                            out.insert(out.end(), 1);
+                            out.insert(out.end(), 1); // comment if b = 8
+                            out.insert(out.end(), ptr, ptr + 4);
+                        }
+
                         begin += 1;
                     }
                 }
@@ -759,18 +622,27 @@ namespace ds2i {
                 if (DS2I_LIKELY(index > Dictionary::reserved - 1)) {
                     decoded_ints = dict.copy(index, out);
                 } else {
-                    static const uint32_t run_lengths[6] = {1, // exception
-                                                            256, 128, 64, 32, 16};
-                    decoded_ints = run_lengths[index]; // runs of 256, 128, 64, 32 or 16 ints
-                    if (DS2I_UNLIKELY(decoded_ints == 1)) {
+                    static const uint32_t control_codes[] = {0, 1, // exceptions
+                                                             256, 128, 64, 32, 16};
+                    decoded_ints = control_codes[index]; // runs of 256, 128, 64, 32 or 16 ints
+
+                    if (DS2I_UNLIKELY(decoded_ints == 1)) { // 4-byte exception
                         *out = *(reinterpret_cast<uint32_t const*>(++ptr));
                         ++ptr;
 
                         // needed when b = 8
-                        // ++ptr;
-                        // ++ptr;
+                        // ptr += 2;
+                    }
+
+                    if (DS2I_UNLIKELY(decoded_ints == 0)) { // 2-byte exception
+                        // *out = *(reinterpret_cast<uint16_t const*>(++ptr)); // when b = 8
+                        *out = *(++ptr);
+                        decoded_ints = 1;
+                        // needed when b = 8
+                        // ptr += 1;
                     }
                 }
+
                 out += decoded_ints;
                 i += decoded_ints;
             }

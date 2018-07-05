@@ -89,7 +89,7 @@ namespace ds2i {
         static void collect(std::vector<uint32_t>& buf, map_type& bmap) {
             auto b = buf.data();
 
-            for (uint32_t s = 0; s < constants::max_fractal_steps; ++s) {
+            for (uint32_t s = 0; s < constants::num_target_sizes; ++s) {
                 uint32_t block_size = constants::target_sizes[s];
                 uint32_t blocks = buf.size() / block_size;
                 for (uint32_t i = 0, pos = 0; i < blocks; ++i, pos += block_size) {

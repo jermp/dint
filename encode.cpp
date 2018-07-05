@@ -10,11 +10,11 @@
 #include <boost/progress.hpp>
 
 #include "dint_configuration.hpp"
+#include "dictionary.hpp"
 #include "codecs.hpp"
 #include "util.hpp"
 #include "hash_utils.hpp"
 #include "binary_collection.hpp"
-#include "dictionary.hpp"
 
 using namespace ds2i;
 
@@ -97,6 +97,7 @@ void encode(std::string const& type,
             //              << output.size() * sizeof(output[0]) * 8.0 / num_total_ints << std::endl;
             // }
         }
+        break; // encode only first list
     }
 
     std::cerr << std::endl;

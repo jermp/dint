@@ -4,7 +4,6 @@
 #include <unordered_set>
 #include <fstream>
 
-#include <boost/format.hpp>
 #include <succinct/mappable_vector.hpp>
 
 #include "dint_configuration.hpp"
@@ -13,6 +12,8 @@
 #include "util.hpp"
 
 #include <x86intrin.h>
+
+#define EXCEPTIONS 1
 
 namespace ds2i {
 
@@ -24,16 +25,15 @@ namespace ds2i {
         static const uint32_t num_entries = t_num_entries;
         static const uint32_t max_entry_size = t_max_entry_size;
         static const uint32_t invalid_index = uint32_t(-1);
-        static const uint32_t reserved = 6;
-                                        // 6 reserved entries:
-                                        // 1 for exception header
-                                        // 5 for runs
+        static const uint32_t reserved = EXCEPTIONS
+                                       + 5; // runs of 256, 128, 64, 32 and 16 0s
 
         struct builder
         {
             static const uint32_t num_entries = dictionary::num_entries;
             static const uint32_t max_entry_size = dictionary::max_entry_size;
             static const uint32_t invalid_index = dictionary::invalid_index;
+            // static const uint32_t exception_codes = dictionary::exception_codes;
             static const uint32_t reserved = dictionary::reserved;
 
             uint64_t codewords = 0;
@@ -43,9 +43,9 @@ namespace ds2i {
             builder()
                 : m_pos(0)
                 , m_size(reserved)
-                , m_final_bpi(0.0)
-                , m_total_coverage(0.0)
-                , m_total_integers(0)
+                // , m_final_bpi(0.0)
+                // , m_total_coverage(0.0)
+                // , m_total_integers(0)
                 , m_table(0, 0)
             {}
 
@@ -53,13 +53,13 @@ namespace ds2i {
                 m_pos = reserved * (max_entry_size + 1);
                 m_size = reserved;
 
-                // at the beginning, everything is exception(al)
-                m_final_bpi = constants::initial_bpi;
-                m_total_coverage = 0.0;
-                m_total_integers = total_integers;
+                // // at the beginning, everything is exception(al)
+                // m_final_bpi = constants::initial_bpi;
+                // m_total_coverage = 0.0;
+                // m_total_integers = total_integers;
 
                 m_table.resize(num_entries * (max_entry_size + 1), 0);
-                m_freqs.reserve(num_entries);
+                // m_freqs.reserve(num_entries);
             }
 
             void load_from_file(std::string dict_file) {
@@ -93,7 +93,7 @@ namespace ds2i {
                 return m_size == num_entries;
             }
 
-            bool append(uint32_t const* entry, uint32_t entry_size, uint64_t freq)
+            bool append(uint32_t const* entry, uint32_t entry_size, uint64_t /*freq*/)
             {
                 if (full()) return false;
 
@@ -102,36 +102,39 @@ namespace ds2i {
                 m_pos += max_entry_size + 1;
                 m_table[m_pos - 1] = entry_size;
 
-                m_freqs.emplace_back(m_size, freq);
+                // m_freqs.emplace_back(m_size, freq);
 
                 ++m_size;
 
                 // logging
-                double cost_saving = compute_saving(entry_size, freq, m_total_integers);
-                m_total_coverage += freq * entry_size * 100.0 / m_total_integers;
-                m_final_bpi -= cost_saving;
-                if (m_size % 5000 == 0) {
-                    logger() << "entries in dictionary " << m_size << "/" << num_entries << std::endl;
-                    logger() << "current bits x integer: " << m_final_bpi << std::endl;
-                    logger() << "covering " << m_total_coverage << "% of integers" << std::endl;
-                }
+                // double cost_saving = compute_saving(entry_size, freq, m_total_integers);
+                // m_total_coverage += freq * entry_size * 100.0 / m_total_integers;
+                // m_final_bpi -= cost_saving;
+                // if (m_size % 5000 == 0) {
+                //     logger() << "entries in dictionary " << m_size << "/" << num_entries << std::endl;
+                //     logger() << "current bits x integer: " << m_final_bpi << std::endl;
+                //     logger() << "covering " << m_total_coverage << "% of integers" << std::endl;
+                // }
 
                 return true;
             }
 
             void prepare_for_encoding() {
-                logger() << size() << " entries in the dictionary" << std::endl;
                 std::vector<uint32_t> run(256, 0);
-                uint8_t const* ptr = reinterpret_cast<uint8_t const*>(run.data());
-                uint32_t i = 1;
+                uint32_t i = EXCEPTIONS;
                 for (uint32_t n = 256; n >= max_entry_size; n /= 2, ++i) {
-                    uint64_t hash = hash_bytes64(byte_range(ptr, ptr + n * sizeof(uint32_t)));
+                    uint64_t hash = hash_bytes64(run.data(), n);
                     m_map[hash] = i;
                 }
                 for (; i < size(); ++i) {
-                    uint8_t const* ptr = reinterpret_cast<uint8_t const*>(get(i));
-                    uint32_t entry_size = size(i);
-                    uint64_t hash = hash_bytes64(byte_range(ptr, ptr + entry_size * sizeof(uint32_t)));
+                    // auto ptr = get(i);
+                    // std::cout << i << ": " << std::endl;
+                    // for (uint32_t k = 0; k < size(i); ++k) {
+                    //     std::cout << *ptr << " ";
+                    //     ++ptr;
+                    // }
+                    // std::cout << std::endl;
+                    uint64_t hash = hash_bytes64(get(i), size(i));
                     m_map[hash] = i;
                 }
             }
@@ -140,12 +143,10 @@ namespace ds2i {
             // otherwise return the invalid_index value
             uint32_t lookup(uint32_t const* begin, uint32_t entry_size) const
             {
-                uint8_t const* b = reinterpret_cast<uint8_t const*>(begin);
-                uint8_t const* e = b + entry_size * sizeof(uint32_t);
-                uint64_t hash = hash_bytes64(byte_range(b, e));
+                uint64_t hash = hash_bytes64(begin, entry_size);
                 auto it = m_map.find(hash);
                 if (it != m_map.end()) {
-                    assert((*it).second <= num_entries);
+                    assert((*it).second < num_entries);
                     return (*it).second;
                 }
                 return invalid_index;
@@ -159,9 +160,9 @@ namespace ds2i {
             void swap(builder& other) {
                 std::swap(m_pos, other.m_pos);
                 std::swap(m_size, other.m_size);
-                std::swap(m_final_bpi, other.m_final_bpi);
-                std::swap(m_total_coverage, other.m_total_coverage);
-                std::swap(m_total_integers, other.m_total_integers);
+                // std::swap(m_final_bpi, other.m_final_bpi);
+                // std::swap(m_total_coverage, other.m_total_coverage);
+                // std::swap(m_total_integers, other.m_total_integers);
                 m_table.swap(other.m_table);
                 m_map.swap(other.m_map);
             }
@@ -170,13 +171,13 @@ namespace ds2i {
                 return m_size;
             }
 
-            double bpi() const {
-                return m_final_bpi;
-            }
+            // double bpi() const {
+            //     return m_final_bpi;
+            // }
 
-            double coverage() const {
-                return m_total_coverage;
-            }
+            // double coverage() const {
+            //     return m_total_coverage;
+            // }
 
             static std::string type() {
                 return "rectangular";
@@ -184,18 +185,18 @@ namespace ds2i {
 
             // print vocabulary entries usage
             void print() {
-                uint32_t sizes[6] = {1, // exceptions (always 1 entry)
-                                     0, // 1
-                                     0, // 2
-                                     0, // 4
-                                     0, // 8
-                                     5  // frequent (all the runs: always 5 entries)
-                                    };
+                std::vector<uint32_t> sizes;
+                sizes.push_back(EXCEPTIONS);
+                for (uint32_t i = 0; i < constants::num_target_sizes; ++i) {
+                    sizes.push_back(0);
+                }
+                sizes.push_back(5); // for the runs
 
+                uint32_t k = reserved;
                 for (uint64_t i = reserved * (max_entry_size + 1);
                               i < m_table.size(); i += max_entry_size + 1) {
                     uint32_t size = m_table[i + max_entry_size];
-                    // std::cout << "[";
+                    // std::cout << k << ": [";
                     // for (uint32_t k = 0; k < size; ++k) {
                     //     std::cout << m_table[i + k];
                     //     if (k != size - 1) std::cout << "|";
@@ -204,10 +205,11 @@ namespace ds2i {
 
                     // std::cout << size << std::endl;
                     sizes[ceil_log2(size) + 1] += 1;
+                    ++k;
                 }
 
-                std::cout << "rare: 1 (" << 100.0 / num_entries << "%)" << std::endl;
-                for (uint32_t i = 0; i < 4; ++i) {
+                std::cout << "rare: " << EXCEPTIONS << " (" << 100.0 / num_entries << "%)" << std::endl;
+                for (uint32_t i = 0; i < constants::num_target_sizes; ++i) {
                     std::cout << "entries of size "
                               << (uint32_t(1) << i) << ": "
                               << sizes[i + 1]
@@ -217,76 +219,76 @@ namespace ds2i {
                 std::cout << "freq.: 5 (" << 500.0 / num_entries << "%)" << std::endl;
             }
 
-            void print_indexes(std::string filename) {
-                std::ofstream out(filename.c_str());
-                std::sort(m_freqs.begin(), m_freqs.end(),
-                    [](auto const& x, auto const& y) {
-                        return x.second > y.second;
-                    }
-                );
-                for (auto const& p: m_freqs) {
-                    out << p.first << "\n";
-                }
-                out.close();
-            }
+            // void print_indexes(std::string filename) {
+            //     std::ofstream out(filename.c_str());
+            //     std::sort(m_freqs.begin(), m_freqs.end(),
+            //         [](auto const& x, auto const& y) {
+            //             return x.second > y.second;
+            //         }
+            //     );
+            //     for (auto const& p: m_freqs) {
+            //         out << p.first << "\n";
+            //     }
+            //     out.close();
+            // }
 
-            void print_entries(std::string filename)
-            {
-                std::ofstream out(filename.c_str());
+            // void print_entries(std::string filename)
+            // {
+            //     std::ofstream out(filename.c_str());
 
-                uint32_t sizes[5] = {0, 0, 0, 0, 0};
+            //     uint32_t sizes[5] = {0, 0, 0, 0, 0};
 
-                std::sort(m_freqs.begin(), m_freqs.end(),
-                    [](auto const& x, auto const& y) {
-                        return x.second > y.second;
-                    }
-                );
+            //     std::sort(m_freqs.begin(), m_freqs.end(),
+            //         [](auto const& x, auto const& y) {
+            //             return x.second > y.second;
+            //         }
+            //     );
 
-                for (auto const& p: m_freqs)
-                {
-                    uint32_t i = p.first;
-                    uint32_t const* ptr = get(i);
-                    uint32_t n = size(i);
-                    out << i << " freq: ";
-                    out << p.second << " entry: ";
-                    out << "[";
-                    // std::cout << std::setw( 6) << i << " freq: ";
-                    // std::cout << std::setw(16) << p.second << " entry: ";
-                    // std::cout << "[";
-                    for (uint32_t k = 0; k < n; ++k) {
-                        // std::cout << *ptr;
-                        out << *ptr;
-                        if (k != n - 1) //std::cout << "|";
-                            out << "|";
-                        ++ptr;
-                    }
-                    // std::cout << "]" << std::endl;
-                    out << "]\n";
-                    sizes[ceil_log2(n)] += 1;
-                }
+            //     for (auto const& p: m_freqs)
+            //     {
+            //         uint32_t i = p.first;
+            //         uint32_t const* ptr = get(i);
+            //         uint32_t n = size(i);
+            //         out << i << " freq: ";
+            //         out << p.second << " entry: ";
+            //         out << "[";
+            //         // std::cout << std::setw( 6) << i << " freq: ";
+            //         // std::cout << std::setw(16) << p.second << " entry: ";
+            //         // std::cout << "[";
+            //         for (uint32_t k = 0; k < n; ++k) {
+            //             // std::cout << *ptr;
+            //             out << *ptr;
+            //             if (k != n - 1) //std::cout << "|";
+            //                 out << "|";
+            //             ++ptr;
+            //         }
+            //         // std::cout << "]" << std::endl;
+            //         out << "]\n";
+            //         sizes[ceil_log2(n)] += 1;
+            //     }
 
-                out << "{";
-                for (uint32_t i = 0; i < 5; ++i) {
-                    out << "\"" << (uint32_t(1) << i) << "\": \""
-                        << sizes[i] << "\"";
-                    if (i != 4) {
-                        out << ", ";
-                    }
-                }
-                out << "}";
-                out.close();
-            }
+            //     out << "{";
+            //     for (uint32_t i = 0; i < 5; ++i) {
+            //         out << "\"" << (uint32_t(1) << i) << "\": \""
+            //             << sizes[i] << "\"";
+            //         if (i != 4) {
+            //             out << ", ";
+            //         }
+            //     }
+            //     out << "}";
+            //     out.close();
+            // }
 
         private:
             std::string m_type;
             uint32_t m_pos;
             uint32_t m_size;
-            double m_final_bpi;
-            double m_total_coverage;
-            uint64_t m_total_integers;
+            // double m_final_bpi;
+            // double m_total_coverage;
+            // uint64_t m_total_integers;
             std::vector<uint32_t> m_table;
 
-            std::vector<std::pair<uint32_t, uint64_t>> m_freqs;
+            // std::vector<std::pair<uint32_t, uint64_t>> m_freqs;
 
             // map from hash codes to table indexes, used during encoding
             std::unordered_map<uint64_t, uint32_t> m_map;
@@ -342,26 +344,23 @@ namespace ds2i {
         }
 
         template<typename Visitor>
-        void map(Visitor& visit)
-        {
-            visit
-                (m_table, "m_table")
-                ;
+        void map(Visitor& visit) {
+            visit(m_table, "m_table");
         }
 
-        void print(uint32_t i) {
-            uint32_t begin = i * (max_entry_size + 1);
-            uint32_t end = begin + max_entry_size;
-            uint32_t size = m_table[end];
-            uint32_t const* ptr = &m_table[begin];
-            std::cout << "[";
-            for (uint32_t k = 0; k < size; ++k) {
-                std::cout << *ptr;
-                ++ptr;
-                if (k != size - 1) std::cout << "|";
-            }
-            std::cout << "]" << std::endl;
-        }
+        // void print(uint32_t i) {
+        //     uint32_t begin = i * (max_entry_size + 1);
+        //     uint32_t end = begin + max_entry_size;
+        //     uint32_t size = m_table[end];
+        //     uint32_t const* ptr = &m_table[begin];
+        //     std::cout << "[";
+        //     for (uint32_t k = 0; k < size; ++k) {
+        //         std::cout << *ptr;
+        //         ++ptr;
+        //         if (k != size - 1) std::cout << "|";
+        //     }
+        //     std::cout << "]" << std::endl;
+        // }
 
     private:
         succinct::mapper::mappable_vector<uint32_t> m_table;
@@ -743,7 +742,7 @@ namespace ds2i {
     //             // by using the unordered_set; if not, just add a new entry with the same address as the current entry
     //             // and proper target size
     //             assert(constants::target_sizes[0] == max_entry_size);
-    //             for (uint32_t s = 1; s < constants::max_fractal_steps; ++s) {
+    //             for (uint32_t s = 1; s < constants::num_target_sizes; ++s) {
     //                 uint32_t target_size = constants::target_sizes[s];
     //                 uint64_t hash = hash_bytes64(entry, target_size);
     //                 if (m_set.find(hash) == m_set.cend()) {

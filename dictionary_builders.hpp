@@ -261,7 +261,7 @@ namespace ds2i {
             candidates_ids.reserve(stats.blocks.size());
             cost_filter cf;
 
-            std::vector<uint64_t> offsets(constants::max_fractal_steps + 1, 0);
+            std::vector<uint64_t> offsets(constants::num_target_sizes + 1, 0);
 
             uint32_t curr_block_size = dictionary_type::max_entry_size;
             int k = 0;
@@ -284,7 +284,7 @@ namespace ds2i {
                 // ++i;
             }
 
-            offsets[constants::max_fractal_steps] = candidates_ids.size();
+            offsets[constants::num_target_sizes] = candidates_ids.size();
 
             logger() << "selected " << candidates_ids.size() << " candidates" << std::endl;
             assert(id == stats.blocks.size());
@@ -333,8 +333,8 @@ namespace ds2i {
                 }
 
                 if (size == curr_block_size / 2) {
-                    logger() << "covering " << builder.coverage() << "% integers "
-                             << "with entries of size " << curr_block_size << std::endl;
+                    // logger() << "covering " << builder.coverage() << "% integers "
+                    //          << "with entries of size " << curr_block_size << std::endl;
                     curr_block_size /= 2;
 
                     ++k;
