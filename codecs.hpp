@@ -553,12 +553,12 @@ namespace ds2i {
     struct dint_statistics
     {
         dint_statistics(uint32_t /*num_entries*/)
-            : ints_distr(6, 0)
-            , codewords_distr(6, 0)
+            : ints_distr(7, 0)
+            , codewords_distr(7, 0)
         {}
 
-        std::vector<uint64_t> ints_distr;       // 0:runs; 1:1; 2:2; 3:4; 4:8; 5:exceptions
-        std::vector<uint64_t> codewords_distr;  // 0:runs; 1:1; 2:2; 3:4; 4:8; 5:exceptions
+        std::vector<uint64_t> ints_distr;       // 0:runs; 1:1; 2:2; 3:4; 4:8; 5:16; 6:exceptions
+        std::vector<uint64_t> codewords_distr;  // 0:runs; 1:1; 2:2; 3:4; 4:8; 5:16; 6:exceptions
     };
 
     struct dint {
@@ -622,11 +622,11 @@ namespace ds2i {
 
                         if (exception < 65536) {
                             out.insert(out.end(), 0);
-                            out.insert(out.end(), 0); // comment if b = 8
+                            // out.insert(out.end(), 0); // comment if b = 8
                             out.insert(out.end(), ptr, ptr + 2);
                         } else {
                             out.insert(out.end(), 1);
-                            out.insert(out.end(), 0); // comment if b = 8
+                            // out.insert(out.end(), 0); // comment if b = 8
                             out.insert(out.end(), ptr, ptr + 4);
                         }
 
@@ -640,12 +640,11 @@ namespace ds2i {
                                      uint32_t* out,
                                      uint32_t /*universe*/, size_t n,
                                      dictionary_type const* dict
-                                     // ,
-                                     // dint_statistics& stats
+                                     // , dint_statistics& stats
                                      )
         {
-            uint16_t const* ptr = reinterpret_cast<uint16_t const*>(in);
-            // uint8_t const* ptr = in;
+            // uint16_t const* ptr = reinterpret_cast<uint16_t const*>(in);
+            uint8_t const* ptr = in;
 
             for (size_t i = 0; i != n; ++ptr) {
                 uint32_t index = *ptr;
@@ -665,6 +664,9 @@ namespace ds2i {
                     // if (decoded_ints == 1) {
                     //     stats.ints_distr[1] += 1;
                     //     stats.codewords_distr[1] += 1;
+                    // } else if (decoded_ints == 16) {
+                    //     stats.ints_distr[5] += 16;
+                    //     stats.codewords_distr[5] += 1;
                     // }
 
                     // std::cout << "0\n";
@@ -682,19 +684,19 @@ namespace ds2i {
                         *out = *(reinterpret_cast<uint32_t const*>(++ptr));
                         ++ptr;
 
-                        // stats.ints_distr[5] += 1;
-                        // stats.codewords_distr[5] += 3;
+                        // stats.ints_distr[6] += 1;
+                        // stats.codewords_distr[6] += 3;
 
                         // needed when b = 8
-                        // ptr += 2;
+                        ptr += 2;
                     }
 
                     if (DS2I_UNLIKELY(decoded_ints == 0)) { // 2-byte exception
-                        // *out = *(reinterpret_cast<uint16_t const*>(++ptr)); // when b = 8
-                        *out = *(++ptr);
+                        *out = *(reinterpret_cast<uint16_t const*>(++ptr)); // when b = 8
+                        // *out = *(++ptr);
                         decoded_ints = 1;
                         // needed when b = 8
-                        // ptr += 1;
+                        ptr += 1;
                     }
                 }
 
@@ -722,8 +724,8 @@ namespace ds2i {
     private:
         static void write_index(uint32_t index, std::vector<uint8_t>& out) {
             auto ptr = reinterpret_cast<uint8_t const*>(&index);
-            out.insert(out.end(), ptr, ptr + 2); // b = 16
-            // out.insert(out.end(), ptr, ptr + 1); // b = 8
+            // out.insert(out.end(), ptr, ptr + 2); // b = 16
+            out.insert(out.end(), ptr, ptr + 1); // b = 8
         }
     };
 

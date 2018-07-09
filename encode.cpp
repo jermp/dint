@@ -37,7 +37,7 @@ void encode(std::string const& type,
         builder.load(dictionary_file);
         logger() << "preparing for encoding..." << std::endl;
         builder.prepare_for_encoding();
-        builder.print();
+        // builder.print();
     }
 
     uint64_t total_progress = input.num_postings();
@@ -108,8 +108,6 @@ void encode(std::string const& type,
     logger() << "encoded " << num_total_ints << " integers" << std::endl;
     logger() << GiB_space << " [GiB]" << std::endl;
     logger() << "bits x integer: " << bpi_space << std::endl;
-
-    std::cout << "codewords_for_runs: " << builder.codewords_for_runs << std::endl;
 
     // stats to std output
     std::cout << "{";

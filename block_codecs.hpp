@@ -553,6 +553,7 @@ namespace ds2i {
                         k /= 2;
                     }
                     write_index(index, out);
+                    ++builder.codewords;
                     begin += k;
                 } else {
                     for (uint32_t s = 0; s < constants::num_target_sizes; ++s) {
@@ -561,6 +562,7 @@ namespace ds2i {
                         index = builder.lookup(begin, len);
                         if (index != Builder::invalid_index) {
                             write_index(index, out);
+                            ++builder.codewords;
                             begin += len;
                             break;
                         }
@@ -577,10 +579,12 @@ namespace ds2i {
                         // out.insert(out.end(), ptr, ptr + 4);
 
                         if (exception < 65536) {
+                            ++builder.small_exceptions;
                             out.insert(out.end(), 0);
                             out.insert(out.end(), 0); // comment if b = 8
                             out.insert(out.end(), ptr, ptr + 2);
                         } else {
+                            ++builder.large_exceptions;
                             out.insert(out.end(), 1);
                             out.insert(out.end(), 0); // comment if b = 8
                             out.insert(out.end(), ptr, ptr + 4);

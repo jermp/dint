@@ -65,11 +65,11 @@ namespace ds2i {
                 dfi.m_lists.steal(m_lists);
 
                 std::cout << "docs codewords: " << m_docs_dict_builder.codewords << std::endl;
-                std::cout << "docs exceptions: " << m_docs_dict_builder.exceptions << std::endl;
+                std::cout << "docs small exceptions: " << m_docs_dict_builder.small_exceptions << std::endl;
+                std::cout << "docs large exceptions: " << m_docs_dict_builder.large_exceptions << std::endl;
                 std::cout << "freqs codewords: " << m_freqs_dict_builder.codewords << std::endl;
-                std::cout << "freqs exceptions: " << m_freqs_dict_builder.exceptions << std::endl;
-                std::cout << "docs codewords_for_runs: " << m_docs_dict_builder.codewords_for_runs << std::endl;
-                std::cout << "freqs codewords_for_runs: " << m_freqs_dict_builder.codewords_for_runs << std::endl;
+                std::cout << "freqs small exceptions: " << m_freqs_dict_builder.small_exceptions << std::endl;
+                std::cout << "freqs large exceptions: " << m_freqs_dict_builder.large_exceptions << std::endl;
 
                 m_docs_dict_builder.build(dfi.m_docs_dict);
                 m_freqs_dict_builder.build(dfi.m_freqs_dict);

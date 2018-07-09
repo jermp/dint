@@ -44,6 +44,7 @@ void decode(std::string const& type,
         dict_size = builder.size();
         logger() << "dictionary with "
                  << dict_size << " entries" << std::endl;
+        builder.print();
         builder.build(dict);
     }
 
@@ -59,15 +60,12 @@ void decode(std::string const& type,
 
     dint_statistics stats(dictionary_type::num_entries);
 
-    // bool emit_selectors = false;
-
     while (begin != end) {
         uint32_t n, universe;
         begin = header::read(begin, &n, &universe);
         auto start = clock_type::now();
         begin = Decoder::decode(begin, decoded.data(), universe, n, &dict
                                 // , stats
-                                // , emit_selectors
                                 );
         auto finish = clock_type::now();
         std::chrono::duration<double> elapsed = finish - start;
@@ -85,15 +83,15 @@ void decode(std::string const& type,
     logger() << ints_x_sec << " ints x [sec]" << std::endl;
 
     // stats to std output
-    std::cout << "{";
-    std::cout << "\"filename\": \"" << encoded_data_filename << "\", ";
-    std::cout << "\"num_sequences\": \"" << num_decoded_lists << "\", ";
-    std::cout << "\"num_integers\": \"" << num_decoded_ints << "\", ";
-    std::cout << "\"type\": \"" << type << "\", ";
-    std::cout << "\"tot_elapsed_time\": \"" << tot_elapsed << "\", ";
-    std::cout << "\"ns_x_int\": \"" << ns_x_int << "\", ";
-    std::cout << "\"ints_x_sec\": \"" << ints_x_sec << "\"";
-    std::cout << "}" << std::endl;
+    // std::cout << "{";
+    // std::cout << "\"filename\": \"" << encoded_data_filename << "\", ";
+    // std::cout << "\"num_sequences\": \"" << num_decoded_lists << "\", ";
+    // std::cout << "\"num_integers\": \"" << num_decoded_ints << "\", ";
+    // std::cout << "\"type\": \"" << type << "\", ";
+    // std::cout << "\"tot_elapsed_time\": \"" << tot_elapsed << "\", ";
+    // std::cout << "\"ns_x_int\": \"" << ns_x_int << "\", ";
+    // std::cout << "\"ints_x_sec\": \"" << ints_x_sec << "\"";
+    // std::cout << "}" << std::endl;
 
     // uint64_t total_codewords = 0;
     // uint64_t total_decoded_ints = 0;
@@ -327,21 +325,21 @@ int main(int argc, char** argv) {
 
     logger() << cmd << std::endl;
 
-    // decode<dint>(type, encoded_data_filename, dictionary_filename);
+    decode<dint>(type, encoded_data_filename, dictionary_filename);
 
-    if (false) {
-#define LOOP_BODY(R, DATA, T)                                          \
-        } else if (type == BOOST_PP_STRINGIZE(T)) {                    \
-            decode<BOOST_PP_CAT(T, )>                                  \
-                (type, encoded_data_filename, dictionary_filename);    \
-            /**/
+//     if (false) {
+// #define LOOP_BODY(R, DATA, T)                                          \
+//         } else if (type == BOOST_PP_STRINGIZE(T)) {                    \
+//             decode<BOOST_PP_CAT(T, )>                                  \
+//                 (type, encoded_data_filename, dictionary_filename);    \
+//             /**/
 
-        BOOST_PP_SEQ_FOR_EACH(LOOP_BODY, _, CODECS);
-#undef LOOP_BODY
-    } else {
-        logger() << "ERROR: unknown type '"
-                 << type << "'" << std::endl;
-    }
+//         BOOST_PP_SEQ_FOR_EACH(LOOP_BODY, _, CODECS);
+// #undef LOOP_BODY
+//     } else {
+//         logger() << "ERROR: unknown type '"
+//                  << type << "'" << std::endl;
+//     }
 
     return 0;
 }
