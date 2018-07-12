@@ -147,8 +147,13 @@ target_link_libraries(rbo
   ${Boost_LIBRARIES}
   )
 
-add_executable(print_selectors_stats print_selectors_stats.cpp)
-target_link_libraries(print_selectors_stats
+#add_executable(print_selectors_stats print_selectors_stats.cpp)
+#target_link_libraries(print_selectors_stats
+#  ${Boost_LIBRARIES}
+#  )
+
+add_executable(dict_perf_test dict_perf_test.cpp)
+target_link_libraries(dict_perf_test
   ${Boost_LIBRARIES}
   )
 

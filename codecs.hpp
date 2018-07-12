@@ -559,6 +559,9 @@ namespace ds2i {
 
         std::vector<uint64_t> ints_distr;       // 0:runs; 1:1; 2:2; 3:4; 4:8; 5:16; 6:exceptions
         std::vector<uint64_t> codewords_distr;  // 0:runs; 1:1; 2:2; 3:4; 4:8; 5:16; 6:exceptions
+
+        uint64_t decoded_ints_from_dict = 0;
+        uint64_t dict_codewords = 0;
     };
 
     struct dint {
@@ -622,11 +625,11 @@ namespace ds2i {
 
                         if (exception < 65536) {
                             out.insert(out.end(), 0);
-                            // out.insert(out.end(), 0); // comment if b = 8
+                            out.insert(out.end(), 0); // comment if b = 8
                             out.insert(out.end(), ptr, ptr + 2);
                         } else {
                             out.insert(out.end(), 1);
-                            // out.insert(out.end(), 0); // comment if b = 8
+                            out.insert(out.end(), 0); // comment if b = 8
                             out.insert(out.end(), ptr, ptr + 4);
                         }
 
@@ -640,11 +643,11 @@ namespace ds2i {
                                      uint32_t* out,
                                      uint32_t /*universe*/, size_t n,
                                      dictionary_type const* dict
-                                     // , dint_statistics& stats
+                                     , dint_statistics& stats
                                      )
         {
-            // uint16_t const* ptr = reinterpret_cast<uint16_t const*>(in);
-            uint8_t const* ptr = in;
+            uint16_t const* ptr = reinterpret_cast<uint16_t const*>(in);
+            // uint8_t const* ptr = in;
 
             for (size_t i = 0; i != n; ++ptr) {
                 uint32_t index = *ptr;
@@ -671,6 +674,9 @@ namespace ds2i {
 
                     // std::cout << "0\n";
 
+                    // stats.dict_codewords++;
+                    // stats.decoded_ints_from_dict += decoded_ints;
+
                 } else {
 
                     // NOTE: on Gov2 and decoding the docIDs,
@@ -688,15 +694,16 @@ namespace ds2i {
                         // stats.codewords_distr[6] += 3;
 
                         // needed when b = 8
-                        ptr += 2;
+                        // ptr += 2;
                     }
 
                     if (DS2I_UNLIKELY(decoded_ints == 0)) { // 2-byte exception
-                        *out = *(reinterpret_cast<uint16_t const*>(++ptr)); // when b = 8
-                        // *out = *(++ptr);
+                        // *out = *(reinterpret_cast<uint16_t const*>(++ptr)); // when b = 8
+                        *out = *(++ptr);
                         decoded_ints = 1;
+
                         // needed when b = 8
-                        ptr += 1;
+                        // ptr += 1;
                     }
                 }
 
@@ -724,8 +731,8 @@ namespace ds2i {
     private:
         static void write_index(uint32_t index, std::vector<uint8_t>& out) {
             auto ptr = reinterpret_cast<uint8_t const*>(&index);
-            // out.insert(out.end(), ptr, ptr + 2); // b = 16
-            out.insert(out.end(), ptr, ptr + 1); // b = 8
+            out.insert(out.end(), ptr, ptr + 2); // b = 16
+            // out.insert(out.end(), ptr, ptr + 1); // b = 8
         }
     };
 
