@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <cmath>
 
 // n = # of possible target sizes
 // k = # of words read at a time
@@ -20,54 +21,60 @@
 
 void generate(std::vector<int>& prefix,
               std::vector<int> const& targets,
+              int& i, int N, int l,
               int d, int n, int k)
 {
     if (d == k + 1) return;
 
-    for (int i = 1; i <= n; ++i)
+    for (int j = 1; j <= n; ++j)
     {
-        prefix[d - 1] = targets[i - 1];
+        prefix[d - 1] = targets[j - 1];
         if (d == k)
         {
-            for (int p = 0; p < k; ++p) {
-                std::cout << prefix[p] << " ";
-            }
-            std::cout << "\n";
+            // for (int p = 0; p < k; ++p) {
+            //     std::cout << prefix[p] << " ";
+            // }
+            // std::cout << "\n";
 
-            std::cout << std::endl;
+            // std::cout << "\n";
 
-            int l = 0;
             int sum = 0;
-            for (int p = 0; p < n; ++p) {
-                if (targets[p] > l) {
-                    l = targets[p];
-                }
-            }
             for (int p = 0; p < k; ++p) {
                 sum += prefix[p];
             }
             std::vector<std::vector<int>> matrix(l, std::vector<int>(k, sum));
-            l = 0;
+
+            int index = 0;
             for (int r = 0; r < k; ++r) {
                 int codeword_length = prefix[r];
                 for (int p = 0; p < codeword_length; ++p) {
                     auto& v = matrix[p];
-                    v[r] = l++;
+                    v[r] = index++;
                 }
             }
 
-            for (auto const& v: matrix) {
-                for (auto x: v) {
-                    std::cout << x << " ";
+            for (int t = 0; t < l; ++t) {
+                std::cout << "\t{";
+                auto const& v = matrix[t];
+                for (int p = 0; p < k; ++p) {
+                    std::cout << v[p];
+                    if (p == k - 1) {
+                        std::cout << "}";
+                        if (i != N - 1) {
+                            std::cout << ",";
+                        }
+                    } else {
+                        std::cout << ", ";
+                    }
+                    ++i;
                 }
-                std::cout << std::endl;
+                std::cout << "\n";
             }
 
-            std::cout << std::endl;
-            std::cout << std::endl;
+            std::cout << "\n";
         }
 
-        generate(prefix, targets, d + 1, n, k);
+        generate(prefix, targets, i, N, l, d + 1, n, k);
     }
 }
 
@@ -84,11 +91,17 @@ int main(int argc, char** argv) {
     int k = std::atoi(argv[2]);
     std::vector<int> targets(n);
     std::cout << "enter targets' sizes:\n";
+
+    int l = 0; // max. target size
     for (int i = 0; i < n; ++i) {
         int x;
         std::cin >> x;
         targets[i] = x;
+        if (x > l) l = x;
     }
+
+    int N = std::pow(n, k) * l;
+    std::cout << "uint32_t indices[" << N << "][" << k << "] = {" << std::endl;
 
     // for (auto x: targets) {
     //     std::cout << x << " ";
@@ -98,7 +111,10 @@ int main(int argc, char** argv) {
     // generate(1, n, k);
     std::vector<int> prefix(k);
     std::cout << std::endl;
-    generate(prefix, targets, 1, n, k);
+    int i = 0;
+    generate(prefix, targets, i, N * l, l, 1, n, k);
+
+    std::cout << "};" << std::endl;
 
     return 0;
 }
