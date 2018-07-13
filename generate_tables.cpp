@@ -101,7 +101,7 @@ int main(int argc, char** argv) {
     }
 
     int N = std::pow(n, k) * l;
-    std::cout << "uint32_t indices[" << N << "][" << k << "] = {" << std::endl;
+    std::cout << "static uint32_t indices[" << N << "][" << k << "] = {" << std::endl;
 
     // for (auto x: targets) {
     //     std::cout << x << " ";

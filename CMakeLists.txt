@@ -157,5 +157,7 @@ target_link_libraries(dict_perf_test
   ${Boost_LIBRARIES}
   )
 
+add_executable(SIMD_test SIMD_test.cpp)
+
 enable_testing()
 add_subdirectory(test)
