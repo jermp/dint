@@ -1,13 +1,19 @@
 #include <iostream>
 #include <vector>
-
 #include <cmath>
-
-#include <tmmintrin.h> // _mm_shuffle_epi8
-#include <tmmintrin.h> // _mm_set_epi8
 #include <x86intrin.h>
 
 #include "tables.hpp"
+
+void push_entry(std::vector<uint32_t>& dict, int size, int l, int& pos, int& j)
+{
+    for (int i = 0; i < size; ++i) {
+        dict[pos + i] = j + i;
+    }
+    pos += l + 1;
+    j += l + 1;
+    dict[pos - 1] = size;
+}
 
 int main()
 {
@@ -90,7 +96,6 @@ int main()
     // }
     // std::cout << std::endl;
 
-
     const int l = 4;
 
     // NOTE: write groups of 8 codewords at a time, in an interleaved way, i.e.:
@@ -115,37 +120,32 @@ int main()
     std::vector<uint32_t> dict(16 * (l + 1), 0);
     int pos = 0;
     j = 1;
-    for (int i = 0; i < 16; ++i) {
-        // push a regular pattern of lengths: 4 4 2 1
 
-        dict[pos + 0] = j + 0;
-        dict[pos + 1] = j + 1;
-        dict[pos + 2] = j + 2;
-        dict[pos + 3] = j + 3;
-        pos += l + 1;
-        j += l + 1;
-        dict[pos - 1] = 4;
+    // 4 4 2 1
+    push_entry(dict, 4, l, pos, j);
+    push_entry(dict, 4, l, pos, j);
+    push_entry(dict, 2, l, pos, j);
+    push_entry(dict, 1, l, pos, j);
 
-        dict[pos + 0] = j + 0;
-        dict[pos + 1] = j + 1;
-        dict[pos + 2] = j + 2;
-        dict[pos + 3] = j + 3;
-        pos += l + 1;
-        j += l + 1;
-        dict[pos - 1] = 4;
+    // 1 2 1 1
+    push_entry(dict, 1, l, pos, j);
+    push_entry(dict, 2, l, pos, j);
+    push_entry(dict, 1, l, pos, j);
+    push_entry(dict, 1, l, pos, j);
 
-        dict[pos + 0] = j + 0;
-        dict[pos + 1] = j + 1;
-        pos += l + 1;
-        j += l + 1;
-        dict[pos - 1] = 2;
+    // 2 2 2 2
+    push_entry(dict, 2, l, pos, j);
+    push_entry(dict, 2, l, pos, j);
+    push_entry(dict, 2, l, pos, j);
+    push_entry(dict, 2, l, pos, j);
 
-        dict[pos + 0] = j + 0;
-        pos += l + 1;
-        j += l + 1;
-        dict[pos - 1] = 1;
-    }
+    // 2 1 2 4
+    push_entry(dict, 2, l, pos, j);
+    push_entry(dict, 1, l, pos, j);
+    push_entry(dict, 2, l, pos, j);
+    push_entry(dict, 4, l, pos, j);
 
+    // print dict for debug
     pos = 0;
     for (int i = 0; i < 16; ++i, pos += l + 1) {
         std::cout << dict[pos + l] << ": ["
@@ -161,14 +161,20 @@ int main()
     uint32_t* pout = out.data();
 
     const static __m128i mask = _mm_set1_epi32(65535);
-    const static __m128i lengths = _mm_set1_epi32(l + 1);
+    const static __m128i words_offsets = _mm_set1_epi32(l + 1);
+    const static __m128i lengths_offsets = _mm_set1_epi32(l);
     const static __m128i increments = _mm_set1_epi32(1);
-    const static int p3 = 3 * 3 * 3;
-    const static int p2 = 3 * 3;
-    const static int p1 = 3;
+    static uint32_t lengths[] = {0, 0, 0, 0};
+    static const uint32_t lengths_to_coefficients[] = {0, 0, 1, 0, 2};
+                                                    // 0  1  2  3  4
 
-    int index = (p3 * (3 - 1) + p2 * (3 - 1) + p1 * (2 - 1) + (1 - 1)) * l;
-    std::cout << "index " << index << std::endl;
+    // const static __m128i powers = _mm_set_epi32(27, 9, 3, 1);
+
+    // const static int p3 = 3 * 3 * 3;
+    // const static int p2 = 3 * 3;
+    // const static int p1 = 3;
+    // int index = (p3 * (3 - 1) + p2 * (3 - 1) + p1 * (2 - 1) + (1 - 1)) * l;
+    // std::cout << "index " << index << std::endl;
 
     auto dict_ptr = reinterpret_cast<int const*>(dict.data());
 
@@ -178,27 +184,51 @@ int main()
     for (uint64_t w = 0; w != _128bit_words; ++w)
     {
         win = _mm_loadu_si128(in);
-        wout = _mm_and_si128(mask, win);
 
-        wout = _mm_mullo_epi32(wout, lengths);
+        wout = _mm_and_si128(mask, win);
+        wout = _mm_mullo_epi32(wout, words_offsets);
+        int index, decoded_ints;
+
+        // index calculation
+        _mm_store_si128(reinterpret_cast<__m128i*>(lengths),
+                        _mm_i32gather_epi32(dict_ptr, _mm_add_epi32(wout, lengths_offsets), 4));
+        decoded_ints = lengths[0] + lengths[1] + lengths[2] + lengths[3];
+        index = lengths_to_coefficients[lengths[0]] * 27
+              + lengths_to_coefficients[lengths[1]] *  9
+              + lengths_to_coefficients[lengths[2]] *  3
+              + lengths_to_coefficients[lengths[3]] *  1;
+        index *= l;
+        std::cout << "index " << index << std::endl;
+
         for (int i = 0; i < 4; ++i) {
             __m128i words = _mm_i32gather_epi32(dict_ptr, wout, 4);
             __m128i vindex = _mm_loadu_si128(reinterpret_cast<__m128i const*>(ds2i::tables::indices[index + i]));
             _mm_i32scatter_epi32(pout, vindex, words, 4);
             wout = _mm_add_epi32(wout, increments);
         }
-        pout += 11;
+        pout += decoded_ints;
 
         wout = _mm_srli_epi32(win, 16);
+        wout = _mm_mullo_epi32(wout, words_offsets);
 
-        wout = _mm_mullo_epi32(wout, lengths);
+        // index calculation
+        _mm_store_si128(reinterpret_cast<__m128i*>(lengths),
+                        _mm_i32gather_epi32(dict_ptr, _mm_add_epi32(wout, lengths_offsets), 4));
+        decoded_ints = lengths[0] + lengths[1] + lengths[2] + lengths[3];
+        index = lengths_to_coefficients[lengths[0]] * 27
+              + lengths_to_coefficients[lengths[1]] *  9
+              + lengths_to_coefficients[lengths[2]] *  3
+              + lengths_to_coefficients[lengths[3]] *  1;
+        index *= l;
+        std::cout << "index " << index << std::endl;
+
         for (int i = 0; i < 4; ++i) {
             __m128i words = _mm_i32gather_epi32(dict_ptr, wout, 4);
             __m128i vindex = _mm_loadu_si128(reinterpret_cast<__m128i const*>(ds2i::tables::indices[index + i]));
             _mm_i32scatter_epi32(pout, vindex, words, 4);
             wout = _mm_add_epi32(wout, increments);
         }
-        pout += 11;
+        pout += decoded_ints;
 
         ++in;
     }
