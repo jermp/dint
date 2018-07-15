@@ -164,7 +164,6 @@ int main()
     const static __m128i words_offsets = _mm_set1_epi32(l + 1);
     const static __m128i lengths_offsets = _mm_set1_epi32(l);
     const static __m128i increments = _mm_set1_epi32(1);
-    static uint32_t lengths[] = {0, 0, 0, 0};
     static const uint32_t lengths_to_coefficients[] = {0, 0, 1, 0, 2};
                                                     // 0  1  2  3  4
 
@@ -177,58 +176,40 @@ int main()
     // std::cout << "index " << index << std::endl;
 
     auto dict_ptr = reinterpret_cast<int const*>(dict.data());
-
     uint64_t _128bit_words = vec.size() * 16 / 128;
     __m128i const* in = reinterpret_cast<__m128i const*>(vec.data());
+
+    auto decode4 = [&]() // decode 4 codewords at a time
+    {
+        static uint32_t lengths[] = {0, 0, 0, 0};
+        _mm_store_si128(reinterpret_cast<__m128i*>(lengths),
+                        _mm_i32gather_epi32(dict_ptr, _mm_add_epi32(wout, lengths_offsets), 4));
+        int decoded_ints = lengths[0] + lengths[1] + lengths[2] + lengths[3];
+        int index = lengths_to_coefficients[lengths[0]] * 27
+                  + lengths_to_coefficients[lengths[1]] *  9
+                  + lengths_to_coefficients[lengths[2]] *  3
+                  + lengths_to_coefficients[lengths[3]] *  1;
+        index *= l;
+        // std::cout << "index " << index << std::endl;
+
+        for (int i = 0; i < 4; ++i) {
+            __m128i words = _mm_i32gather_epi32(dict_ptr, wout, 4);
+            __m128i vindex = _mm_loadu_si128(reinterpret_cast<__m128i const*>(ds2i::tables::indices[index + i]));
+            _mm_i32scatter_epi32(pout, vindex, words, 4);
+            wout = _mm_add_epi32(wout, increments);
+        }
+        pout += decoded_ints;
+    };
 
     for (uint64_t w = 0; w != _128bit_words; ++w)
     {
         win = _mm_loadu_si128(in);
 
-        wout = _mm_and_si128(mask, win);
-        wout = _mm_mullo_epi32(wout, words_offsets);
-        int index, decoded_ints;
+        wout = _mm_mullo_epi32(_mm_and_si128(mask, win), words_offsets);
+        decode4();
 
-        // index calculation
-        _mm_store_si128(reinterpret_cast<__m128i*>(lengths),
-                        _mm_i32gather_epi32(dict_ptr, _mm_add_epi32(wout, lengths_offsets), 4));
-        decoded_ints = lengths[0] + lengths[1] + lengths[2] + lengths[3];
-        index = lengths_to_coefficients[lengths[0]] * 27
-              + lengths_to_coefficients[lengths[1]] *  9
-              + lengths_to_coefficients[lengths[2]] *  3
-              + lengths_to_coefficients[lengths[3]] *  1;
-        index *= l;
-        std::cout << "index " << index << std::endl;
-
-        for (int i = 0; i < 4; ++i) {
-            __m128i words = _mm_i32gather_epi32(dict_ptr, wout, 4);
-            __m128i vindex = _mm_loadu_si128(reinterpret_cast<__m128i const*>(ds2i::tables::indices[index + i]));
-            _mm_i32scatter_epi32(pout, vindex, words, 4);
-            wout = _mm_add_epi32(wout, increments);
-        }
-        pout += decoded_ints;
-
-        wout = _mm_srli_epi32(win, 16);
-        wout = _mm_mullo_epi32(wout, words_offsets);
-
-        // index calculation
-        _mm_store_si128(reinterpret_cast<__m128i*>(lengths),
-                        _mm_i32gather_epi32(dict_ptr, _mm_add_epi32(wout, lengths_offsets), 4));
-        decoded_ints = lengths[0] + lengths[1] + lengths[2] + lengths[3];
-        index = lengths_to_coefficients[lengths[0]] * 27
-              + lengths_to_coefficients[lengths[1]] *  9
-              + lengths_to_coefficients[lengths[2]] *  3
-              + lengths_to_coefficients[lengths[3]] *  1;
-        index *= l;
-        std::cout << "index " << index << std::endl;
-
-        for (int i = 0; i < 4; ++i) {
-            __m128i words = _mm_i32gather_epi32(dict_ptr, wout, 4);
-            __m128i vindex = _mm_loadu_si128(reinterpret_cast<__m128i const*>(ds2i::tables::indices[index + i]));
-            _mm_i32scatter_epi32(pout, vindex, words, 4);
-            wout = _mm_add_epi32(wout, increments);
-        }
-        pout += decoded_ints;
+        wout = _mm_mullo_epi32(_mm_srli_epi32(win, 16), words_offsets);
+        decode4();
 
         ++in;
     }
