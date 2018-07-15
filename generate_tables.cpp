@@ -31,10 +31,11 @@ void generate(std::vector<int>& prefix,
         prefix[d - 1] = targets[j - 1];
         if (d == k)
         {
-            // for (int p = 0; p < k; ++p) {
-            //     std::cout << prefix[p] << " ";
-            // }
-            // std::cout << "\n";
+            std::cout << "\t/* " << i / l << ": ";
+            for (int p = 0; p < k; ++p) {
+                std::cout << prefix[p] << " ";
+            }
+            std::cout << "*/\n";
 
             // std::cout << "\n";
 
@@ -101,7 +102,7 @@ int main(int argc, char** argv) {
     }
 
     int N = std::pow(n, k) * l;
-    std::cout << "static uint32_t indices[" << N << "][" << k << "] = {" << std::endl;
+    std::cout << "static uint32_t indices[" << N << "][" << k << "] = /* ALIGNED(16) */ {" << std::endl;
 
     // for (auto x: targets) {
     //     std::cout << x << " ";
