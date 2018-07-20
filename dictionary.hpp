@@ -308,6 +308,17 @@ namespace ds2i {
             //     out.close();
             // }
 
+            uint32_t size(uint32_t i) const {
+                uint32_t begin = i * (t_max_entry_size + 1);
+                uint32_t end = begin + t_max_entry_size;
+                return m_table[end];
+            }
+
+            uint32_t const* get(uint32_t i) const {
+                uint32_t begin = i * (t_max_entry_size + 1);
+                return &m_table[begin];
+            }
+
         private:
             std::string m_type;
             uint32_t m_pos;
@@ -321,17 +332,6 @@ namespace ds2i {
 
             // map from hash codes to table indexes, used during encoding
             std::unordered_map<uint64_t, uint32_t> m_map;
-
-            uint32_t size(uint32_t i) const {
-                uint32_t begin = i * (t_max_entry_size + 1);
-                uint32_t end = begin + t_max_entry_size;
-                return m_table[end];
-            }
-
-            uint32_t const* get(uint32_t i) const {
-                uint32_t begin = i * (t_max_entry_size + 1);
-                return &m_table[begin];
-            }
         };
 
         dictionary()

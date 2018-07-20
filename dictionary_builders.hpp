@@ -55,14 +55,14 @@ namespace ds2i {
             logger() << "building " << type() << " dictionary for " << stats.total_integers << std::endl;
             builder.init(stats.total_integers);
 
-            for (auto& block: stats.blocks) {
-                if (block.data.size() == 1) { // NOTE: privilege large singletons,
-                                              // since if not included in the dictionary will become "large" exceptions
-                    if (block.data.front() > 65536) {
-                        block.freq *= 2;
-                    }
-                }
-            }
+            // for (auto& block: stats.blocks) {
+            //     if (block.data.size() == 1) { // NOTE: privilege large singletons,
+            //                                   // since if not included in the dictionary will become "large" exceptions
+            //         if (block.data.front() > 65536) {
+            //             block.freq *= 2;
+            //         }
+            //     }
+            // }
 
             freq_length_sorter sorter;
             std::sort(stats.blocks.begin(),
