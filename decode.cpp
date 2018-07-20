@@ -44,7 +44,7 @@ void decode(std::string const& type,
         dict_size = builder.size();
         logger() << "dictionary with "
                  << dict_size << " entries" << std::endl;
-        builder.print();
+        // builder.print();
         builder.build(dict);
     }
 

@@ -1,7 +1,6 @@
 #include <iostream>
 #include <algorithm>
 #include <fstream>
-#include <unordered_map>
 
 #include <boost/preprocessor/seq/for_each.hpp>
 #include <boost/preprocessor/stringize.hpp>
@@ -37,7 +36,7 @@ void encode(std::string const& type,
         builder.load(dictionary_file);
         logger() << "preparing for encoding..." << std::endl;
         builder.prepare_for_encoding();
-        // builder.print();
+        builder.print();
     }
 
     uint64_t total_progress = input.num_postings();
@@ -61,6 +60,7 @@ void encode(std::string const& type,
     output.reserve(bytes);
 
     std::vector<uint32_t> buf;
+    std::vector<uint8_t> tmp;
 
     boost::progress_display progress(total_progress);
 
@@ -82,8 +82,16 @@ void encode(std::string const& type,
             }
             assert(buf.size() == n);
 
-            header::write(n, universe, output);
-            Encoder::encode(buf.data(), universe, n, output, &builder);
+            // NOTE: encode data in a tmp buffer because we don't encode exceptions
+            // and we do not know how many integers we will write.
+            uint64_t written = Encoder::encode(buf.data(), universe, n, tmp, &builder);
+            header::write(written, universe, output);
+            std::copy(tmp.begin(), tmp.end(), std::back_inserter(output));
+            tmp.clear();
+
+            // header::write(n, universe, output);
+            // Encoder::encode(buf.data(), universe, n, output, &builder);
+
             buf.clear();
 
             ++num_processed_lists;
@@ -161,21 +169,21 @@ int main(int argc, char** argv) {
 
     logger() << cmd << std::endl;
 
-    // encode<dint>(type, collection_name, output_filename, dictionary_filename);
+    encode<dint>(type, collection_name, output_filename, dictionary_filename);
 
-    if (false) {
-#define LOOP_BODY(R, DATA, T)                                                     \
-        } else if (type == BOOST_PP_STRINGIZE(T)) {                               \
-            encode<BOOST_PP_CAT(T, )>                                             \
-                (type, collection_name, output_filename, dictionary_filename);    \
-            /**/
+//     if (false) {
+// #define LOOP_BODY(R, DATA, T)                                                     \
+//         } else if (type == BOOST_PP_STRINGIZE(T)) {                               \
+//             encode<BOOST_PP_CAT(T, )>                                             \
+//                 (type, collection_name, output_filename, dictionary_filename);    \
+//             /**/
 
-        BOOST_PP_SEQ_FOR_EACH(LOOP_BODY, _, CODECS);
-#undef LOOP_BODY
-    } else {
-        logger() << "ERROR: unknown type '"
-                 << type << "'" << std::endl;
-    }
+//         BOOST_PP_SEQ_FOR_EACH(LOOP_BODY, _, CODECS);
+// #undef LOOP_BODY
+//     } else {
+//         logger() << "ERROR: unknown type '"
+//                  << type << "'" << std::endl;
+//     }
 
     return 0;
 }

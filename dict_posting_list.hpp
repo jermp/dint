@@ -52,6 +52,9 @@ namespace ds2i {
                               uint32_t(-1),
                               cur_block_size, out);
 
+                // docs_dict_builder.prepare_block();
+                // freqs_dict_builder.prepare_block();
+
                 if (b != blocks - 1) {
                     *((uint32_t*)&out[begin_block_endpoints + 4 * b]) = out.size() - begin_blocks;
                 }

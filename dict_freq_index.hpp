@@ -107,7 +107,7 @@ namespace ds2i {
                     using statistics_type = typename dictionary_builder::statistics_type;
                     auto statistics = statistics_type::create_or_load(prefix_name, dt,
                                                                       dictionary_builder::filter());
-                    dictionary_builder::build(builder, statistics);
+                    dictionary_builder::build(builder, statistics, dt);
 
                     // logger() << "using " << builder.bpi() << " bits x integer" << std::endl;
                     // logger() << "covering " << builder.coverage() << "% of integers" << std::endl;

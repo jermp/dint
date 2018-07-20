@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <fstream>
+#include <limits>
 
 #include <succinct/mappable_vector.hpp>
 
@@ -12,8 +13,10 @@
 #include "util.hpp"
 
 #include <x86intrin.h>
+#include <immintrin.h> // AVX2
 
 #define EXCEPTIONS 2
+#define INF std::numeric_limits<uint32_t>::max()
 
 namespace ds2i {
 
@@ -38,6 +41,22 @@ namespace ds2i {
             uint64_t small_exceptions = 0;
             uint64_t large_exceptions = 0;
 
+            struct node {
+                node(uint32_t p, uint32_t w, uint32_t c)
+                    : parent(p), codeword(w), cost(c)
+                {}
+
+                uint32_t parent;
+                uint32_t codeword;
+                uint32_t cost;
+            };
+
+            // optimal parsing
+            std::vector<node> encoding;
+            // static const uint32_t inf = std::numeric_limits<uint32_t>::max();
+            node null_node = {0, 1, INF};
+            std::vector<node> path;
+
             builder()
                 : m_pos(0)
                 , m_size(reserved)
@@ -45,7 +64,10 @@ namespace ds2i {
                 // , m_total_coverage(0.0)
                 // , m_total_integers(0)
                 , m_table(0, 0)
-            {}
+            {
+                path.resize(constants::block_size, null_node);
+                encoding.reserve(constants::block_size);
+            }
 
             void init(uint64_t total_integers = 0) {
                 m_pos = reserved * (max_entry_size + 1);
@@ -58,6 +80,14 @@ namespace ds2i {
 
                 m_table.resize(num_entries * (max_entry_size + 1), 0);
                 // m_freqs.reserve(num_entries);
+
+                uint32_t pos = max_entry_size + 1;
+                for (int i = 0; i < EXCEPTIONS; ++i, pos += max_entry_size + 1) {
+                    m_table[pos - 1] = 1;
+                }
+                for (int i = 0, size = 256; i < 5; ++i, pos += max_entry_size + 1, size /= 2) {
+                    m_table[pos - 1] = size;
+                }
             }
 
             void load_from_file(std::string dict_file) {
@@ -138,6 +168,11 @@ namespace ds2i {
                 }
             }
 
+            void prepare_block() {
+                encoding.clear();
+                std::fill(path.begin(), path.end(), null_node);
+            }
+
             // Giulio: return the index of the pattern if found in the table,
             // otherwise return the invalid_index value
             uint32_t lookup(uint32_t const* begin, uint32_t entry_size) const
@@ -191,19 +226,15 @@ namespace ds2i {
                 }
                 sizes.push_back(5); // for the runs
 
-                uint32_t k = reserved;
-                for (uint64_t i = reserved * (max_entry_size + 1);
-                              i < m_table.size(); i += max_entry_size + 1) {
+                for (uint64_t i = 0, k = 0; i < m_table.size(); i += max_entry_size + 1, ++k) {
                     uint32_t size = m_table[i + max_entry_size];
-                    std::cout << k << ": [";
-                    for (uint32_t k = 0; k < size; ++k) {
+                    std::cout << k << ": " << size << " - [";
+                    for (uint32_t k = 0; k < max_entry_size; ++k) {
                         std::cout << m_table[i + k];
-                        if (k != size - 1) std::cout << "|";
+                        if (k != max_entry_size - 1) std::cout << "|";
                     }
                     std::cout << "]" << std::endl;
-                    // std::cout << size << std::endl;
                     sizes[ceil_log2(size) + 1] += 1;
-                    ++k;
                 }
 
                 std::cout << "rare: " << EXCEPTIONS << " (" << EXCEPTIONS * 100.0 / num_entries << "%)" << std::endl;
@@ -306,27 +337,54 @@ namespace ds2i {
         dictionary()
         {}
 
+        int const* data() const {
+            return reinterpret_cast<int const*>(m_table.data());
+        }
+
         uint32_t copy(uint32_t i, uint32_t* out) const
         {
             assert(i < num_entries);
             uint32_t begin = i * (max_entry_size + 1);
-            uint32_t end = begin + max_entry_size;
-            uint32_t size = m_table[end];
             uint32_t const* ptr = &m_table[begin];
 
-            // APPROACH 1: always copy 32 bytes, regardless the fact that
-            // most entries are 4-int long and require 16 bytes only
+            // APPROACH 1: always copy max_entry_size * sizeof(uint32_t) bytes,
+            // regardless the fact that most entries need less bytes
             memcpy(out, ptr, max_entry_size * sizeof(uint32_t));
 
+            // NOTE: slower than memcpy
+            // *(out + 0) = *(ptr + 0);
+            // *(out + 1) = *(ptr + 1);
+            // *(out + 2) = *(ptr + 2);
+            // *(out + 3) = *(ptr + 3);
+            // *(out + 4) = *(ptr + 4);
+            // *(out + 5) = *(ptr + 5);
+            // *(out + 6) = *(ptr + 6);
+            // *(out + 7) = *(ptr + 7);
 
-            // APPROACH 1: split the copy into 2 parts and copy
-            // additional 16 bytes only when necessary
+            // NOTE: faster than previous one, but still a bit slower than memcpy
+            // uint64_t* _out = reinterpret_cast<uint64_t*>(out);
+            // uint64_t const* _in = reinterpret_cast<uint64_t const*>(ptr);
+            // *(_out + 0) = *(_in + 0);
+            // *(_out + 1) = *(_in + 1);
+
+            // APPROACH 2: split the copy into 2 parts and copy
+            // the rest only when necessary
+            // NOTE: slower than memcpy
             // memcpy(out, ptr, 16);
             // if (size == 8) {
             //     memcpy(out + 4, ptr + 4, 16);
             // }
+            // *(reinterpret_cast<uint64_t*>(out)) = *(reinterpret_cast<uint64_t const*>(ptr));
+            // if (size == 4) {
+            //     *(reinterpret_cast<uint64_t*>(out) + 1) = *(reinterpret_cast<uint64_t const*>(ptr) + 1);
+            // }
 
-            // APPROACH 2: SIMD
+            // APPROACH 3: SIMD
+            // NOTE: equal to memcpy
+            // _mm_storeu_si128((__m128i*) out, _mm_loadu_si128((__m128i const*) ptr)); // l = 4
+            // _mm256_storeu_si256((__m256i*) out, _mm256_lddqu_si256((__m256i const*) ptr)); // l = 8
+            // _mm512_storeu_si512(out, _mm512_loadu_si512(ptr)); // l = 16
+
             // __m128i tmp_0 = _mm_loadu_si128((__m128i*) ptr);
             // _mm_storeu_si128((__m128i*) out, tmp_0);
             // if (size == 8) {
@@ -334,6 +392,8 @@ namespace ds2i {
             //     _mm_storeu_si128((__m128i*)(out + 4), tmp_4);
             // }
 
+            // uint32_t end = begin + max_entry_size;
+            uint32_t size = *(ptr + max_entry_size); // m_table[end];
             return size;
         }
 

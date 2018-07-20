@@ -49,47 +49,88 @@ namespace ds2i {
         }
 
         static void build(typename dictionary_type::builder& builder,
-                          statistics_type& stats)
+                          statistics_type& stats, data_type dt)
         {
+            (void) dt;
             logger() << "building " << type() << " dictionary for " << stats.total_integers << std::endl;
             builder.init(stats.total_integers);
 
-            logger() << "(1) finding the most covering blocks" << std::endl;
-            freq_sorter sorter;
-            std::priority_queue<block_type,
-                                std::vector<block_type>,
-                                freq_sorter> pq(sorter);
-            {
-                for (auto const& block : stats.blocks) {
-                    if (pq.size() < dictionary_type::num_entries) {
-                        pq.push(block);
-                    } else {
-                        if (sorter(block, pq.top())) {
-                            pq.pop();
-                            pq.push(block);
-                        }
+            for (auto& block: stats.blocks) {
+                if (block.data.size() == 1) { // NOTE: privilege large singletons,
+                                              // since if not included in the dictionary will become "large" exceptions
+                    if (block.data.front() > 65536) {
+                        block.freq *= 2;
                     }
                 }
             }
 
-            logger() << "(2) adding entries to the dictionary" << std::endl;
-            std::vector<block_type> blocks;
-            while (!pq.empty()) {
-                auto& block = pq.top();
-                blocks.push_back(std::move(block));
-                pq.pop();
+            freq_length_sorter sorter;
+            std::sort(stats.blocks.begin(),
+                      stats.blocks.end(),
+                      sorter);
+
+            uint64_t n = dictionary_type::num_entries;
+            if (stats.blocks.size() < n) {
+                n = stats.blocks.size();
             }
 
-            {
-                freq_length_sorter sorter;
-                std::sort(blocks.begin(), blocks.end(), sorter);
-            }
-
-            for (auto const& block: blocks) {
+            auto it = stats.blocks.begin();
+            for (uint64_t i = 0; i < n; ++i, ++it) {
+                auto const& block = *it;
                 builder.append(block.data.data(),
                                block.data.size(),
                                block.freq);
             }
+
+            logger() << "DONE" << std::endl;
+        }
+    };
+
+    template<typename Dictionary, typename Statistics>
+    struct decreasing_static_volume
+    {
+        typedef Dictionary dictionary_type;
+        typedef Statistics statistics_type;
+
+        static std::string type() {
+            return "DSV-" + std::to_string(dictionary_type::num_entries) +
+                      "-" + std::to_string(dictionary_type::max_entry_size);
+        }
+
+        static auto filter() {
+            cost_filter filter(constants::eps / 1000);
+            return filter;
+        }
+
+        static void build(typename dictionary_type::builder& builder,
+                          statistics_type& stats, data_type dt)
+        {
+            (void) dt;
+            logger() << "building " << type() << " dictionary for " << stats.total_integers << std::endl;
+            builder.init(stats.total_integers);
+
+            for (auto& block: stats.blocks) {
+                block.freq *= block.data.size();
+            }
+
+            freq_length_sorter sorter;
+            std::sort(stats.blocks.begin(),
+                      stats.blocks.end(),
+                      sorter);
+
+            uint64_t n = dictionary_type::num_entries;
+            if (stats.blocks.size() < n) {
+                n = stats.blocks.size();
+            }
+
+            auto it = stats.blocks.begin();
+            for (uint64_t i = 0; i < n; ++i, ++it) {
+                auto const& block = *it;
+                builder.append(block.data.data(),
+                               block.data.size(),
+                               block.freq);
+            }
+
             logger() << "DONE" << std::endl;
         }
     };
@@ -112,8 +153,9 @@ namespace ds2i {
         }
 
         static void build(typename dictionary_type::builder& builder,
-                          statistics_type& stats)
+                          statistics_type& stats, data_type dt)
         {
+            (void) dt;
             logger() << "building " << type() << " dictionary for " << stats.total_integers << std::endl;
             builder.init(stats.total_integers);
 
@@ -243,15 +285,14 @@ namespace ds2i {
         }
 
         static void build(typename dictionary_type::builder& builder,
-                          statistics_type& stats)
+                          statistics_type& stats, data_type dt)
         {
             logger() << "building " << type() << " dictionary for " << stats.total_integers << std::endl;
             builder.init(stats.total_integers);
 
             // <hash of block, unique_id>
-            std::unordered_map<uint64_t,
-                               uint32_t // assume less than 2^32 candidates
-                               > map;
+            // NOTE: assume less than 2^32 candidates
+            std::unordered_map<uint64_t, uint32_t> map;
 
             length_freq_sorter sorter;
             std::sort(stats.blocks.begin(), stats.blocks.end(), sorter);
@@ -263,25 +304,58 @@ namespace ds2i {
 
             std::vector<uint64_t> offsets(constants::num_target_sizes + 1, 0);
 
+            // NOTE: same as PDF on Gov2
+            const static double docs_percentages[] = {
+                0.01485, // 16
+                0.09984, //  8
+                0.32739, //  4
+                0.36876, //  2
+                0.18906  //  1
+            };
+
+            // NOTE: same as PDF on Gov2
+            const static double freqs_percentages[] = {
+                0.10506, // 16
+                0.34004, //  8
+                0.39658, //  4
+                0.14325, //  2
+                0.01497  //  1
+            };
+
             uint32_t curr_block_size = dictionary_type::max_entry_size;
             int k = 0;
-            // uint32_t i = 0;
+            double current_perc = dt == data_type::docs ? docs_percentages[0] : freqs_percentages[0];
+            uint64_t candidates = current_perc * dictionary_type::num_entries;
+            uint64_t m = 0;
 
-            for (auto const& block: stats.blocks) {
+            std::cout << "candidates of size " << (uint64_t(1) << k) << ": " << candidates << std::endl;
 
+            for (auto const& block: stats.blocks)
+            {
                 if (block.data.size() == curr_block_size / 2) {
-                    offsets[++k] = candidates_ids.size();
+                    ++k;
+                    offsets[k] = candidates_ids.size();
                     curr_block_size /= 2;
-                    // i = 0;
+                    current_perc = dt == data_type::docs ? docs_percentages[k] : freqs_percentages[k];
+                    candidates = current_perc * dictionary_type::num_entries;
+                    std::cout << "candidates of size " << (uint64_t(1) << k) << ": " << candidates << std::endl;
+                    m = 0;
                 }
 
-                if (//i < constants::top_k and
-                    (cf(block, stats.total_integers) or block.data.size() == 1)) {
+                // NOTE: stopping criterion by cost pruning
+                // if (cf(block, stats.total_integers) or block.data.size() == 1) {
+                //     map[block.hash()] = id;
+                //     candidates_ids.push_back(id);
+                // }
+
+                // NOTE: static stopping criterion by percentage
+                if (m < candidates) {
                     map[block.hash()] = id;
                     candidates_ids.push_back(id);
+                    ++m;
                 }
+
                 ++id;
-                // ++i;
             }
 
             offsets[constants::num_target_sizes] = candidates_ids.size();
@@ -292,16 +366,8 @@ namespace ds2i {
             curr_block_size = dictionary_type::max_entry_size;
             k = 0;
 
-            uint64_t total_covered_ints = 0;
-            uint64_t covered_ints = 0;
-            for (uint32_t i = 0; i < constants::top_k; ++i) {
-                covered_ints += curr_block_size * stats.blocks[candidates_ids[i]].freq;
-            }
-            total_covered_ints += covered_ints;
-            std::cout << "covering " << covered_ints * 100.0 / stats.total_integers
-                      << "% integers with " << constants::top_k << "-top entries of size " << curr_block_size
-                      << std::endl;
-            covered_ints = 0;
+            // uint64_t total_covered_ints = 0;
+            // uint64_t covered_ints = 0;
 
             for (uint32_t i = 0; i < candidates_ids.size(); ++i)
             {
@@ -313,11 +379,15 @@ namespace ds2i {
 
                 // decrease frequencies of sub-blocks (if any)
                 for (uint32_t block_size = size / 2; block_size != 0; block_size /= 2) {
-                    for (uint32_t begin = 0; begin < size; begin += block_size) {
-                        uint8_t const* b = reinterpret_cast<uint8_t const*>(&(block.data[begin]));
-                        uint8_t const* e = b + std::min<uint64_t>(block_size, size - begin) * sizeof(uint32_t);
-                        assert(std::min<uint64_t>(block_size, size - begin) == block_size);
-                        uint64_t hash = hash_bytes64(byte_range(b, e));
+                    for (uint32_t begin = 0; begin < size; begin += block_size)
+                    {
+                        // uint8_t const* b = reinterpret_cast<uint8_t const*>(&(block.data[begin]));
+                        // uint8_t const* e = b + std::min<uint64_t>(block_size, size - begin) * sizeof(uint32_t);
+                        // assert(std::min<uint64_t>(block_size, size - begin) == block_size);
+                        // uint64_t hash = hash_bytes64(byte_range(b, e));
+
+                        uint64_t hash = hash_bytes64(&(block.data[begin]), block_size);
+
                         auto it = map.find(hash);
                         if (it != map.end()) {
                             uint32_t id = map[hash];
@@ -339,66 +409,28 @@ namespace ds2i {
 
                     ++k;
                     // re-sort sub-blocks after decreasing their frequencies
+                    logger() << "sorting sub-sequences..." << std::endl;
                     std::sort(
                         stats.blocks.begin() + offsets[k],
                         stats.blocks.begin() + offsets[k + 1],
                         sorter
                     );
 
-                    uint32_t id = offsets[k];
-                    for (uint32_t i = 0; i < constants::top_k; ++i, ++id) {
-                        covered_ints += curr_block_size * stats.blocks[id].freq;
-                    }
-                    total_covered_ints += covered_ints;
-                    std::cout << "covering " << covered_ints * 100.0 / stats.total_integers
-                              << "% integers with " << constants::top_k << "-top entries of size " << curr_block_size
-                              << std::endl;
-                    covered_ints = 0;
+                    // uint32_t id = offsets[k];
+                    // for (uint32_t i = 0; i < constants::top_k; ++i, ++id) {
+                    //     covered_ints += curr_block_size * stats.blocks[id].freq;
+                    // }
+                    // total_covered_ints += covered_ints;
+                    // std::cout << "covering " << covered_ints * 100.0 / stats.total_integers
+                    //           << "% integers with " << constants::top_k << "-top entries of size " << curr_block_size
+                    //           << std::endl;
+                    // covered_ints = 0;
                 }
             }
 
-            std::cout << "covered " << total_covered_ints * 100.0 / stats.total_integers
-                      << "% integers" << std::endl;
-            std::cout << std::endl;
-
-            uint32_t top_k = constants::top_k;
-            while (top_k < 4096)
-            {
-                top_k *= 2;
-                uint32_t i = 0;
-                curr_block_size = dictionary_type::max_entry_size;
-                covered_ints = 0;
-                total_covered_ints = 0;
-                for (auto id: candidates_ids)
-                {
-                    size_t size = stats.blocks[id].data.size();
-                    if (size == curr_block_size / 2)
-                    {
-                        std::cout << "covering " << covered_ints * 100.0 / stats.total_integers
-                                  << "% integers with " << top_k << "-top entries of size " << curr_block_size
-                                  << std::endl;
-
-                        total_covered_ints += covered_ints;
-
-                        covered_ints = 0;
-                        i = 0;
-                        curr_block_size /= 2;
-                    }
-
-                    if (i < top_k) {
-                        covered_ints += size * stats.blocks[id].freq;
-                    }
-
-                    ++i;
-                }
-
-                std::cout << "covering " << covered_ints * 100.0 / stats.total_integers
-                          << "% integers with " << top_k << "-top entries of size 1"
-                          << std::endl;
-                std::cout << "covered " << total_covered_ints * 100.0 / stats.total_integers
-                          << "% integers" << std::endl;
-                std::cout << std::endl;
-            }
+            // std::cout << "covered " << total_covered_ints * 100.0 / stats.total_integers
+            //           << "% integers" << std::endl;
+            // std::cout << std::endl;
         }
     };
 
@@ -419,8 +451,9 @@ namespace ds2i {
         }
 
         static void build(typename dictionary_type::builder& builder,
-                          statistics_type& stats)
+                          statistics_type& stats, data_type dt)
         {
+            (void) dt;
             logger() << "building " << type() << " dictionary for " << stats.total_integers << std::endl;
             builder.init(stats.total_integers);
 
