@@ -249,232 +249,276 @@ uint64_t decode_SIMD(std::vector<uint8_t> const& encoded,
     return num_total_decoded_ints;
 }
 
-int main(int argc, char** argv) {
+// int main(int argc, char** argv) {
 
-    if (argc < 3) {
-        std::cerr << "Usage " << argv[0] << ":\n"
-                  << "\t<collection_name> <dictionary_filename> <n> <scalar|SIMD>"
-                  << std::endl;
-        return 1;
-    }
-
-    char const* collection_name = argv[1];
-    char const* dictionary_filename = argv[2];
-    uint64_t n = std::stoull(argv[3]);  // number of postings to encode
-    std::string type = argv[4];
-
-    dictionary_type::builder builder;
-    if (dictionary_filename) {
-        std::ifstream dictionary_file(dictionary_filename);
-        builder.load(dictionary_file);
-        logger() << "preparing for encoding..." << std::endl;
-        builder.prepare_for_encoding();
-        // builder.print();
-    }
-
-    std::vector<uint8_t> encoded;
-    uint64_t bytes = 1 * GiB;
-    encoded.reserve(bytes);
-    n = encode(collection_name, dictionary_filename, n, encoded, builder);
-
-    dictionary_type dictionary;
-    builder.build(dictionary);
-
-    logger() << type << std::endl;
-
-    std::vector<uint32_t> out(n);
-    uint64_t decoded_ints = 0;
-
-    if (type == std::string("scalar"))
-    {
-        auto start = clock_type::now();
-        for (int run = 0; run != 5; ++run) {
-            decoded_ints += decode_scalar(encoded, dictionary, out.data());
-        }
-        auto end = clock_type::now();
-        std::chrono::nanoseconds elapsed = end - start;
-        logger() << elapsed.count() << std::endl;
-        logger() << decoded_ints << std::endl;
-        logger() << "avg. nanoseconds per integer: "
-                 << double(elapsed.count()) / decoded_ints << std::endl;
-    }
-    else if (type == std::string("SIMD"))
-    {
-        auto start = clock_type::now();
-        for (int run = 0; run != 5; ++run) {
-            // decoded_ints += _m256_decode_SIMD1(encoded, dictionary, out.data());
-            decoded_ints += _m512_decode_SIMD1(encoded, dictionary, out.data());
-        }
-        auto end = clock_type::now();
-        std::chrono::nanoseconds elapsed = end - start;
-        logger() << elapsed.count() << std::endl;
-        logger() << decoded_ints << std::endl;
-        logger() << "avg. nanoseconds per integer: "
-                 << double(elapsed.count()) / decoded_ints << std::endl;
-    }
-    else {
-        std::cerr << "unsupported type";
-        return 1;
-    }
-
-
-    return 0;
-}
-
-// void push_entry(std::vector<uint32_t>& dict, int size, int l, int& pos, int& j)
-// {
-//     for (int i = 0; i < size; ++i) {
-//         dict[pos + i] = j + i;
-//     }
-//     pos += l + 1;
-//     j += l + 1;
-//     dict[pos - 1] = size;
-// }
-
-// int main()
-// {
-//     const int N = 1000;
-//     std::vector<uint32_t> out(N, 0);
-
-
-//     // NOTE: 256-bit version without scatter and with a uint64_t-word dictionary
-//     // std::vector<uint16_t> vec(16, 0);
-//     // for (int i = 0; i < 16; ++i) {
-//     //     vec[i] = i;
-//     // }
-
-//     // std::vector<uint64_t> dict(16, 0);
-//     // for (int i = 0; i < 16; ++i) {
-//     //     dict[i] = std::pow(2, i);
-//     // }
-
-//     // __m256i win;
-//     // __m256i wout;
-//     // __m256i* pout = (__m256i *) out.data();
-//     // const __m256i mask = _mm256_set1_epi32(65535);
-//     // auto dict_ptr = reinterpret_cast<long long const*>(dict.data());
-//     // win = _mm256_lddqu_si256((__m256i*) vec.data());
-//     // wout = _mm256_and_si256(mask, win);
-//     // __m256i w0 = _mm256_i32gather_epi64(dict_ptr, _mm256_castsi256_si128(wout), 8);
-//     // __m256i w1 = _mm256_i32gather_epi64(dict_ptr, _mm256_extractf128_si256(wout, 1), 8);
-
-//     // wout = _mm256_srli_epi32(win, 16);
-//     // __m256i w2 = _mm256_i32gather_epi64(dict_ptr, _mm256_castsi256_si128(wout), 8);
-//     // __m256i w3 = _mm256_i32gather_epi64(dict_ptr, _mm256_extractf128_si256(wout, 1), 8);
-
-//     // _mm256_storeu_si256(pout + 0, _mm256_xor_si256(w0, _mm256_slli_epi64(w2, 32)));
-//     // _mm256_storeu_si256(pout + 1, _mm256_xor_si256(w1, _mm256_slli_epi64(w3, 32)));
-
-//     // for (int i = 0; i < 64; ++i) {
-//     //     std::cout << out[i] << " ";
-//     // }
-//     // std::cout << std::endl;
-
-
-
-
-//     // NOTE: 128-bit version with scatter and with a uint32_t-word dictionary
-//     // std::vector<uint16_t> vec(16, 0);
-//     // for (int i = 0; i < 16; ++i) {
-//     //     vec[i] = i;
-//     // }
-
-//     // std::vector<uint32_t> dict(16, 0);
-//     // for (int i = 0; i < 16; ++i) {
-//     //     dict[i] = std::pow(2, i);
-//     // }
-
-//     // __m128i win;
-//     // __m128i wout;
-//     // __m128i vindex;
-//     // __m128i* pout = (__m128i *) out.data();
-
-//     // const static __m128i mask = _mm_set1_epi32(65535);
-//     // const static uint32_t vindex0[4] = {0, 2, 4, 6};
-//     // const static uint32_t vindex1[4] = {1, 3, 5, 7};
-
-//     // auto dict_ptr = reinterpret_cast<int const*>(dict.data());
-//     // win = _mm_loadu_si128((__m128i*) vec.data());
-//     // wout = _mm_and_si128(mask, win);
-
-//     // __m128i w0 = _mm_i32gather_epi32(dict_ptr, wout, 4);
-//     // vindex = _mm_loadu_si128((__m128i*) vindex0);
-//     // _mm_i32scatter_epi32(pout + 0, vindex, w0, 4);
-
-//     // wout = _mm_srli_epi32(win, 16);
-//     // __m128i w1 = _mm_i32gather_epi32(dict_ptr, wout, 4);
-//     // vindex = _mm_loadu_si128((__m128i*) vindex1);
-//     // _mm_i32scatter_epi32(pout + 0, vindex, w1, 4);
-
-
-//     // for (int i = 0; i < 64; ++i) {
-//     //     std::cout << out[i] << " ";
-//     // }
-//     // std::cout << std::endl;
-
-//     const int l = 4;
-
-//     // NOTE: write groups of 8 codewords at a time, in an interleaved way, i.e.:
-//     // say, the codewords we want to write are just 0 1 2 3 4 5 6 7, then we
-//     // write them as 0 4 1 5 2 6 3 7.
-//     std::vector<uint16_t> vec(16, 0);
-//     int j = 0;
-//     for (int i = 0; i < 8; i += 2, ++j) {
-//         vec[i] = j;
-//     }
-//     for (int i = 1; i < 8; i += 2, ++j) {
-//         vec[i] = j;
+//     if (argc < 3) {
+//         std::cerr << "Usage " << argv[0] << ":\n"
+//                   << "\t<collection_name> <dictionary_filename> <n> <scalar|SIMD>"
+//                   << std::endl;
+//         return 1;
 //     }
 
-//     for (int i = 8; i < 16; i += 2, ++j) {
-//         vec[i] = j;
-//     }
-//     for (int i = 9; i < 16; i += 2, ++j) {
-//         vec[i] = j;
-//     }
+//     char const* collection_name = argv[1];
+//     char const* dictionary_filename = argv[2];
+//     uint64_t n = std::stoull(argv[3]);  // number of postings to encode
+//     std::string type = argv[4];
 
-//     std::vector<uint32_t> dict(16 * (l + 1), 0);
-//     int pos = 0;
-//     j = 1;
-
-//     // 4 4 2 1
-//     push_entry(dict, 4, l, pos, j);
-//     push_entry(dict, 4, l, pos, j);
-//     push_entry(dict, 2, l, pos, j);
-//     push_entry(dict, 1, l, pos, j);
-
-//     // 1 2 1 1
-//     push_entry(dict, 1, l, pos, j);
-//     push_entry(dict, 2, l, pos, j);
-//     push_entry(dict, 1, l, pos, j);
-//     push_entry(dict, 1, l, pos, j);
-
-//     // 2 2 2 2
-//     push_entry(dict, 2, l, pos, j);
-//     push_entry(dict, 2, l, pos, j);
-//     push_entry(dict, 2, l, pos, j);
-//     push_entry(dict, 2, l, pos, j);
-
-//     // 2 1 2 4
-//     push_entry(dict, 2, l, pos, j);
-//     push_entry(dict, 1, l, pos, j);
-//     push_entry(dict, 2, l, pos, j);
-//     push_entry(dict, 4, l, pos, j);
-
-//     // print dict for debug
-//     pos = 0;
-//     for (int i = 0; i < 16; ++i, pos += l + 1) {
-//         std::cout << dict[pos + l] << ": ["
-//                   << dict[pos + 0] << "|"
-//                   << dict[pos + 1] << "|"
-//                   << dict[pos + 2] << "|"
-//                   << dict[pos + 3] << "]\n";
+//     dictionary_type::builder builder;
+//     if (dictionary_filename) {
+//         std::ifstream dictionary_file(dictionary_filename);
+//         builder.load(dictionary_file);
+//         logger() << "preparing for encoding..." << std::endl;
+//         builder.prepare_for_encoding();
+//         // builder.print();
 //     }
 
-//     for (int i = 0; i < 64; ++i) {
-//         std::cout << out[i] << " ";
+//     std::vector<uint8_t> encoded;
+//     uint64_t bytes = 1 * GiB;
+//     encoded.reserve(bytes);
+//     n = encode(collection_name, dictionary_filename, n, encoded, builder);
+
+//     dictionary_type dictionary;
+//     builder.build(dictionary);
+
+//     logger() << type << std::endl;
+
+//     std::vector<uint32_t> out(n);
+//     uint64_t decoded_ints = 0;
+
+//     if (type == std::string("scalar"))
+//     {
+//         auto start = clock_type::now();
+//         for (int run = 0; run != 5; ++run) {
+//             decoded_ints += decode_scalar(encoded, dictionary, out.data());
+//         }
+//         auto end = clock_type::now();
+//         std::chrono::nanoseconds elapsed = end - start;
+//         logger() << elapsed.count() << std::endl;
+//         logger() << decoded_ints << std::endl;
+//         logger() << "avg. nanoseconds per integer: "
+//                  << double(elapsed.count()) / decoded_ints << std::endl;
 //     }
-//     std::cout << std::endl;
+//     else if (type == std::string("SIMD"))
+//     {
+//         auto start = clock_type::now();
+//         for (int run = 0; run != 5; ++run) {
+//             // decoded_ints += _m256_decode_SIMD1(encoded, dictionary, out.data());
+//             decoded_ints += _m512_decode_SIMD1(encoded, dictionary, out.data());
+//         }
+//         auto end = clock_type::now();
+//         std::chrono::nanoseconds elapsed = end - start;
+//         logger() << elapsed.count() << std::endl;
+//         logger() << decoded_ints << std::endl;
+//         logger() << "avg. nanoseconds per integer: "
+//                  << double(elapsed.count()) / decoded_ints << std::endl;
+//     }
+//     else {
+//         std::cerr << "unsupported type";
+//         return 1;
+//     }
+
 
 //     return 0;
 // }
+
+void push_entry(std::vector<uint32_t>& dict, int size, int l, int& pos, int& j)
+{
+    for (int i = 0; i < size; ++i) {
+        dict[pos + i] = j + i;
+    }
+    // pos += l + 1;
+    // j += l + 1;
+    pos += l;
+    j += l;
+    // dict[pos - 1] = size;
+}
+
+int main()
+{
+    const int N = 1000;
+    std::vector<uint32_t> out(N, 0);
+
+
+    // NOTE: 256-bit version without scatter and with a uint64_t-word dictionary
+    // std::vector<uint16_t> vec(16, 0);
+    // for (int i = 0; i < 16; ++i) {
+    //     vec[i] = i;
+    // }
+
+    // std::vector<uint64_t> dict(16, 0);
+    // for (int i = 0; i < 16; ++i) {
+    //     dict[i] = std::pow(2, i);
+    // }
+
+    // __m256i win;
+    // __m256i wout;
+    // __m256i* pout = (__m256i *) out.data();
+    // const __m256i mask = _mm256_set1_epi32(65535);
+    // auto dict_ptr = reinterpret_cast<long long const*>(dict.data());
+    // win = _mm256_lddqu_si256((__m256i*) vec.data());
+    // wout = _mm256_and_si256(mask, win);
+    // __m256i w0 = _mm256_i32gather_epi64(dict_ptr, _mm256_castsi256_si128(wout), 8);
+    // __m256i w1 = _mm256_i32gather_epi64(dict_ptr, _mm256_extractf128_si256(wout, 1), 8);
+
+    // wout = _mm256_srli_epi32(win, 16);
+    // __m256i w2 = _mm256_i32gather_epi64(dict_ptr, _mm256_castsi256_si128(wout), 8);
+    // __m256i w3 = _mm256_i32gather_epi64(dict_ptr, _mm256_extractf128_si256(wout, 1), 8);
+
+    // _mm256_storeu_si256(pout + 0, _mm256_xor_si256(w0, _mm256_slli_epi64(w2, 32)));
+    // _mm256_storeu_si256(pout + 1, _mm256_xor_si256(w1, _mm256_slli_epi64(w3, 32)));
+
+    // for (int i = 0; i < 64; ++i) {
+    //     std::cout << out[i] << " ";
+    // }
+    // std::cout << std::endl;
+
+
+
+
+    // NOTE: 128-bit version with scatter and with a uint32_t-word dictionary
+    // std::vector<uint16_t> vec(16, 0);
+    // for (int i = 0; i < 16; ++i) {
+    //     vec[i] = i;
+    // }
+
+    // std::vector<uint32_t> dict(16, 0);
+    // for (int i = 0; i < 16; ++i) {
+    //     dict[i] = std::pow(2, i);
+    // }
+
+    // __m128i win;
+    // __m128i wout;
+    // __m128i vindex;
+    // __m128i* pout = (__m128i *) out.data();
+
+    // const static __m128i mask = _mm_set1_epi32(65535);
+    // const static uint32_t vindex0[4] = {0, 2, 4, 6};
+    // const static uint32_t vindex1[4] = {1, 3, 5, 7};
+
+    // auto dict_ptr = reinterpret_cast<int const*>(dict.data());
+    // win = _mm_loadu_si128((__m128i*) vec.data());
+    // wout = _mm_and_si128(mask, win);
+
+    // __m128i w0 = _mm_i32gather_epi32(dict_ptr, wout, 4);
+    // vindex = _mm_loadu_si128((__m128i*) vindex0);
+    // _mm_i32scatter_epi32(pout + 0, vindex, w0, 4);
+
+    // wout = _mm_srli_epi32(win, 16);
+    // __m128i w1 = _mm_i32gather_epi32(dict_ptr, wout, 4);
+    // vindex = _mm_loadu_si128((__m128i*) vindex1);
+    // _mm_i32scatter_epi32(pout + 0, vindex, w1, 4);
+
+
+    const int l = 4;
+
+    // NOTE: write groups of 8 codewords at a time, in an interleaved way, i.e.:
+    // say, the codewords we want to write are just 0 1 2 3 4 5 6 7, then we
+    // write them as 0 4 1 5 2 6 3 7.
+    std::vector<uint16_t> vec(16, 0);
+    int j = 0;
+    for (int i = 0; i < 8; i += 2, ++j) {
+        vec[i] = j;
+    }
+    for (int i = 1; i < 8; i += 2, ++j) {
+        vec[i] = j;
+    }
+
+    for (int i = 8; i < 16; i += 2, ++j) {
+        vec[i] = j;
+    }
+    for (int i = 9; i < 16; i += 2, ++j) {
+        vec[i] = j;
+    }
+
+    // NOTE: just l, not l + 1
+    std::vector<uint32_t> dict(16 * l, 0);
+    int pos = 0;
+    j = 1;
+
+    // 4 4 4 4
+    push_entry(dict, 4, l, pos, j);
+    push_entry(dict, 4, l, pos, j);
+    push_entry(dict, 4, l, pos, j);
+    push_entry(dict, 4, l, pos, j);
+
+    push_entry(dict, 4, l, pos, j);
+    push_entry(dict, 4, l, pos, j);
+    push_entry(dict, 4, l, pos, j);
+    push_entry(dict, 4, l, pos, j);
+
+    push_entry(dict, 4, l, pos, j);
+    push_entry(dict, 4, l, pos, j);
+    push_entry(dict, 4, l, pos, j);
+    push_entry(dict, 4, l, pos, j);
+
+    push_entry(dict, 4, l, pos, j);
+    push_entry(dict, 4, l, pos, j);
+    push_entry(dict, 4, l, pos, j);
+    push_entry(dict, 4, l, pos, j);
+
+    // // 1 2 1 1
+    // push_entry(dict, 1, l, pos, j);
+    // push_entry(dict, 2, l, pos, j);
+    // push_entry(dict, 1, l, pos, j);
+    // push_entry(dict, 1, l, pos, j);
+
+    // // 2 2 2 2
+    // push_entry(dict, 2, l, pos, j);
+    // push_entry(dict, 2, l, pos, j);
+    // push_entry(dict, 2, l, pos, j);
+    // push_entry(dict, 2, l, pos, j);
+
+    // // 2 1 2 4
+    // push_entry(dict, 2, l, pos, j);
+    // push_entry(dict, 1, l, pos, j);
+    // push_entry(dict, 2, l, pos, j);
+    // push_entry(dict, 4, l, pos, j);
+
+    // print dict for debug
+    pos = 0;
+    for (int i = 0; i < 16; ++i, pos += l) {
+        std::cout // << dict[pos + l] << ":
+                  << "["
+                  << dict[pos + 0] << "|"
+                  << dict[pos + 1] << "|"
+                  << dict[pos + 2] << "|"
+                  << dict[pos + 3] << "]\n";
+    }
+
+    __m128i win;
+    __m128i wout;
+    __m128i vindex;
+    __m128i* pout = (__m128i *) out.data();
+
+    const static __m128i mask = _mm_set1_epi32(65535);
+    const static __m128i ints = _mm_set_epi32(8, 7, 6, 5);
+
+    auto dict_ptr = reinterpret_cast<int const*>(dict.data());
+    win = _mm_loadu_si128((__m128i*) vec.data());
+    wout = _mm_and_si128(mask, win);
+
+    _mm_storeu_si128(pout + 3, wout);
+    _mm_storeu_si128(pout + 5, _mm_slli_epi32(wout, 2));
+
+    wout = _mm_slli_epi32(wout, 2);
+    __m128i w0 = _mm_i32gather_epi32(dict_ptr, wout, 4);
+    _mm_storeu_si128(pout + 0, w0);
+
+
+    // wout = _mm_srli_epi32(win, 16);
+    // __m128i w1 = _mm_i32gather_epi32(dict_ptr, wout, 4);
+    // vindex = _mm_loadu_si128((__m128i*) vindex1);
+    // _mm_i32scatter_epi32(pout + 0, vindex, w1, 4);
+
+
+    // __m512i o = _mm512_broadcast_i32x4(ints);
+    __m512i o = _mm512_broadcastd_epi32(ints);
+    _mm512_storeu_si512(out.data(), o);
+
+    for (int i = 0; i < 64; ++i) {
+        std::cout << out[i] << " ";
+    }
+    std::cout << std::endl;
+
+    return 0;
+}

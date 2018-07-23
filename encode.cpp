@@ -60,7 +60,7 @@ void encode(std::string const& type,
     output.reserve(bytes);
 
     std::vector<uint32_t> buf;
-    std::vector<uint8_t> tmp;
+    // std::vector<uint8_t> tmp;
 
     boost::progress_display progress(total_progress);
 
@@ -84,13 +84,13 @@ void encode(std::string const& type,
 
             // NOTE: encode data in a tmp buffer because we don't encode exceptions
             // and we do not know how many integers we will write.
-            uint64_t written = Encoder::encode(buf.data(), universe, n, tmp, &builder);
-            header::write(written, universe, output);
-            std::copy(tmp.begin(), tmp.end(), std::back_inserter(output));
-            tmp.clear();
+            // uint64_t written = Encoder::encode(buf.data(), universe, n, tmp, &builder);
+            // header::write(written, universe, output);
+            // std::copy(tmp.begin(), tmp.end(), std::back_inserter(output));
+            // tmp.clear();
 
-            // header::write(n, universe, output);
-            // Encoder::encode(buf.data(), universe, n, output, &builder);
+            header::write(n, universe, output);
+            Encoder::encode(buf.data(), universe, n, output, &builder);
 
             buf.clear();
 

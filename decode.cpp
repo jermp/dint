@@ -48,9 +48,8 @@ void decode(std::string const& type,
         builder.build(dict);
     }
 
-    const static uint64_t MAX_SIZE = 50000000; // ensure enough space for the largest sequence
     std::vector<uint32_t> decoded;
-    decoded.resize(MAX_SIZE, 0);
+    decoded.resize(constants::max_size, 0);
 
     logger() << "decoding..." << std::endl;
 
