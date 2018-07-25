@@ -5,12 +5,16 @@
 
 namespace ds2i {
 
-    template<typename Dictionary, typename Coder>
+    template<typename LargeDictionary,
+             typename SmallDictionary,
+             typename Coder>
     struct dict_posting_list {
 
-        template <typename DocsIterator, typename FreqsIterator>
-        static void write(typename Dictionary::builder& docs_dict_builder,
-                          typename Dictionary::builder& freqs_dict_builder,
+        template<typename DocsIterator, typename FreqsIterator>
+        static void write(typename LargeDictionary::builder& docs_large_dict_builder,
+                          typename LargeDictionary::builder& freqs_large_dict_builder,
+                          typename SmallDictionary::builder& docs_small_dict_builder,
+                          typename SmallDictionary::builder& freqs_small_dict_builder,
                           std::vector<uint8_t>& out, uint32_t n,
                           DocsIterator docs_begin, FreqsIterator freqs_begin)
         {
@@ -45,10 +49,12 @@ namespace ds2i {
 
                 *((uint32_t*)&out[begin_block_maxs + 4 * b]) = last_doc;
 
-                Coder::encode(docs_dict_builder, docs_buf.data(),
+                Coder::encode(docs_large_dict_builder, docs_small_dict_builder,
+                              docs_buf.data(),
                               last_doc - block_base - (cur_block_size - 1),
                               cur_block_size, out);
-                Coder::encode(freqs_dict_builder, freqs_buf.data(),
+                Coder::encode(freqs_large_dict_builder, freqs_small_dict_builder,
+                              freqs_buf.data(),
                               uint32_t(-1),
                               cur_block_size, out);
 
@@ -62,7 +68,7 @@ namespace ds2i {
             }
         }
 
-        template <typename BlockDataRange>
+        template<typename BlockDataRange>
         static void write_blocks(std::vector<uint8_t>& out, uint32_t n,
                                  BlockDataRange const& input_blocks)
         {
@@ -93,8 +99,10 @@ namespace ds2i {
 
         class document_enumerator {
         public:
-            document_enumerator(Dictionary const* docs_dict,
-                                Dictionary const* freqs_dict,
+            document_enumerator(LargeDictionary const* docs_large_dict,
+                                LargeDictionary const* freqs_large_dict,
+                                SmallDictionary const* docs_small_dict,
+                                SmallDictionary const* freqs_small_dict,
                                 uint8_t const* data,
                                 uint64_t universe,
                                 size_t term_id = 0)
@@ -105,8 +113,10 @@ namespace ds2i {
                 , m_block_endpoints(m_block_maxs + 4 * m_blocks)
                 , m_blocks_data(m_block_endpoints + 4 * (m_blocks - 1))
                 , m_universe(universe)
-                , m_docs_dict(docs_dict)
-                , m_freqs_dict(freqs_dict)
+                , m_docs_large_dict(docs_large_dict)
+                , m_freqs_large_dict(freqs_large_dict)
+                , m_docs_small_dict(docs_small_dict)
+                , m_freqs_small_dict(freqs_small_dict)
             {
                 (void) term_id;
                 m_docs_buf.resize(Coder::block_size + Coder::overflow);
@@ -227,10 +237,12 @@ namespace ds2i {
 
                     uint32_t cur_base = (b ? block_max(b - 1) : uint32_t(-1)) + 1;
                     uint8_t const* freq_ptr =
-                        Coder::decode(*m_docs_dict, ptr, buf.data(),
+                        Coder::decode(*m_docs_large_dict, *m_docs_small_dict,
+                                      ptr, buf.data(),
                                       block_max(b) - cur_base - (cur_block_size - 1),
                                       cur_block_size);
-                    ptr = Coder::decode(*m_freqs_dict, freq_ptr, buf.data(),
+                    ptr = Coder::decode(*m_freqs_large_dict, *m_freqs_small_dict,
+                                        freq_ptr, buf.data(),
                                         uint32_t(-1),
                                         cur_block_size);
                     bytes += ptr - freq_ptr;
@@ -255,20 +267,24 @@ namespace ds2i {
 
                 void decode_doc_gaps(std::vector<uint32_t>& out) const {
                     out.resize(size, 1);
-                    Coder::decode(docs_dict, docs_begin, out.data(),
+                    Coder::decode(docs_large_dict, docs_small_dict,
+                                  docs_begin, out.data(),
                                   doc_gaps_universe, size);
                 }
 
                 void decode_freqs(std::vector<uint32_t>& out) const {
                     out.resize(size, 1);
-                    Coder::decode(freqs_dict,freqs_begin, out.data(),
+                    Coder::decode(freqs_large_dict, freqs_small_dict,
+                                  freqs_begin, out.data(),
                                   uint32_t(-1), size);
                 }
 
             private:
                 friend class document_enumerator;
-                Dictionary const* docs_dict;
-                Dictionary const* freqs_dict;
+                LargeDictionary const* docs_large_dict;
+                LargeDictionary const* freqs_large_dict;
+                SmallDictionary const* docs_small_dict;
+                SmallDictionary const* freqs_small_dict;
                 uint8_t const* docs_begin;
                 uint8_t const* freqs_begin;
                 uint8_t const* end;
@@ -294,15 +310,19 @@ namespace ds2i {
                     blocks.back().size = cur_block_size;
                     blocks.back().docs_begin = ptr;
                     blocks.back().doc_gaps_universe = gaps_universe;
-                    blocks.back().docs_dict = m_docs_dict;
-                    blocks.back().freqs_dict = m_freqs_dict;
+                    blocks.back().docs_large_dict = m_docs_large_dict;
+                    blocks.back().freqs_large_dict = m_freqs_large_dict;
+                    blocks.back().docs_small_dict = m_docs_small_dict;
+                    blocks.back().freqs_small_dict = m_freqs_small_dict;
                     blocks.back().max = block_max(b);
 
                     uint8_t const* freq_ptr =
-                        Coder::decode(m_docs_dict, ptr, buf.data(),
+                        Coder::decode(m_docs_large_dict, m_docs_large_dict,
+                                      ptr, buf.data(),
                                       gaps_universe, cur_block_size);
                     blocks.back().freqs_begin = freq_ptr;
-                    ptr = Coder::decode(m_freqs_dict, freq_ptr, buf.data(),
+                    ptr = Coder::decode(m_freqs_large_dict, m_freqs_small_dict,
+                                        freq_ptr, buf.data(),
                                         uint32_t(-1), cur_block_size);
                     blocks.back().end = ptr;
                 }
@@ -330,7 +350,8 @@ namespace ds2i {
                 uint32_t cur_base = (block ? block_max(block - 1) : uint32_t(-1)) + 1;
                 m_cur_block_max = block_max(block);
                 m_freqs_block_data =
-                    Coder::decode(*m_docs_dict, block_data, m_docs_buf.data(),
+                    Coder::decode(*m_docs_large_dict, *m_docs_small_dict,
+                                  block_data, m_docs_buf.data(),
                                   m_cur_block_max - cur_base - (m_cur_block_size - 1),
                                   m_cur_block_size);
                 succinct::intrinsics::prefetch(m_freqs_block_data);
@@ -344,7 +365,8 @@ namespace ds2i {
 
             void DS2I_NOINLINE decode_freqs_block()
             {
-                uint8_t const* next_block = Coder::decode(*m_freqs_dict, m_freqs_block_data, m_freqs_buf.data(),
+                uint8_t const* next_block = Coder::decode(*m_freqs_large_dict, *m_freqs_small_dict,
+                                                          m_freqs_block_data, m_freqs_buf.data(),
                                                           uint32_t(-1), m_cur_block_size);
                 succinct::intrinsics::prefetch(next_block);
                 m_freqs_decoded = true;
@@ -370,8 +392,10 @@ namespace ds2i {
             std::vector<uint32_t> m_docs_buf;
             std::vector<uint32_t> m_freqs_buf;
 
-            Dictionary const* m_docs_dict;
-            Dictionary const* m_freqs_dict;
+            LargeDictionary const* m_docs_large_dict;
+            LargeDictionary const* m_freqs_large_dict;
+            SmallDictionary const* m_docs_small_dict;
+            SmallDictionary const* m_freqs_small_dict;
         };
     };
 

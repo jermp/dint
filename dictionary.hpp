@@ -42,6 +42,9 @@ namespace ds2i {
             uint64_t small_exceptions = 0;
             uint64_t large_exceptions = 0;
 
+            uint64_t block_encoded_with_large_dict = 0;
+            uint64_t block_encoded_with_small_dict = 0;
+
             // struct node {
             //     node(uint32_t p, uint32_t w, uint32_t c)
             //         : parent(p), codeword(w), cost(c)
@@ -54,7 +57,7 @@ namespace ds2i {
 
             // // optimal parsing
             // std::vector<node> encoding;
-            // // static const uint32_t inf = std::numeric_limits<uint32_t>::max();
+            // static const uint32_t inf = std::numeric_limits<uint32_t>::max();
             // node null_node = {0, 1, INF};
             // std::vector<node> path;
 
@@ -70,7 +73,7 @@ namespace ds2i {
                 // encoding.reserve(constants::block_size);
             }
 
-            void init(uint64_t total_integers = 0) {
+            void init() {
                 m_pos = reserved * (max_entry_size + 1);
                 m_size = reserved;
 

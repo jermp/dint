@@ -152,10 +152,10 @@ target_link_libraries(rbo
 #  ${Boost_LIBRARIES}
 #  )
 
-add_executable(dict_perf_test dict_perf_test.cpp)
-target_link_libraries(dict_perf_test
-  ${Boost_LIBRARIES}
-  )
+#add_executable(dict_perf_test dict_perf_test.cpp)
+#target_link_libraries(dict_perf_test
+#  ${Boost_LIBRARIES}
+#  )
 
 add_executable(SIMD_test SIMD_test.cpp)
 target_link_libraries(SIMD_test

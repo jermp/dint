@@ -919,9 +919,6 @@ namespace ds2i {
 
             uint16_t const* ptr = reinterpret_cast<uint16_t const*>(in);
 
-            uint32_t j = 0;
-            uint32_t sum = 0;
-
             static const int len = 4;
             static uint32_t S[] = {0, 0, 0, 0
                                  // , 0, 0, 0, 0
@@ -957,7 +954,8 @@ namespace ds2i {
 
             for (size_t i = 0; i < n;)
             {
-                // std::cout << i << std::endl;
+                uint32_t j = 0;
+                uint32_t sum = 0;
 
                 while (j != len) {
                     uint32_t index = *ptr;
@@ -1012,9 +1010,6 @@ namespace ds2i {
 
                 out += sum;
                 i += sum;
-
-                j = 0;
-                sum = 0;
             }
 
             return reinterpret_cast<uint8_t const*>(ptr);

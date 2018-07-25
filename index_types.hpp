@@ -50,30 +50,33 @@ namespace ds2i {
 
     // DINT codecs
 
-    using dictionary_type = dictionary
+    using large_dictionary_type = dictionary
                                 <constants::num_entries,
                                  constants::max_entry_size>;
+    using small_dictionary_type = dictionary
+                                <256,
+                                 large_dictionary_type::max_entry_size>;
 
-    using adjusted_collector_type = adjusted<dictionary_type::max_entry_size>;
-    using     full_collector_type =     full<dictionary_type::max_entry_size>;
-    using    fixed_collector_type =    fixed<dictionary_type::max_entry_size>;
+    using adjusted_collector_type = adjusted<large_dictionary_type::max_entry_size>;
+    using     full_collector_type =     full<large_dictionary_type::max_entry_size>;
+    using    fixed_collector_type =    fixed<large_dictionary_type::max_entry_size>;
 
     using adjusted_block_stats_type = block_statistics<adjusted_collector_type>;
     using     full_block_stats_type = block_statistics<full_collector_type>;
     using    fixed_block_stats_type = block_statistics<fixed_collector_type>;
 
-    using DSF = decreasing_static_frequencies<dictionary_type, adjusted_block_stats_type>;
-    using DSV = decreasing_static_volume<dictionary_type, adjusted_block_stats_type>;
-    using PDF = prefix_discounted_frequencies<dictionary_type, full_block_stats_type>;
-    using LSS =     longest_to_shortest_sweep<dictionary_type, adjusted_block_stats_type>;
-    using LSO =             long_strings_only<dictionary_type, fixed_block_stats_type>;
+    using DSF = decreasing_static_frequencies<large_dictionary_type, small_dictionary_type, adjusted_block_stats_type>;
+    // using DSV = decreasing_static_volume<large_dictionary_type, adjusted_block_stats_type>;
+    // using PDF = prefix_discounted_frequencies<large_dictionary_type, full_block_stats_type>;
+    // using LSS =     longest_to_shortest_sweep<large_dictionary_type, adjusted_block_stats_type>;
+    // using LSO =             long_strings_only<large_dictionary_type, fixed_block_stats_type>;
 
     using DSF_block_dint_index = dict_freq_index<DSF, dint_block>;
-    using DSV_block_dint_index = dict_freq_index<DSV, dint_block>;
-    using PDF_block_dint_index = dict_freq_index<PDF, dint_block>;
-    using LSS_block_dint_index = dict_freq_index<LSS, dint_block>;
-    using LSO_block_dint_index = dict_freq_index<LSO, dint_block>;
+    // using DSV_block_dint_index = dict_freq_index<DSV, dint_block>;
+    // using PDF_block_dint_index = dict_freq_index<PDF, dint_block>;
+    // using LSS_block_dint_index = dict_freq_index<LSS, dint_block>;
+    // using LSO_block_dint_index = dict_freq_index<LSO, dint_block>;
 }
 
-#define DS2I_INDEX_TYPES (ef)(single)(uniform)(opt)(block_optpfor)(block_varintg8iu)(block_interpolative)(block_qmx)(block_mixed)(block_u32)(block_vbyte)(block_simple16)(block_varintgb)(block_maskedvbyte)(block_streamvbyte)(DSF_block_dint)(DSV_block_dint)(PDF_block_dint)(LSS_block_dint)(LSO_block_dint)
+#define DS2I_INDEX_TYPES (ef)(single)(uniform)(opt)(block_optpfor)(block_varintg8iu)(block_interpolative)(block_qmx)(block_mixed)(block_u32)(block_vbyte)(block_simple16)(block_varintgb)(block_maskedvbyte)(block_streamvbyte)(DSF_block_dint)//(DSV_block_dint)(PDF_block_dint)(LSS_block_dint)(LSO_block_dint)
 #define DS2I_BLOCK_INDEX_TYPES (block_optpfor)(block_varintg8iu)(block_interpolative)(block_qmx)(block_mixed)(block_u32)(block_vbyte)(block_simple16)(block_varintgb)(block_maskedvbyte)(block_streamvbyte)
