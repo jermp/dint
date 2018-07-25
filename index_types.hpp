@@ -50,10 +50,10 @@ namespace ds2i {
 
     // DINT codecs
 
-    using large_dictionary_type = dictionary
+    using large_dictionary_type = dictionary_rect
                                 <constants::num_entries,
                                  constants::max_entry_size>;
-    using small_dictionary_type = dictionary
+    using small_dictionary_type = dictionary_rect
                                 <256,
                                  large_dictionary_type::max_entry_size>;
 
