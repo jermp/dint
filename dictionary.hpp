@@ -626,7 +626,7 @@ namespace ds2i {
                     target_node_t node;
                     auto start = m_offsets[i] & 0xFFFF;
                     auto size = m_offsets[i] >> 16;
-                    auto itr = m_table.begin() + start + 1;
+                    auto itr = m_table.begin() + start;
                     std::copy(itr,itr + size,std::back_inserter(node.entry));
                     node.sizes.push_back(size);
                     entries.push_back(node);
