@@ -64,7 +64,7 @@ void check(char const* collection_filename,
     uint64_t total_decoded_ints = 0;
     uint64_t sequence = 0;
 
-    dint_statistics stats(dictionary_type::num_entries);
+    // dint_statistics stats(dictionary_type::num_entries);
 
     for (; it != input.end(); ++it)
     {
@@ -82,7 +82,7 @@ void check(char const* collection_filename,
             begin = Decoder::decode(begin,
                                     decoded.data(),
                                     universe, n, &dict
-                                    , stats
+                                    // , stats
                                     );
             total_decoded_ints += n;
 

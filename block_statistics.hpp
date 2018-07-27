@@ -16,15 +16,20 @@ namespace ds2i {
     template<typename Collector>
     struct block_statistics
     {
-        // static_assert(is_power_of_two(Collector::max_block_size));
+        static_assert(is_power_of_two(Collector::max_block_size));
+
+        block_statistics() {
+            blocks.resize(constants::num_selectors);
+        }
 
         static std::string type() {
             return "block_statistics-" + std::to_string(Collector::max_block_size) + "-" + Collector::type();
         }
 
         template<typename Filter>
-        static block_statistics create_or_load(std::string prefix_name, data_type dt,
-                                               Filter const& filter)
+        static block_statistics
+        create_or_load(std::string prefix_name, data_type dt,
+                       Filter const& filter)
         {
             std::string file_name = prefix_name + extension(dt);
             using namespace boost::filesystem;
@@ -49,8 +54,8 @@ namespace ds2i {
         {
             logger() << "creating block stats (type = " << type() << ")" << std::endl;
 
-            map_type block_map;
-            // block_map.max_load_factor(0.01);
+            std::vector<map_type> block_maps(constants::num_selectors);
+
             boost::progress_display progress(input.num_postings());
             total_integers = 0;
             std::vector<uint32_t> buf;
@@ -75,31 +80,44 @@ namespace ds2i {
                             prev = *it;
                         }
                     }
-                    Collector::collect(buf, block_map);
+                    Collector::collect(buf, block_maps);
                     buf.clear();
                 }
             }
 
             logger() << "selecting entries..." << std::endl;
-            uint32_t num_singletons = 0;
-            blocks.reserve(block_map.size());
-            for (auto& pair: block_map) {
-                auto& freq_block = pair.second;
-                if (freq_block.data.size() == 1) ++num_singletons;
-                if (filter(freq_block, total_integers) or freq_block.data.size() == 1) {
-                    block_type block;
-                    block.freq = freq_block.freq;
-                    block.data.swap(freq_block.data);
-                    blocks.push_back(std::move(block));
+            std::vector<uint32_t> num_singletons(constants::num_selectors, 0);
+            for (int s = 0; s != constants::num_selectors; ++s) {
+                blocks[s].reserve(block_maps[s].size());
+            }
+
+            for (int s = 0; s != constants::num_selectors; ++s) {
+                auto& block_map = block_maps[s];
+                for (auto& pair: block_map) {
+                    auto& freq_block = pair.second;
+                    if (freq_block.data.size() == 1) {
+                        ++num_singletons[s];
+                    }
+                    if (filter(freq_block, total_integers) or freq_block.data.size() == 1) {
+                        block_type block;
+                        block.freq = freq_block.freq;
+                        block.data.swap(freq_block.data);
+                        blocks[s].push_back(std::move(block));
+                    }
                 }
             }
-            logger() << "DONE" << std::endl;
-            logger() << num_singletons << " singletons" << std::endl;
-            logger() << "saved " << blocks.size() << " blocks" << std::endl;
 
+            logger() << "DONE" << std::endl;
+
+            freq_length_sorter sorter;
+            // freq_sorter sorter;
             logger() << "sorting..." << std::endl;
-            freq_sorter sorter;
-            std::sort(blocks.begin(), blocks.end(), sorter);
+            for (int s = 0; s != constants::num_selectors; ++s) {
+                logger() << num_singletons[s] << " singletons for blocks of context " << constants::selector_codes[s] << std::endl;
+                logger() << "\tsaved " << blocks[s].size() << " blocks" << std::endl;
+                std::sort(blocks[s].begin(), blocks[s].end(), sorter);
+            }
+
             logger() << "DONE" << std::endl;
         }
 
@@ -109,24 +127,29 @@ namespace ds2i {
             std::streamsize bytes = sizeof(uint32_t);
             uint32_t num_blocks, size, freq;
             in.read(reinterpret_cast<char*>(&total_integers), sizeof(uint64_t));
-            in.read(reinterpret_cast<char*>(&num_blocks), bytes);
-            logger() << "reading block stats (total_integers = " << total_integers
-                     << "; num_blocks = " << num_blocks << ")" << std::endl;
-            blocks.reserve(num_blocks);
-            uint32_t num_singletons = 0;
-            for (uint32_t i = 0; i < num_blocks; ++i) {
-                in.read(reinterpret_cast<char*>(&size), bytes);
-                in.read(reinterpret_cast<char*>(&freq), bytes);
-                block_type block;
-                block.freq = freq;
-                block.data.resize(size);
-                in.read(reinterpret_cast<char*>(block.data.data()), size * bytes);
-                if (size == 1) {
-                    ++num_singletons;
+            blocks.resize(constants::num_selectors);
+
+            for (int s = 0; s != constants::num_selectors; ++s) {
+                in.read(reinterpret_cast<char*>(&num_blocks), bytes);
+                logger() << "reading block stats for context " << constants::selector_codes[s]
+                         << " (num_blocks = " << num_blocks << ")" << std::endl;
+                blocks[s].reserve(num_blocks);
+                uint32_t num_singletons = 0;
+                for (uint32_t i = 0; i < num_blocks; ++i) {
+                    in.read(reinterpret_cast<char*>(&size), bytes);
+                    in.read(reinterpret_cast<char*>(&freq), bytes);
+                    block_type block;
+                    block.freq = freq;
+                    block.data.resize(size);
+                    in.read(reinterpret_cast<char*>(block.data.data()), size * bytes);
+                    if (size == 1) {
+                        ++num_singletons;
+                    }
+                    blocks[s].push_back(std::move(block));
                 }
-                blocks.push_back(std::move(block));
+                logger() << "\t" << num_singletons << " singletons" << std::endl;
             }
-            logger() << num_singletons << " singletons" << std::endl;
+
             logger() << "DONE" << std::endl;
         }
 
@@ -136,25 +159,31 @@ namespace ds2i {
             if (out) {
                 logger() << "storing stats to disk..." << std::endl;
                 out.write(reinterpret_cast<char const*>(&total_integers), sizeof(uint64_t));
-                uint32_t num_blocks = blocks.size();
-                std::streamsize bytes = sizeof(uint32_t);
-                out.write(reinterpret_cast<char const*>(&num_blocks), bytes);
-                for (auto const& block: blocks) {
-                    uint32_t size = block.data.size();
-                    uint32_t freq = block.freq;
-                    out.write(reinterpret_cast<char const*>(&size), bytes);
-                    out.write(reinterpret_cast<char const*>(&freq), bytes);
-                    out.write(reinterpret_cast<char const*>(block.data.data()), size * bytes);
+
+                for (int s = 0; s != constants::num_selectors; ++s) {
+                    uint32_t num_blocks = blocks[s].size();
+                    std::streamsize bytes = sizeof(uint32_t);
+                    out.write(reinterpret_cast<char const*>(&num_blocks), bytes);
+                    for (auto const& block: blocks[s]) {
+                        uint32_t size = block.data.size();
+                        uint32_t freq = block.freq;
+                        out.write(reinterpret_cast<char const*>(&size), bytes);
+                        out.write(reinterpret_cast<char const*>(&freq), bytes);
+                        out.write(reinterpret_cast<char const*>(block.data.data()), size * bytes);
+                    }
+                    logger() << "written statistics for context " << constants::selector_codes[s] << std::endl;
                 }
+
                 out.close();
-                logger() << "DONE" << std::endl;
             } else {
-                logger() << "cannot write block stats. collection directory not writeable" << std::endl;
+                logger() << "Cannot write block statistics to disk. Collection directory not writeable." << std::endl;
             }
         }
 
         uint64_t total_integers;
-        std::vector<block_type> blocks;
+        std::vector<
+            std::vector<block_type>
+        > blocks;
     };
 
 }

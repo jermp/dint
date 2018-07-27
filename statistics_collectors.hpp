@@ -21,6 +21,57 @@ namespace ds2i {
 
     typedef std::unordered_map<uint64_t, block_type> map_type;
 
+    struct selector {
+        selector(uint32_t block_size)
+            : m_block_size(block_size)
+        {
+            assert(m_block_size % 2 == 0);
+            m_buf.reserve(block_size);
+        }
+
+        uint32_t get(uint32_t const* entry) {
+            uint32_t x = 0;
+            if (constants::context == constants::block_selector::max) {
+                for (auto ptr = entry; ptr != entry + m_block_size; ++ptr) {
+                    if (*ptr > x) {
+                        x = *ptr;
+                    }
+                }
+                // std::cout << "block max " << x << "\n";
+            } else
+            if (constants::context == constants::block_selector::median) {
+                auto ptr = entry;
+                for (uint32_t s = 0; s != m_block_size; ++s) {
+                    m_buf[s] = *ptr;
+                    ++ptr;
+                }
+                std::sort(m_buf.begin(), m_buf.end());
+                x = (m_buf[m_block_size / 2 - 1] + m_buf[m_block_size / 2]) / 2;
+            } else
+            if (constants::context == constants::block_selector::mode) {
+                // TODO
+            } else {
+                throw std::runtime_error("Unsupported context");
+            }
+
+            uint32_t selector_code = ceil_log2(x) + 1;
+            // std::cout << "selector_code " << selector_code << "\n";
+            uint32_t index = 0;
+
+            while (selector_code > constants::selector_codes[index]
+                   and index != constants::num_selectors) {
+                ++index;
+            }
+
+            assert(index < num_selectors);
+            return index;
+        }
+
+    private:
+        uint32_t m_block_size;
+        std::vector<uint32_t> m_buf;
+    };
+
     struct freq_sorter {
         bool operator()(block_type const& l, block_type const& r) {
             return l.freq > r.freq;
@@ -62,21 +113,6 @@ namespace ds2i {
         }
     }
 
-    // struct geometric // Giulio: what is the reason for this?
-    // {
-    //     static std::string type() {
-    //         return "geometric";
-    //     }
-
-    //     static void collect(const std::vector<uint32_t>& buf, map_type& block_map)
-    //     {
-    //         auto b = buf.data();
-    //         for (size_t block_size = 1; block_size <= buf.size(); block_size *= 2) {
-    //             increase_frequency(b, size_u32, block_map);
-    //         }
-    //     }
-    // };
-
     template<uint32_t t_max_block_size>
     struct adjusted
     {
@@ -86,63 +122,58 @@ namespace ds2i {
             return "adjusted";
         }
 
-        static void collect(std::vector<uint32_t>& buf, map_type& bmap) {
+        static void collect(std::vector<uint32_t>& buf, std::vector<map_type>& block_maps) {
             auto b = buf.data();
-
             for (uint32_t s = 0; s < constants::num_target_sizes; ++s) {
                 uint32_t block_size = constants::target_sizes[s];
+                selector sct(block_size);
                 uint32_t blocks = buf.size() / block_size;
                 for (uint32_t i = 0, pos = 0; i < blocks; ++i, pos += block_size) {
-                    increase_frequency(b + pos, block_size, bmap);
-                }
-            }
-
-            // for (uint32_t block_size = max_block_size; block_size != 0; block_size /= 2) {
-            //     uint32_t blocks = buf.size() / block_size;
-            //     for (uint32_t i = 0, pos = 0; i < blocks; ++i, pos += block_size) {
-            //         increase_frequency(b + pos, block_size, bmap);
-            //     }
-            // }
-        }
-    };
-
-    template<uint32_t t_max_block_size>
-    struct full
-    {
-        static const uint32_t max_block_size = t_max_block_size;
-
-        static std::string type() {
-            return "full";
-        }
-
-        static void collect(std::vector<uint32_t>& buf, map_type& bmap) {
-            auto b = buf.data();
-            uint32_t blocks = buf.size() / max_block_size;
-            for (uint32_t i = 0, pos = 0; i < blocks; ++i, pos += max_block_size) {
-                for (uint32_t block_size = max_block_size; block_size != 0; block_size /= 2) {
-                    uint32_t amount = max_block_size / block_size;
-                    increase_frequency(b + pos, block_size, bmap, amount);
+                    uint32_t index = sct.get(b + pos);
+                    // std::cout << "index " << index << "\n";
+                    increase_frequency(b + pos, block_size, block_maps[index]);
                 }
             }
         }
     };
 
-    template<uint32_t t_max_block_size>
-    struct fixed
-    {
-        static const uint32_t max_block_size = t_max_block_size;
+    // template<uint32_t t_max_block_size>
+    // struct full
+    // {
+    //     static const uint32_t max_block_size = t_max_block_size;
 
-        static std::string type() {
-            return "fixed";
-        }
+    //     static std::string type() {
+    //         return "full";
+    //     }
 
-        static void collect(std::vector<uint32_t>& buf, map_type& bmap) {
-            auto b = buf.data();
-            uint32_t blocks = buf.size() / max_block_size;
-            for (uint32_t i = 0, pos = 0; i < blocks; ++i, pos += max_block_size) {
-                increase_frequency(b + pos, max_block_size, bmap);
-            }
-        }
-    };
+    //     static void collect(std::vector<uint32_t>& buf, map_type& bmap) {
+    //         auto b = buf.data();
+    //         uint32_t blocks = buf.size() / max_block_size;
+    //         for (uint32_t i = 0, pos = 0; i < blocks; ++i, pos += max_block_size) {
+    //             for (uint32_t block_size = max_block_size; block_size != 0; block_size /= 2) {
+    //                 uint32_t amount = max_block_size / block_size;
+    //                 increase_frequency(b + pos, block_size, bmap, amount);
+    //             }
+    //         }
+    //     }
+    // };
+
+    // template<uint32_t t_max_block_size>
+    // struct fixed
+    // {
+    //     static const uint32_t max_block_size = t_max_block_size;
+
+    //     static std::string type() {
+    //         return "fixed";
+    //     }
+
+    //     static void collect(std::vector<uint32_t>& buf, map_type& bmap) {
+    //         auto b = buf.data();
+    //         uint32_t blocks = buf.size() / max_block_size;
+    //         for (uint32_t i = 0, pos = 0; i < blocks; ++i, pos += max_block_size) {
+    //             increase_frequency(b + pos, max_block_size, bmap);
+    //         }
+    //     }
+    // };
 
 };

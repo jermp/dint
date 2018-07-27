@@ -14,8 +14,71 @@
 #include "util.hpp"
 #include "hash_utils.hpp"
 #include "binary_collection.hpp"
+#include "semiasync_queue.hpp"
 
 using namespace ds2i;
+
+template<typename Encoder>
+struct sequence_adder : semiasync_queue::job {
+    sequence_adder(binary_collection::sequence const& seq,
+                   typename dictionary_type::builder& b,
+                   boost::progress_display& progress,
+                   std::vector<uint8_t>& output,
+                   bool docs,
+                   uint64_t& num_processed_lists,
+                   uint64_t& num_total_ints)
+        : seq(seq)
+        , b(b)
+        , progress(progress)
+        , output(output)
+        , n(seq.size())
+        , universe(0)
+        , docs(docs)
+        , num_processed_lists(num_processed_lists)
+        , num_total_ints(num_total_ints)
+    {}
+
+    virtual void prepare()
+    {
+        buf.reserve(n);
+        uint32_t prev = docs ? -1 : 0;
+        for (auto b = seq.begin(); b != seq.end(); ++b) {
+            buf.push_back(*b - prev - 1);
+            if (docs) prev = *b;
+            universe += buf.back();
+        }
+        assert(buf.size() == n);
+
+        // NOTE: encode data in a tmp buffer because we don't encode exceptions
+        // and we do not know how many integers we will write.
+        written = Encoder::encode(buf.data(), universe, n, tmp, &b);
+
+        // header::write(n, universe, output);
+        // Encoder::encode(buf.data(), universe, n, output, &b);
+    }
+
+    virtual void commit()
+    {
+        progress += n + 1;
+        ++num_processed_lists;
+        num_total_ints += written;
+        header::write(written, universe, output);
+        output.insert(output.end(), tmp.begin(), tmp.end());
+    }
+
+    binary_collection::sequence const& seq;
+    typename dictionary_type::builder& b;
+    boost::progress_display& progress;
+    std::vector<uint32_t> buf;
+    std::vector<uint8_t> tmp;
+    std::vector<uint8_t>& output;
+    uint64_t n;
+    uint32_t written;
+    uint32_t universe;
+    bool docs;
+    uint64_t& num_processed_lists;
+    uint64_t& num_total_ints;
+};
 
 template<typename Encoder>
 void encode(std::string const& type,
@@ -36,7 +99,7 @@ void encode(std::string const& type,
         builder.load(dictionary_file);
         logger() << "preparing for encoding..." << std::endl;
         builder.prepare_for_encoding();
-        builder.print();
+        // builder.print();
     }
 
     uint64_t total_progress = input.num_postings();
@@ -60,14 +123,26 @@ void encode(std::string const& type,
     output.reserve(bytes);
 
     std::vector<uint32_t> buf;
-    // std::vector<uint8_t> tmp;
+    std::vector<uint8_t> tmp;
 
     boost::progress_display progress(total_progress);
+
+    // uint32_t num_jobs = 1 << 24;
+    // semiasync_queue jobs_queue(num_jobs);
 
     for (; it != input.end(); ++it)
     {
         auto const& list = *it;
         uint32_t n = list.size();
+
+        // if (n > constants::min_size)
+        // {
+        //     std::shared_ptr<sequence_adder<Encoder>>
+        //         ptr(new sequence_adder<Encoder>(list, builder, progress, output, docs,
+        //                                         num_processed_lists, num_total_ints));
+        //     jobs_queue.add_job(ptr, n);
+        // }
+
         if (n > constants::min_size)
         {
             buf.reserve(n);
@@ -84,18 +159,19 @@ void encode(std::string const& type,
 
             // NOTE: encode data in a tmp buffer because we don't encode exceptions
             // and we do not know how many integers we will write.
-            // uint64_t written = Encoder::encode(buf.data(), universe, n, tmp, &builder);
-            // header::write(written, universe, output);
-            // std::copy(tmp.begin(), tmp.end(), std::back_inserter(output));
-            // tmp.clear();
+            uint64_t written = Encoder::encode(buf.data(), universe, n, tmp, &builder);
+            header::write(written, universe, output);
+            output.insert(output.end(), tmp.begin(), tmp.end());
+            tmp.clear();
 
-            header::write(n, universe, output);
-            Encoder::encode(buf.data(), universe, n, output, &builder);
+            // header::write(n, universe, output);
+            // Encoder::encode(buf.data(), universe, n, output, &builder);
 
             buf.clear();
 
             ++num_processed_lists;
-            num_total_ints += n;
+            // num_total_ints += n;
+            num_total_ints += written;
             progress += n + 1;
 
             // if (num_processed_lists % 5000 == 0) {
@@ -107,7 +183,7 @@ void encode(std::string const& type,
         }
     }
 
-    std::cerr << std::endl;
+    // jobs_queue.complete();
 
     double GiB_space = output.size() * 1.0 / GiB;
     double bpi_space = output.size() * sizeof(output[0]) * 8.0 / num_total_ints;

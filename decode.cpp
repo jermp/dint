@@ -57,14 +57,14 @@ void decode(std::string const& type,
     uint64_t num_decoded_lists = 0;
     std::vector<double> timings;
 
-    dint_statistics stats(dictionary_type::num_entries);
+    // dint_statistics stats(dictionary_type::num_entries);
 
     while (begin != end) {
         uint32_t n, universe;
         begin = header::read(begin, &n, &universe);
         auto start = clock_type::now();
         begin = Decoder::decode(begin, decoded.data(), universe, n, &dict
-                                , stats
+                                // , stats
                                 );
         auto finish = clock_type::now();
         std::chrono::duration<double> elapsed = finish - start;
@@ -81,7 +81,7 @@ void decode(std::string const& type,
     logger() << ns_x_int << " [ns] x int" << std::endl;
     logger() << ints_x_sec << " ints x [sec]" << std::endl;
 
-    logger() << "avg. # of decoded integers x codeword: " << double(stats.decoded_ints_from_dict) / stats.dict_codewords << std::endl;
+    // logger() << "avg. # of decoded integers x codeword: " << double(stats.decoded_ints_from_dict) / stats.dict_codewords << std::endl;
 
     // stats to std output
     // std::cout << "{";

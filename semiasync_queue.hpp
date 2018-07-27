@@ -11,14 +11,13 @@ namespace ds2i {
 
     class semiasync_queue {
     public:
-
         semiasync_queue(double work_per_thread)
             : m_expected_work(0)
             , m_work_per_thread(work_per_thread)
         {
             m_max_threads = configuration::get().worker_threads;
-            logger() << "semiasync_queue using " << m_max_threads
-                     << " worker threads" << std::endl;
+            // logger() << "semiasync_queue using " << m_max_threads
+            //          << " worker threads" << std::endl;
         }
 
         class job {
@@ -44,13 +43,12 @@ namespace ds2i {
             }
         }
 
-        void complete()
-        {
+        void complete() {
             if (!m_next_thread.first.empty()) {
                 spawn_next_thread();
-                while (!m_running_threads.empty()) {
-                    commit_thread();
-                }
+            }
+            while (!m_running_threads.empty()) {
+                commit_thread();
             }
         }
 

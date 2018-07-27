@@ -579,8 +579,85 @@ namespace ds2i {
 
     struct dint {
 
+        // NOTE: don't encode exceptions; greedy parsing
+        // static uint64_t
+        // encode(uint32_t const* in,
+        //        uint32_t /*universe*/, uint32_t n,
+        //        std::vector<uint8_t>& out,
+        //        dictionary_type::builder* builder)
+        // {
+        //     uint32_t const* begin = in;
+        //     uint32_t const* end = begin + n;
+        //     uint64_t written_ints = 0;
+
+        //     while (begin < end)
+        //     {
+        //         uint32_t longest_run_size = 0;
+        //         uint32_t run_size = std::min<uint64_t>(256, end - begin);
+        //         uint32_t index = EXCEPTIONS;
+        //         uint32_t len = 1;
+
+        //         for (uint32_t const* ptr  = begin;
+        //                              ptr != begin + run_size;
+        //                            ++ptr)
+        //         {
+        //             if (*ptr == 0) {
+        //                 ++longest_run_size;
+        //             } else {
+        //                 break;
+        //             }
+        //         }
+
+        //         if (longest_run_size >= 16) {
+        //             uint32_t k = 256;
+        //             while (longest_run_size < k and k > 16) {
+        //                 ++index;
+        //                 k /= 2;
+        //             }
+        //             write_index(index, out);
+        //             len = k;
+        //             written_ints += len;
+        //         } else {
+        //             for (uint32_t s = 0; s < constants::num_target_sizes; ++s) {
+        //                 uint32_t sub_block_size = constants::target_sizes[s];
+        //                 len = std::min<uint32_t>(sub_block_size, end - begin);
+        //                 index = builder->lookup(begin, len);
+        //                 if (index != dictionary_type::invalid_index) {
+        //                     write_index(index, out);
+        //                     written_ints += len;
+        //                     break;
+        //                 }
+        //             }
+
+        //             // NOTE: don't encode exceptions
+        //             if (index == dictionary_type::invalid_index) len = 1;
+        //         }
+
+        //         begin += len;
+        //     }
+
+        //     return written_ints;
+        // }
+
+        // NOTE: decoding without exceptions
+        // static uint8_t const* decode(uint8_t const* in,
+        //                              uint32_t* out,
+        //                              uint32_t /*universe*/, size_t n,
+        //                              dictionary_type const* dict
+        //                              )
+        // {
+        //     uint16_t const* ptr = reinterpret_cast<uint16_t const*>(in);
+        //     for (size_t i = 0; i != n; ++ptr) {
+        //         uint32_t index = *ptr;
+        //         uint32_t decoded_ints = dict->copy(index, out);
+        //         out += decoded_ints;
+        //         i += decoded_ints;
+        //     }
+        //     return reinterpret_cast<uint8_t const*>(ptr);
+        // }
+
         // NOTE: greedy parsing
-        static void
+        static uint64_t
         encode(uint32_t const* in,
                uint32_t /*universe*/, uint32_t n,
                std::vector<uint8_t>& out,
@@ -588,7 +665,7 @@ namespace ds2i {
         {
             uint32_t const* begin = in;
             uint32_t const* end = begin + n;
-            // uint64_t written_ints = 0;
+            uint64_t written_ints = 0;
 
             while (begin < end)
             {
@@ -652,10 +729,42 @@ namespace ds2i {
                 }
 
                 begin += len;
-                // written_ints += len;
+                written_ints += len;
             }
 
-            // return written_ints;
+            return written_ints;
+        }
+
+        static uint8_t const* decode(uint8_t const* in,
+                                     uint32_t* out,
+                                     uint32_t /*universe*/, size_t n,
+                                     dictionary_type const* dict
+                                     // , dint_statistics& stats
+                                     )
+        {
+            uint16_t const* ptr = reinterpret_cast<uint16_t const*>(in);
+            for (size_t i = 0; i != n; ++ptr) {
+                uint32_t index = *ptr;
+                uint32_t decoded_ints = 1;
+                if (DS2I_LIKELY(index > EXCEPTIONS - 1)) {
+                    decoded_ints = dict->copy(index, out);
+                } else {
+                    if (index == 1) { // 4-byte exception
+                        *out = *(reinterpret_cast<uint32_t const*>(++ptr));
+                        ++ptr;
+                        // needed when b = 8
+                        // ptr += 2;
+                    } else { // 2-byte exception
+                        *out = *(++ptr);
+                        // *out = *(reinterpret_cast<uint16_t const*>(++ptr)); // when b = 8
+                        // needed when b = 8
+                        // ptr += 1;
+                    }
+                }
+                out += decoded_ints;
+                i += decoded_ints;
+            }
+            return reinterpret_cast<uint8_t const*>(ptr);
         }
 
         // NOTE: optimal parsing
@@ -890,130 +999,130 @@ namespace ds2i {
         //     return reinterpret_cast<uint8_t const*>(ptr);
         // }
 
-        static uint8_t const* decode(uint8_t const* in,
-                                     uint32_t* out,
-                                     uint32_t /*universe*/, size_t n,
-                                     dictionary_type const* dict
-                                     , dint_statistics& stats
-                                     )
-        {
-            // uint16_t const* ptr = reinterpret_cast<uint16_t const*>(in);
-            // for (size_t i = 0; i != n; ++ptr) {
-            //     uint32_t index = *ptr;
-            //     uint32_t decoded_ints = 1;
-            //     if (DS2I_LIKELY(index > EXCEPTIONS - 1)) {
-            //         decoded_ints = dict->copy(index, out);
-            //     } else {
-            //         if (index == 1) { // 4-byte exception
-            //             *out = *(reinterpret_cast<uint32_t const*>(++ptr));
-            //             ++ptr;
-            //         } else { // 2-byte exception
-            //             *out = *(++ptr);
-            //         }
-            //     }
-            //     out += decoded_ints;
-            //     i += decoded_ints;
-            // }
-            // return reinterpret_cast<uint8_t const*>(ptr);
+        // static uint8_t const* decode(uint8_t const* in,
+        //                              uint32_t* out,
+        //                              uint32_t /*universe*/, size_t n,
+        //                              dictionary_type const* dict
+        //                              , dint_statistics& stats
+        //                              )
+        // {
+        //     // uint16_t const* ptr = reinterpret_cast<uint16_t const*>(in);
+        //     // for (size_t i = 0; i != n; ++ptr) {
+        //     //     uint32_t index = *ptr;
+        //     //     uint32_t decoded_ints = 1;
+        //     //     if (DS2I_LIKELY(index > EXCEPTIONS - 1)) {
+        //     //         decoded_ints = dict->copy(index, out);
+        //     //     } else {
+        //     //         if (index == 1) { // 4-byte exception
+        //     //             *out = *(reinterpret_cast<uint32_t const*>(++ptr));
+        //     //             ++ptr;
+        //     //         } else { // 2-byte exception
+        //     //             *out = *(++ptr);
+        //     //         }
+        //     //     }
+        //     //     out += decoded_ints;
+        //     //     i += decoded_ints;
+        //     // }
+        //     // return reinterpret_cast<uint8_t const*>(ptr);
 
 
-            uint16_t const* ptr = reinterpret_cast<uint16_t const*>(in);
+        //     uint16_t const* ptr = reinterpret_cast<uint16_t const*>(in);
 
-            static const int len = 4;
-            static uint32_t S[] = {0, 0, 0, 0
-                                 // , 0, 0, 0, 0
-                            };
+        //     static const int len = 4;
+        //     static uint32_t S[] = {0, 0, 0, 0
+        //                          // , 0, 0, 0, 0
+        //                     };
 
-            static uint32_t I[] = {0, 0, 0, 0
-                                 // , 0, 0, 0, 0
-                            };
+        //     static uint32_t I[] = {0, 0, 0, 0
+        //                          // , 0, 0, 0, 0
+        //                     };
 
-            // static uint32_t tmp[][16] = {
-            //     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-            //   , {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-            //   , {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-            //   , {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-            //   // , {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-            //   // , {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-            //   // , {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-            //   // , {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-            // };
+        //     // static uint32_t tmp[][16] = {
+        //     //     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+        //     //   , {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+        //     //   , {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+        //     //   , {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+        //     //   // , {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+        //     //   // , {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+        //     //   // , {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+        //     //   // , {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+        //     // };
 
-            // static uint32_t tmp[] = {
-            //     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-            //   , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-            //   , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-            //   , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-            //   // , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-            //   // , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-            //   // , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-            //   // , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-            // };
+        //     // static uint32_t tmp[] = {
+        //     //     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+        //     //   , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+        //     //   , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+        //     //   , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+        //     //   // , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+        //     //   // , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+        //     //   // , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+        //     //   // , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+        //     // };
 
-            // std::cout << "n " << n << std::endl;
+        //     // std::cout << "n " << n << std::endl;
 
-            for (size_t i = 0; i < n;)
-            {
-                uint32_t j = 0;
-                uint32_t sum = 0;
+        //     for (size_t i = 0; i < n;)
+        //     {
+        //         uint32_t j = 0;
+        //         uint32_t sum = 0;
 
-                while (j != len) {
-                    uint32_t index = *ptr;
-                    if (DS2I_LIKELY(index > EXCEPTIONS - 1)) {
+        //         while (j != len) {
+        //             uint32_t index = *ptr;
+        //             if (DS2I_LIKELY(index > EXCEPTIONS - 1)) {
 
-                        uint32_t size = dict->size(index);
-                        sum += size;
-                        S[j] = sum;
-                        I[j] = index;
-                        ++j;
+        //                 uint32_t size = dict->size(index);
+        //                 sum += size;
+        //                 S[j] = sum;
+        //                 I[j] = index;
+        //                 ++j;
 
-                    } else {
-                        if (index == 1) { // 4-byte exception
-                            *(out + sum) = *(reinterpret_cast<uint32_t const*>(++ptr));
-                            ++ptr;
-                        } else { // 2-byte exception
-                            *(out + sum) = *(++ptr);
-                        }
-                        ++sum;
-                    }
+        //             } else {
+        //                 if (index == 1) { // 4-byte exception
+        //                     *(out + sum) = *(reinterpret_cast<uint32_t const*>(++ptr));
+        //                     ++ptr;
+        //                 } else { // 2-byte exception
+        //                     *(out + sum) = *(++ptr);
+        //                 }
+        //                 ++sum;
+        //             }
 
-                    ++ptr;
+        //             ++ptr;
 
-                    if (i + sum >= n) {
-                        break;
-                    }
-                }
+        //             if (i + sum >= n) {
+        //                 break;
+        //             }
+        //         }
 
-                dict->copy(I[0], out +   0 );
-                dict->copy(I[1], out + S[0]);
-                dict->copy(I[2], out + S[1]);
-                dict->copy(I[3], out + S[2]);
-                // dict->copy(I[4], out + S[3]);
-                // dict->copy(I[5], out + S[4]);
-                // dict->copy(I[6], out + S[5]);
-                // dict->copy(I[7], out + S[6]);
+        //         dict->copy(I[0], out +   0 );
+        //         dict->copy(I[1], out + S[0]);
+        //         dict->copy(I[2], out + S[1]);
+        //         dict->copy(I[3], out + S[2]);
+        //         // dict->copy(I[4], out + S[3]);
+        //         // dict->copy(I[5], out + S[4]);
+        //         // dict->copy(I[6], out + S[5]);
+        //         // dict->copy(I[7], out + S[6]);
 
-                // dict->copy(I[0], tmp[0]);
-                // dict->copy(I[1], tmp[1]);
-                // dict->copy(I[2], tmp[2]);
-                // dict->copy(I[3], tmp[3]);
-                // dict->copy(I[4], tmp[4]);
-                // dict->copy(I[5], tmp[5]);
-                // dict->copy(I[6], tmp[6]);
-                // dict->copy(I[7], tmp[7]);
+        //         // dict->copy(I[0], tmp[0]);
+        //         // dict->copy(I[1], tmp[1]);
+        //         // dict->copy(I[2], tmp[2]);
+        //         // dict->copy(I[3], tmp[3]);
+        //         // dict->copy(I[4], tmp[4]);
+        //         // dict->copy(I[5], tmp[5]);
+        //         // dict->copy(I[6], tmp[6]);
+        //         // dict->copy(I[7], tmp[7]);
 
-                // dict->copy(I[0], tmp +   0 );
-                // dict->copy(I[1], tmp + S[0]);
-                // dict->copy(I[2], tmp + S[1]);
-                // dict->copy(I[3], tmp + S[2]);
-                // memcpy(out, tmp, len * 16 * sizeof(uint32_t));
+        //         // dict->copy(I[0], tmp +   0 );
+        //         // dict->copy(I[1], tmp + S[0]);
+        //         // dict->copy(I[2], tmp + S[1]);
+        //         // dict->copy(I[3], tmp + S[2]);
+        //         // memcpy(out, tmp, len * 16 * sizeof(uint32_t));
 
-                out += sum;
-                i += sum;
-            }
+        //         out += sum;
+        //         i += sum;
+        //     }
 
-            return reinterpret_cast<uint8_t const*>(ptr);
-        }
+        //     return reinterpret_cast<uint8_t const*>(ptr);
+        // }
 
     private:
         static void write_index(uint32_t index, std::vector<uint8_t>& out) {
