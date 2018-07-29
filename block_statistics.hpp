@@ -14,13 +14,8 @@
 namespace ds2i {
 
     template<typename Collector>
-    struct block_statistics
-    {
+    struct block_statistics {
         static_assert(is_power_of_two(Collector::max_block_size));
-
-        block_statistics() {
-            blocks.resize(constants::num_selectors);
-        }
 
         static std::string type() {
             return "block_statistics-" + std::to_string(Collector::max_block_size) + "-" + Collector::type();
@@ -47,15 +42,24 @@ namespace ds2i {
             return stats;
         }
 
-        // create
         template<typename Filter>
         block_statistics(binary_collection& input, bool compute_gaps,
                          Filter const& filter)
         {
+            // log info
             logger() << "creating block stats (type = " << type() << ")" << std::endl;
+            logger() << "using " << constants::num_selectors << " contexts" << std::endl;
+            if (constants::context == constants::block_selector::max) {
+                logger() << "using context MAX" << std::endl;
+            } else if (constants::context == constants::block_selector::median) {
+                logger() << "using context MEDIAN" << std::endl;
+            } else if (constants::context == constants::block_selector::mode) {
+                logger() << "using context MODE" << std::endl;
+            } else {
+                throw std::runtime_error("Unknown context.");
+            }
 
             std::vector<map_type> block_maps(constants::num_selectors);
-
             boost::progress_display progress(input.num_postings());
             total_integers = 0;
             std::vector<uint32_t> buf;
@@ -87,6 +91,7 @@ namespace ds2i {
 
             logger() << "selecting entries..." << std::endl;
             std::vector<uint32_t> num_singletons(constants::num_selectors, 0);
+            blocks.resize(constants::num_selectors);
             for (int s = 0; s != constants::num_selectors; ++s) {
                 blocks[s].reserve(block_maps[s].size());
             }
@@ -110,7 +115,6 @@ namespace ds2i {
             logger() << "DONE" << std::endl;
 
             freq_length_sorter sorter;
-            // freq_sorter sorter;
             logger() << "sorting..." << std::endl;
             for (int s = 0; s != constants::num_selectors; ++s) {
                 logger() << num_singletons[s] << " singletons for blocks of context " << constants::selector_codes[s] << std::endl;

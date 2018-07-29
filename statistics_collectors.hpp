@@ -26,7 +26,8 @@ namespace ds2i {
             : m_block_size(block_size)
         {
             assert(m_block_size % 2 == 0);
-            m_buf.reserve(block_size);
+            m_buf.reserve(m_block_size);
+            m_occs.reserve(m_block_size);
         }
 
         uint32_t get(uint32_t const* entry) {
@@ -48,8 +49,25 @@ namespace ds2i {
                 std::sort(m_buf.begin(), m_buf.end());
                 x = (m_buf[m_block_size / 2 - 1] + m_buf[m_block_size / 2]) / 2;
             } else
-            if (constants::context == constants::block_selector::mode) {
-                // TODO
+            if (constants::context == constants::block_selector::mode)
+            {
+                m_occs.clear();
+                auto ptr = entry;
+                uint32_t best_occ = 0;
+                for (uint32_t s = 0; s != m_block_size; ++s)
+                {
+                    auto it = m_occs.find(*ptr);
+                    if (it == m_occs.end()) {
+                        m_occs[*ptr] = 1;
+                    } else {
+                        uint32_t occ = (*it).second;
+                        if (occ > best_occ) {
+                            best_occ = occ;
+                            x = *ptr;
+                        }
+                    }
+                    ++ptr;
+                }
             } else {
                 throw std::runtime_error("Unsupported context");
             }
@@ -70,6 +88,7 @@ namespace ds2i {
     private:
         uint32_t m_block_size;
         std::vector<uint32_t> m_buf;
+        std::unordered_map<uint32_t, uint32_t> m_occs;
     };
 
     struct freq_sorter {
@@ -124,14 +143,29 @@ namespace ds2i {
 
         static void collect(std::vector<uint32_t>& buf, std::vector<map_type>& block_maps) {
             auto b = buf.data();
-            for (uint32_t s = 0; s < constants::num_target_sizes; ++s) {
-                uint32_t block_size = constants::target_sizes[s];
-                selector sct(block_size);
-                uint32_t blocks = buf.size() / block_size;
-                for (uint32_t i = 0, pos = 0; i < blocks; ++i, pos += block_size) {
-                    uint32_t index = sct.get(b + pos);
-                    // std::cout << "index " << index << "\n";
-                    increase_frequency(b + pos, block_size, block_maps[index]);
+            // for (uint32_t s = 0; s < constants::num_target_sizes; ++s) {
+            //     uint32_t block_size = constants::target_sizes[s];
+            //     selector sct(block_size);
+            //     uint32_t blocks = buf.size() / block_size;
+            //     for (uint32_t i = 0, pos = 0; i < blocks; ++i, pos += block_size) {
+            //         uint32_t index = sct.get(b + pos);
+            //         // std::cout << "index " << index << "\n";
+            //         increase_frequency(b + pos, block_size, block_maps[index]);
+            //     }
+            // }
+
+            uint32_t blocks = buf.size() / constants::block_size;
+            selector sct(constants::block_size);
+            for (uint32_t i = 0, pos = 0; i < blocks; ++i, pos += constants::block_size)
+            {
+                uint32_t index = sct.get(b + pos);
+                // std::cout << "index " << index << "\n";
+                for (uint32_t s = 0; s < constants::num_target_sizes; ++s) {
+                    uint32_t jump_size = constants::target_sizes[s];
+                    uint32_t jumps = constants::block_size / jump_size;
+                    for (uint32_t j = 0, p = 0; j < jumps; ++j, p += jump_size) {
+                        increase_frequency(b + pos + p, jump_size, block_maps[index]);
+                    }
                 }
             }
         }

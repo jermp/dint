@@ -65,7 +65,7 @@ namespace ds2i {
     // using     full_block_stats_type = block_statistics<full_collector_type>;
     // using    fixed_block_stats_type = block_statistics<fixed_collector_type>;
 
-    using DSF = decreasing_static_frequencies<large_dictionary_type/*, small_dictionary_type*/, adjusted_block_stats_type>;
+    using DSF = decreasing_static_frequencies<large_dictionary_type, small_dictionary_type, adjusted_block_stats_type>;
     // using DSV = decreasing_static_volume<large_dictionary_type, adjusted_block_stats_type>;
     // using PDF = prefix_discounted_frequencies<large_dictionary_type, full_block_stats_type>;
     // using LSS =     longest_to_shortest_sweep<large_dictionary_type, adjusted_block_stats_type>;

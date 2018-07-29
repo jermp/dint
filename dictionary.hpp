@@ -73,6 +73,10 @@ namespace ds2i {
                 // encoding.reserve(constants::block_size);
             }
 
+            size_t num_bytes_for(uint64_t n) const {
+                return n * (max_entry_size + 1) * sizeof(m_table.front());
+            }
+
             void init() {
                 m_pos = reserved * (max_entry_size + 1);
                 m_size = reserved;
@@ -110,15 +114,15 @@ namespace ds2i {
 
             void write(std::ofstream& dictionary_file) const {
                 dictionary_file.write(reinterpret_cast<char const*>(&m_size), sizeof(uint32_t));
-                dictionary_file.write(reinterpret_cast<char const*>(m_table.data()), m_table.size() * sizeof(uint32_t));
+                dictionary_file.write(reinterpret_cast<char const*>(m_table.data()), num_bytes_for(m_size));
             }
 
             void load(std::ifstream& dictionary_file) {
                 uint32_t size = 0;
                 dictionary_file.read(reinterpret_cast<char*>(&size), sizeof(uint32_t));
                 init();
-                dictionary_file.read(reinterpret_cast<char*>(m_table.data()), m_table.size() * sizeof(uint32_t));
                 m_size = size;
+                dictionary_file.read(reinterpret_cast<char*>(m_table.data()), num_bytes_for(m_size));
             }
 
             bool full() {

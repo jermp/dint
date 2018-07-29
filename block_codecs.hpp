@@ -827,11 +827,10 @@ namespace ds2i {
             // }
         }
 
-        template<typename LargeDictBuilder/*, typename SmallDictBuilder*/>
-        static void encode(
-                           // LargeDictBuilder& large_dict_builder,
-                           // SmallDictBuilder& small_dict_builder,
-                           std::vector<LargeDictBuilder>& large_dict_builders,
+        template<typename LargeDictBuilder,
+                 typename SmallDictBuilder>
+        static void encode(std::vector<LargeDictBuilder>& large_dict_builders,
+                           std::vector<SmallDictBuilder>& small_dict_builders,
                            uint32_t const* in,
                            uint32_t sum_of_values,
                            uint32_t n,
@@ -845,21 +844,30 @@ namespace ds2i {
             uint32_t const* begin = in;
             uint32_t const* end = begin + n;
 
-            std::vector<std::vector<uint8_t>> encoded(constants::num_selectors);
+            // NOTE: first constants::num_selectors selectors are used for LARGE dicts,
+            //       the following constants::num_selectors for SMALL dicts.
+            std::vector<std::vector<uint8_t>> encoded(2 * constants::num_selectors);
+
             size_t best_size = size_t(-1);
             int selector_code = 0;
             for (int s = 0; s != constants::num_selectors; ++s) {
                 encode(large_dict_builders[s], begin, end, encoded[s], 16);
-                if (encoded[s].size() < best_size) {
-                    best_size = encoded[s].size();
-                    selector_code = s;
-                } else {
-                    std::vector<uint8_t>().swap(encoded[s]);
+                encode(small_dict_builders[s], begin, end, encoded[s + constants::num_selectors], 8);
+
+                size_t smallest_size = encoded[s].size();
+                int sc = s;
+                if (encoded[s + constants::num_selectors].size() <= smallest_size) {
+                    smallest_size = encoded[s + constants::num_selectors].size();
+                    sc += constants::num_selectors;
+                }
+
+                if (smallest_size < best_size) {
+                    best_size = smallest_size;
+                    selector_code = sc;
                 }
             }
 
             // control byte
-            // NOTE: actually we only need 4 bits
             out.push_back(selector_code);
             out.insert(out.end(), encoded[selector_code].begin(),
                                   encoded[selector_code].end());
@@ -1018,40 +1026,64 @@ namespace ds2i {
         //     // std::cout << "cost = " << cost << std::endl;
         // }
 
-        template<typename LargeDictionary/*, typename SmallDictionary*/>
+        template<typename LargeDictionary,
+                 typename SmallDictionary>
         static uint8_t const* decode(
-                                     // LargeDictionary const& large_dict,
-                                     // SmallDictionary const& small_dict,
-                                     std::vector<LargeDictionary> const& large_dicts,
-                                     uint8_t const* in,
-                                     uint32_t* out,
-                                     uint32_t sum_of_values,
-                                     size_t n)
-        {
+            std::vector<LargeDictionary> const& large_dicts,
+            std::vector<SmallDictionary> const& small_dicts,
+            uint8_t const* in,
+            uint32_t* out,
+            uint32_t sum_of_values,
+            size_t n
+        ) {
             if (DS2I_UNLIKELY(n < block_size)) {
                 return interpolative_block::decode(in, out, sum_of_values, n);
             }
 
             uint8_t selector_code = *in;
-            auto const& large_dict = large_dicts[selector_code];
-            uint16_t const* ptr = reinterpret_cast<uint16_t const*>(in + 1);
-            for (size_t i = 0; i != n; ++ptr) {
-                uint32_t index = *ptr;
-                uint32_t decoded_ints = 1;
-                if (DS2I_LIKELY(index > EXCEPTIONS - 1)) {
-                    decoded_ints = large_dict.copy(index, out);
-                } else {
-                    if (index == 1) { // 4-byte exception
-                        *out = *(reinterpret_cast<uint32_t const*>(++ptr));
-                        ++ptr;
-                    } else { // 2-byte exception
-                        *out = *(++ptr);
+            if (selector_code < constants::num_selectors) {
+                auto const& large_dict = large_dicts[selector_code];
+                uint16_t const* ptr = reinterpret_cast<uint16_t const*>(in + 1);
+                for (size_t i = 0; i != n; ++ptr) {
+                    uint32_t index = *ptr;
+                    uint32_t decoded_ints = 1;
+                    if (DS2I_LIKELY(index > EXCEPTIONS - 1)) {
+                        decoded_ints = large_dict.copy(index, out);
+                    } else {
+                        if (index == 1) { // 4-byte exception
+                            *out = *(reinterpret_cast<uint32_t const*>(++ptr));
+                            ++ptr;
+                        } else { // 2-byte exception
+                            *out = *(++ptr);
+                        }
                     }
+                    out += decoded_ints;
+                    i += decoded_ints;
                 }
-                out += decoded_ints;
-                i += decoded_ints;
+                return reinterpret_cast<uint8_t const*>(ptr);
+            } else {
+                selector_code -= constants::num_selectors;
+                auto const& small_dict = small_dicts[selector_code];
+                uint8_t const* ptr = in + 1;
+                for (size_t i = 0; i != n; ++ptr) {
+                    uint32_t index = *ptr;
+                    uint32_t decoded_ints = 1;
+                    if (DS2I_LIKELY(index > EXCEPTIONS - 1)) {
+                        decoded_ints = small_dict.copy(index, out);
+                    } else {
+                        if (index == 1) { // 4-byte exception
+                            *out = *(reinterpret_cast<uint32_t const*>(++ptr));
+                            ptr += 3;
+                        } else { // 2-byte exception
+                            *out = *(reinterpret_cast<uint16_t const*>(++ptr));
+                            ptr += 1;
+                        }
+                    }
+                    out += decoded_ints;
+                    i += decoded_ints;
+                }
+                return ptr;
             }
-            return reinterpret_cast<uint8_t const*>(ptr);
         }
 
     private:

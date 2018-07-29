@@ -13,14 +13,17 @@
 namespace ds2i {
 
     template<typename DictionaryBuilder, typename Coder>
-    struct dict_freq_index
-    {
+    struct dict_freq_index {
         using dictionary_builder = DictionaryBuilder;
         using large_dictionary_type = typename dictionary_builder::large_dictionary_type;
-        // using small_dictionary_type = typename dictionary_builder::small_dictionary_type;
+        using small_dictionary_type = typename dictionary_builder::small_dictionary_type;
         using coder_type = Coder;
 
-        typedef dict_posting_list<large_dictionary_type/*, small_dictionary_type*/, coder_type> sequence_type;
+        typedef dict_posting_list<large_dictionary_type,
+                                  small_dictionary_type,
+                                  coder_type> sequence_type;
+
+        typedef typename sequence_type::document_enumerator document_enumerator;
 
         struct builder {
             builder(uint64_t num_docs, global_parameters const& params)
@@ -28,14 +31,17 @@ namespace ds2i {
                 , m_params(params)
                 , m_queue(1 << 24)
                 , m_docs_large_dict_builders(constants::num_selectors)
+                , m_docs_small_dict_builders(constants::num_selectors)
                 , m_freqs_large_dict_builders(constants::num_selectors)
+                , m_freqs_small_dict_builders(constants::num_selectors)
             {
                 m_endpoints.push_back(0);
             }
 
             template<typename DocsIterator, typename FreqsIterator>
-            void add_posting_list(uint64_t n, DocsIterator docs_begin,
-                                              FreqsIterator freqs_begin,
+            void add_posting_list(uint64_t n,
+                                  DocsIterator docs_begin,
+                                  FreqsIterator freqs_begin,
                                   uint64_t /* occurrences */)
             {
                 if (!n) throw std::invalid_argument("List must be nonempty");
@@ -46,23 +52,35 @@ namespace ds2i {
                 // m_endpoints.push_back(m_lists.size());
 
                 std::shared_ptr<list_adder<DocsIterator, FreqsIterator>>
-                    ptr(new list_adder<DocsIterator, FreqsIterator>(*this, docs_begin, freqs_begin, n));
+                    ptr(new list_adder<DocsIterator, FreqsIterator>(
+                        *this, docs_begin, freqs_begin, n
+                    ));
                 m_queue.add_job(ptr, 2 * n);
             }
 
             void build_model(std::string const& prefix_name)
             {
                 logger() << "building or loading dictionaries for docs..." << std::endl;
-                build_or_load_dict(m_docs_large_dict_builders, prefix_name, data_type::docs);
+                build_or_load_dict(
+                    m_docs_large_dict_builders,
+                    m_docs_small_dict_builders,
+                    prefix_name, data_type::docs
+                );
                 logger() << "DONE" << std::endl;
 
                 logger() << "building or loading dictionaries for freqs..." << std::endl;
-                build_or_load_dict(m_freqs_large_dict_builders, prefix_name, data_type::freqs);
+                build_or_load_dict(
+                    m_freqs_large_dict_builders,
+                    m_freqs_small_dict_builders,
+                    prefix_name, data_type::freqs
+                );
                 logger() << "DONE" << std::endl;
 
                 for (int s = 0; s != constants::num_selectors; ++s) {
                     m_docs_large_dict_builders[s].prepare_for_encoding();
+                    m_docs_small_dict_builders[s].prepare_for_encoding();
                     m_freqs_large_dict_builders[s].prepare_for_encoding();
+                    m_freqs_small_dict_builders[s].prepare_for_encoding();
                 }
             }
 
@@ -75,57 +93,12 @@ namespace ds2i {
                 dfi.m_num_docs = m_num_docs;
                 dfi.m_lists.steal(m_lists);
 
-                // std::cout << "BLOCK STATISTICS" << std::endl;
-                // uint64_t total_blocks = m_docs_large_dict_builder.block_encoded_with_large_dict
-                //                       + m_docs_large_dict_builder.block_encoded_with_small_dict;
-
-                // std::cout << "blocks encoded with large dict on docs: "
-                //           << m_docs_large_dict_builder.block_encoded_with_large_dict << "/" << total_blocks << " "
-                //           << "(" << m_docs_large_dict_builder.block_encoded_with_large_dict * 100.0 / total_blocks << "%)" << std::endl;
-
-                // std::cout << "blocks encoded with small dict on docs: "
-                //           << m_docs_large_dict_builder.block_encoded_with_small_dict << "/" << total_blocks << " "
-                //           << "(" << m_docs_large_dict_builder.block_encoded_with_small_dict * 100.0 / total_blocks << "%)" << std::endl;
-
-                // total_blocks = m_freqs_large_dict_builder.block_encoded_with_large_dict
-                //              + m_freqs_large_dict_builder.block_encoded_with_small_dict;
-
-                // std::cout << "blocks encoded with large dict on freqs: "
-                //           << m_freqs_large_dict_builder.block_encoded_with_large_dict << "/" << total_blocks << " "
-                //           << "(" << m_freqs_large_dict_builder.block_encoded_with_large_dict * 100.0 / total_blocks << "%)" << std::endl;
-
-                // std::cout << "blocks encoded with small dict on freqs: "
-                //           << m_freqs_large_dict_builder.block_encoded_with_small_dict << "/" << total_blocks << " "
-                //           << "(" << m_freqs_large_dict_builder.block_encoded_with_small_dict * 100.0 / total_blocks << "%)" << std::endl;
-
-
-                // std::cout << "LARGE DICTIONARY" << std::endl;
-                // std::cout << "docs codewords: " << m_docs_large_dict_builder.codewords << std::endl;
-                // std::cout << "docs small exceptions: " << m_docs_large_dict_builder.small_exceptions << std::endl;
-                // std::cout << "docs large exceptions: " << m_docs_large_dict_builder.large_exceptions << std::endl;
-                // std::cout << "freqs codewords: " << m_freqs_large_dict_builder.codewords << std::endl;
-                // std::cout << "freqs small exceptions: " << m_freqs_large_dict_builder.small_exceptions << std::endl;
-                // std::cout << "freqs large exceptions: " << m_freqs_large_dict_builder.large_exceptions << std::endl;
-
-                // std::cout << "SMALL DICTIONARY" << std::endl;
-                // std::cout << "docs codewords: " << m_docs_small_dict_builder.codewords << std::endl;
-                // std::cout << "docs small exceptions: " << m_docs_small_dict_builder.small_exceptions << std::endl;
-                // std::cout << "docs large exceptions: " << m_docs_small_dict_builder.large_exceptions << std::endl;
-                // std::cout << "freqs codewords: " << m_freqs_small_dict_builder.codewords << std::endl;
-                // std::cout << "freqs small exceptions: " << m_freqs_small_dict_builder.small_exceptions << std::endl;
-                // std::cout << "freqs large exceptions: " << m_freqs_small_dict_builder.large_exceptions << std::endl;
-
                 for (int s = 0; s != constants::num_selectors; ++s) {
                     m_docs_large_dict_builders[s].build(dfi.m_docs_large_dicts[s]);
+                    m_docs_small_dict_builders[s].build(dfi.m_docs_small_dicts[s]);
                     m_freqs_large_dict_builders[s].build(dfi.m_freqs_large_dicts[s]);
+                    m_freqs_small_dict_builders[s].build(dfi.m_freqs_small_dicts[s]);
                 }
-
-                // m_docs_large_dict_builder.build(dfi.m_docs_large_dict);
-                // m_freqs_large_dict_builder.build(dfi.m_freqs_large_dict);
-
-                // m_docs_small_dict_builder.build(dfi.m_docs_small_dict);
-                // m_freqs_small_dict_builder.build(dfi.m_freqs_small_dict);
-
 
                 succinct::bit_vector_builder bvb;
                 compact_elias_fano::write(bvb, m_endpoints.begin(),
@@ -149,8 +122,14 @@ namespace ds2i {
                 {}
 
                 virtual void prepare() {
-                    sequence_type::write(b.m_docs_large_dict_builders, b.m_freqs_large_dict_builders,
-                                         lists, n, docs_begin, freqs_begin);
+                    sequence_type::write(
+                        b.m_docs_large_dict_builders,
+                        b.m_docs_small_dict_builders,
+                        b.m_freqs_large_dict_builders,
+                        b.m_freqs_small_dict_builders,
+                        lists, n,
+                        docs_begin, freqs_begin
+                    );
                 }
 
                 virtual void commit() {
@@ -171,96 +150,84 @@ namespace ds2i {
             std::vector<uint64_t> m_endpoints;
             std::vector<uint8_t> m_lists;
             std::vector<typename large_dictionary_type::builder> m_docs_large_dict_builders;
+            std::vector<typename small_dictionary_type::builder> m_docs_small_dict_builders;
             std::vector<typename large_dictionary_type::builder> m_freqs_large_dict_builders;
+            std::vector<typename small_dictionary_type::builder> m_freqs_small_dict_builders;
 
-            // typename large_dictionary_type::builder m_docs_large_dict_builder;
-            // typename large_dictionary_type::builder m_freqs_large_dict_builder;
-            // typename small_dictionary_type::builder m_docs_small_dict_builder;
-            // typename small_dictionary_type::builder m_freqs_small_dict_builder;
-
-            void build_or_load_dict(
-                                    std::vector<typename large_dictionary_type::builder>& large_dict_builders,
-                                    // typename large_dictionary_type::builder& large_dict_builder,
-                                    // typename small_dictionary_type::builder& small_dict_builder,
+            void build_or_load_dict(std::vector<typename large_dictionary_type::builder>& large_dict_builders,
+                                    std::vector<typename small_dictionary_type::builder>& small_dict_builders,
                                     std::string prefix_name, data_type dt)
             {
                 std::string file_name = prefix_name + extension(dt);
                 using namespace boost::filesystem;
                 path p(file_name);
-                using ld_type = typename large_dictionary_type::builder;
 
                 bool already_built = true;
-                std::vector<std::string> filenames;
-                for (int s = 0; s != constants::num_selectors; ++s) {
-                    uint32_t selector_code = constants::selector_codes[s];
-                    std::string dictionary_filename = "./dict."
-                                                + p.filename().string() + "."
-                                                + ld_type::type() + "."
-                                                + dictionary_builder::type() + "."
-                                                + std::to_string(selector_code)
-                                                ;
-                    already_built = already_built and boost::filesystem::exists(dictionary_filename);
-                    filenames.push_back(dictionary_filename);
-                }
+                std::vector<std::string> ld_filenames;
+                std::vector<std::string> sd_filenames;
+                ld_filenames.reserve(constants::num_selectors);
+                sd_filenames.reserve(constants::num_selectors);
 
-                // std::cout << "***" << std::endl;
-                // for (auto const& s: filenames) {
-                //     std::cout << s << std::endl;
-                // }
+                typedef typename large_dictionary_type::builder ld_type;
+
+                for (int s = 0; s != constants::num_selectors; ++s)
+                {
+                    uint32_t selector_code = constants::selector_codes[s];
+                    std::string prefix = "./dict."
+                        + p.filename().string() + "."
+                        + ld_type::type() + "."
+                        + dictionary_builder::type() + "."
+                        + std::to_string(selector_code);
+                    std::string ld_filename = prefix + ".large";
+                    std::string sd_filename = prefix + ".small";
+                    already_built = already_built
+                        and boost::filesystem::exists(ld_filename)
+                        and boost::filesystem::exists(sd_filename);
+                    ld_filenames.push_back(ld_filename);
+                    sd_filenames.push_back(sd_filename);
+                }
 
                 if (already_built) {
                     for (int s = 0; s != constants::num_selectors; ++s) {
-                        large_dict_builders[s].load_from_file(filenames[s]);
+                        large_dict_builders[s].load_from_file(ld_filenames[s]);
+                        small_dict_builders[s].load_from_file(sd_filenames[s]);
                     }
                 } else {
                     using statistics_type = typename dictionary_builder::statistics_type;
                     auto statistics =
                         statistics_type::create_or_load(prefix_name, dt,
                                                         dictionary_builder::filter());
-                    dictionary_builder::build(large_dict_builders, statistics, dt);
+                    dictionary_builder::build(large_dict_builders,
+                                              small_dict_builders,
+                                              statistics, dt);
                     for (int s = 0; s != constants::num_selectors; ++s) {
-                        if (not large_dict_builders[s].try_store_to_file(filenames[s])) {
-                            logger() << "cannot write dictionary to file '" << filenames[s] << "'" << std::endl;
+                        if (not large_dict_builders[s].try_store_to_file(ld_filenames[s])) {
+                            logger() << "cannot write dictionary to file '" << ld_filenames[s] << "'" << std::endl;
+                        }
+                        if (not small_dict_builders[s].try_store_to_file(sd_filenames[s])) {
+                            logger() << "cannot write dictionary to file '" << sd_filenames[s] << "'" << std::endl;
                         }
                     }
                 }
-
-                // builder.print_entries(dictionary_file + ".log");
-                // builder.print_indexes(dictionary_file + ".rbo_input.estimated");
             }
         };
 
         dict_freq_index()
             : m_size(0)
+            , m_num_docs(0)
+            , m_docs_large_dicts(constants::num_selectors)
+            , m_docs_small_dicts(constants::num_selectors)
+            , m_freqs_large_dicts(constants::num_selectors)
+            , m_freqs_small_dicts(constants::num_selectors)
         {}
 
-        // # of terms in the collection
-        size_t size() const {
+        size_t size() const { // num. of lists
             return m_size;
         }
 
-        // # of docs in the collection
-        uint64_t num_docs() const {
+        uint64_t num_docs() const { // universe
             return m_num_docs;
         }
-
-        // large_dictionary_type const& docs_large_dict() const {
-        //     return m_docs_large_dict;
-        // }
-
-        // large_dictionary_type const& freqs_large_dict() const {
-        //     return m_freqs_large_dict;
-        // }
-
-        // small_dictionary_type const& docs_small_dict() const {
-        //     return m_docs_small_dict;
-        // }
-
-        // small_dictionary_type const& freqs_small_dict() const {
-        //     return m_freqs_small_dict;
-        // }
-
-        typedef typename dict_posting_list<large_dictionary_type/*, small_dictionary_type*/, coder_type>::document_enumerator document_enumerator;
 
         document_enumerator operator[](size_t i) const
         {
@@ -270,12 +237,11 @@ namespace ds2i {
                                                      m_params);
             auto endpoint = endpoints.move(i).second;
             return document_enumerator(
-                                       // &m_docs_large_dict, &m_freqs_large_dict,
-                                       // &m_docs_small_dict, &m_freqs_small_dict,
-                                       m_docs_large_dicts, m_freqs_large_dicts,
-
-                                       m_lists.data() + endpoint,
-                                       num_docs(), i);
+                m_docs_large_dicts, m_docs_small_dicts,
+                m_freqs_large_dicts, m_freqs_small_dicts,
+                m_lists.data() + endpoint,
+                num_docs(), i
+            );
         }
 
         void warmup(size_t i)
@@ -302,16 +268,12 @@ namespace ds2i {
             std::swap(m_size, other.m_size);
             m_endpoints.swap(other.m_endpoints);
             m_lists.swap(other.m_lists);
-
             for (int s = 0; s != constants::num_selectors; ++s) {
                 m_docs_large_dicts[s].swap(other.m_docs_large_dicts[s]);
+                m_docs_small_dicts[s].swap(other.m_docs_small_dicts[s]);
                 m_freqs_large_dicts[s].swap(other.m_freqs_large_dicts[s]);
+                m_freqs_small_dicts[s].swap(other.m_freqs_small_dicts[s]);
             }
-
-            // m_docs_large_dict.swap(other.m_docs_large_dict);
-            // m_freqs_large_dict.swap(other.m_freqs_large_dict);
-            // m_docs_small_dict.swap(other.m_docs_small_dict);
-            // m_freqs_small_dict.swap(other.m_freqs_small_dict);
         }
 
         template<typename Visitor>
@@ -322,18 +284,18 @@ namespace ds2i {
                 (m_num_docs, "m_num_docs")
                 (m_endpoints, "m_endpoints")
                 (m_lists, "m_lists")
-                // (m_docs_large_dict, "m_docs_large_dict")
-                // (m_freqs_large_dict, "m_freqs_large_dict")
-                // (m_docs_small_dict, "m_docs_small_dict")
-                // (m_freqs_small_dict, "m_freqs_small_dict")
                 ;
 
             for (int s = 0; s != constants::num_selectors; ++s) {
-                std::string docs_dict_name = "m_docs_large_dicts[" + std::to_string(s) + "]";
-                std::string freqs_dict_name = "m_freqs_large_dicts[" + std::to_string(s) + "]";
+                std::string docs_large_dict_name = "m_docs_large_dicts[" + std::to_string(s) + "]";
+                std::string docs_small_dict_name = "m_docs_small_dicts[" + std::to_string(s) + "]";
+                std::string freqs_large_dict_name = "m_freqs_large_dicts[" + std::to_string(s) + "]";
+                std::string freqs_small_dict_name = "m_freqs_small_dicts[" + std::to_string(s) + "]";
                 visit
-                    (m_docs_large_dicts[s], docs_dict_name.c_str())
-                    (m_freqs_large_dicts[s], freqs_dict_name.c_str())
+                    (m_docs_large_dicts[s], docs_large_dict_name.c_str())
+                    (m_docs_small_dicts[s], docs_small_dict_name.c_str())
+                    (m_freqs_large_dicts[s], freqs_large_dict_name.c_str())
+                    (m_freqs_small_dicts[s], freqs_small_dict_name.c_str())
                     ;
             }
 
@@ -345,14 +307,10 @@ namespace ds2i {
         size_t m_num_docs;
         succinct::bit_vector m_endpoints;
         succinct::mapper::mappable_vector<uint8_t> m_lists;
-
         std::vector<large_dictionary_type> m_docs_large_dicts;
+        std::vector<small_dictionary_type> m_docs_small_dicts;
         std::vector<large_dictionary_type> m_freqs_large_dicts;
-
-        // large_dictionary_type m_docs_large_dict;
-        // large_dictionary_type m_freqs_large_dict;
-        // small_dictionary_type m_docs_small_dict;
-        // small_dictionary_type m_freqs_small_dict;
+        std::vector<small_dictionary_type> m_freqs_small_dicts;
     };
 }
 

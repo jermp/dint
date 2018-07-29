@@ -33,12 +33,12 @@ namespace ds2i {
     };
 
     template<typename LargeDictionary,
-             // typename SmallDictionary,
+             typename SmallDictionary,
              typename Statistics>
     struct decreasing_static_frequencies
     {
         typedef LargeDictionary large_dictionary_type;
-        // typedef SmallDictionary small_dictionary_type;
+        typedef SmallDictionary small_dictionary_type;
         typedef Statistics statistics_type;
 
         static std::string type() {
@@ -52,13 +52,11 @@ namespace ds2i {
         }
 
         static void build(std::vector<typename large_dictionary_type::builder>& large_dict_builders,
-                          // typename small_dictionary_type::builder& builder_small_dict,
+                          std::vector<typename small_dictionary_type::builder>& small_dict_builders,
                           statistics_type& stats, data_type dt)
         {
             (void) dt;
             logger() << "building " << type() << " dictionaries for " << stats.total_integers << std::endl;
-            // builder_large_dict.init();
-            // builder_small_dict.init();
 
             // for (auto& block: stats.blocks) {
             //     if (block.data.size() == 1) { // NOTE: privilege large singletons,
@@ -69,40 +67,40 @@ namespace ds2i {
             //     }
             // }
 
-            // freq_length_sorter sorter;
-            // std::sort(stats.blocks.begin(),
-            //           stats.blocks.end(),
-            //           sorter);
-
-            // {
-            //     uint64_t n = small_dictionary_type::num_entries;
-            //     if (stats.blocks.size() < n) {
-            //         n = stats.blocks.size();
-            //     }
-
-            //     auto it = stats.blocks.begin();
-            //     for (uint64_t i = 0; i < n; ++i, ++it) {
-            //         auto const& block = *it;
-            //         builder_small_dict.append(block.data.data(),
-            //                                   block.data.size(),
-            //                                   block.freq);
-            //     }
-            // }
-
             for (int s = 0; s != constants::num_selectors; ++s)
             {
-                large_dict_builders[s].init();
-                uint64_t n = large_dictionary_type::num_entries;
-                if (stats.blocks[s].size() < n) {
-                    n = stats.blocks[s].size();
+                // small dict
+                {
+                    small_dict_builders[s].init();
+                    uint64_t n = small_dictionary_type::num_entries;
+                    if (stats.blocks[s].size() < n) {
+                        n = stats.blocks[s].size();
+                    }
+
+                    auto it = stats.blocks[s].begin();
+                    for (uint64_t i = 0; i < n; ++i, ++it) {
+                        auto const& block = *it;
+                        small_dict_builders[s].append(block.data.data(),
+                                                      block.data.size(),
+                                                      block.freq);
+                    }
                 }
 
-                auto it = stats.blocks[s].begin();
-                for (uint64_t i = 0; i < n; ++i, ++it) {
-                    auto const& block = *it;
-                    large_dict_builders[s].append(block.data.data(),
-                                                  block.data.size(),
-                                                  block.freq);
+                // large dict
+                {
+                    large_dict_builders[s].init();
+                    uint64_t n = large_dictionary_type::num_entries;
+                    if (stats.blocks[s].size() < n) {
+                        n = stats.blocks[s].size();
+                    }
+
+                    auto it = stats.blocks[s].begin();
+                    for (uint64_t i = 0; i < n; ++i, ++it) {
+                        auto const& block = *it;
+                        large_dict_builders[s].append(block.data.data(),
+                                                      block.data.size(),
+                                                      block.freq);
+                    }
                 }
             }
 

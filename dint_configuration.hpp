@@ -27,6 +27,16 @@ namespace ds2i {
         //                                          18  21  24  27  31
         //                                                      28  32
 
+        // static const uint32_t num_selectors = 32;
+        // static const uint32_t selector_codes[] =
+        //        { 1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15,
+        //         16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
+        //         31, 32};
+        // //                           8  10  12  14  16  19  22  25  29
+        // //                           9  11  13  15  17  20  23  26  30
+        // //                                          18  21  24  27  31
+        // //                                                      28  32
+
         // NOTE: if we use powers of 2 for the max_entry_size,
         // then num_target_sizes is log(max_entry_size) + 1.
 
