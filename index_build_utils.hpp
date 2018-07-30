@@ -13,14 +13,12 @@ namespace ds2i {
             , postings(0)
         {}
 
-        void log()
-        {
+        void log() {
             logger() << msg << " " << sequences << " sequences, "
                      << postings << " postings" << std::endl;
         }
 
-        void done_sequence(size_t n)
-        {
+        void done_sequence(size_t n) {
             sequences += 1;
             postings += n;
             // if (sequences % 1000000 == 0) {
@@ -33,8 +31,8 @@ namespace ds2i {
     };
 
     template <typename DocsSequence, typename FreqsSequence>
-    void get_size_stats(freq_index<DocsSequence, FreqsSequence>& coll,
-                        uint64_t& docs_size, uint64_t& freqs_size)
+    size_t get_size_stats(freq_index<DocsSequence, FreqsSequence>& coll,
+                          uint64_t& docs_size, uint64_t& freqs_size)
     {
         auto size_tree = succinct::mapper::size_tree_of(coll);
         size_tree->dump();
@@ -45,11 +43,12 @@ namespace ds2i {
                 freqs_size = node->size;
             }
         }
+        return size_tree->size;
     }
 
-    template <typename BlockCodec, bool Profile>
-    void get_size_stats(block_freq_index<BlockCodec, Profile>& coll,
-                        uint64_t& docs_size, uint64_t& freqs_size)
+    template<typename BlockCodec, bool Profile>
+    size_t get_size_stats(block_freq_index<BlockCodec, Profile>& coll,
+                          uint64_t& docs_size, uint64_t& freqs_size)
     {
         auto size_tree = succinct::mapper::size_tree_of(coll);
         size_tree->dump();
@@ -65,12 +64,12 @@ namespace ds2i {
             freqs_size += coll[i].stats_freqs_size();
         }
         docs_size = total_size - freqs_size;
+        return size_tree->size;
     }
 
-    template<typename DictionaryBuilder,
-             typename Encoder>
-    void get_size_stats(dict_freq_index<DictionaryBuilder, Encoder>& coll,
-                        uint64_t& docs_size, uint64_t& freqs_size)
+    template<typename DictionaryBuilder, typename Encoder>
+    size_t get_size_stats(dict_freq_index<DictionaryBuilder, Encoder>& coll,
+                          uint64_t& docs_size, uint64_t& freqs_size)
     {
         auto size_tree = succinct::mapper::size_tree_of(coll);
         size_tree->dump();
@@ -86,6 +85,7 @@ namespace ds2i {
             freqs_size += coll[i].stats_freqs_size();
         }
         docs_size = total_size - freqs_size;
+        return size_tree->size;
     }
 
     template <typename Collection>
@@ -95,7 +95,8 @@ namespace ds2i {
     {
 
         uint64_t docs_size = 0, freqs_size = 0;
-        get_size_stats(coll, docs_size, freqs_size);
+        size_t total_index_size =
+            get_size_stats(coll, docs_size, freqs_size);
 
         double bits_per_doc = docs_size * 8.0 / postings;
         double bits_per_freq = freqs_size * 8.0 / postings;
@@ -103,12 +104,12 @@ namespace ds2i {
                  << bits_per_doc << " bits per element" << std::endl;
         logger() << "Frequencies: " << freqs_size << " bytes, "
                  << bits_per_freq << " bits per element" << std::endl;
-        logger() << "Index Size [GiB]: "
-                 << double(docs_size + freqs_size) / double(1ULL << 30)  << std::endl;
+        logger() << "Index size: "
+                 << double(total_index_size) / (uint64_t(1) << 30) << " [GiB]" << std::endl;
 
         stats_line()
             ("type", type)
-            ("size", docs_size + freqs_size)
+            ("size", total_index_size)
             ("docs_size", docs_size)
             ("freqs_size", freqs_size)
             ("bits_per_doc", bits_per_doc)
