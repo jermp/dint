@@ -93,7 +93,7 @@ void check(char const* collection_filename,
     {
         auto const& list = *it;
         uint32_t size = list.size();
-        if (size > constants::min_size/* and sequence == 302*/)
+        if (size > constants::min_size)
         {
             uint32_t n, universe;
             begin = header::read(begin, &n, &universe);

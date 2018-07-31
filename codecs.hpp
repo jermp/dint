@@ -1333,7 +1333,7 @@ namespace ds2i {
                             uint32_t c = path[i].cost + 2; // small exception cost
                             index = 0;
 
-                            if (exception > 65536) {
+                            if (exception > 65536 - 1) {
                                 c += 1; // large exception cost
                                 index = 1;
                             }
