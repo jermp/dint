@@ -6,9 +6,11 @@
 #include <boost/preprocessor/stringize.hpp>
 #include <boost/preprocessor/cat.hpp>
 #include <boost/filesystem.hpp>
-
 #include <boost/iostreams/device/mapped_file.hpp>
+
 #include <sys/mman.h>
+
+#include <succinct/mapper.hpp>
 
 #include "codecs.hpp"
 #include "util.hpp"
@@ -35,17 +37,38 @@ void decode(std::string const& type,
         logger() << "Error calling madvice: " << errno << std::endl;
     }
 
-    dictionary_type dict;
-    uint64_t dict_size = 0;
+    std::vector<large_dictionary_type> large_dicts(constants::num_selectors);
+    std::vector<small_dictionary_type> small_dicts(constants::num_selectors);
+
+    // NOTE: single dictionary
+    // dictionary_type dict;
+    // uint64_t dict_size = 0;
     if (dictionary_filename) {
-        typename dictionary_type::builder builder;
-        std::ifstream dictionary_file(dictionary_filename);
-        builder.load(dictionary_file);
-        dict_size = builder.size();
-        logger() << "dictionary with "
-                 << dict_size << " entries" << std::endl;
-        // builder.print();
-        builder.build(dict);
+    //     typename dictionary_type::builder builder;
+    //     std::ifstream dictionary_file(dictionary_filename);
+    //     builder.load(dictionary_file);
+    //     dict_size = builder.size();
+    //     logger() << "dictionary with "
+    //              << dict_size << " entries" << std::endl;
+    //     // builder.print();
+    //     builder.build(dict);
+
+        // NOTE: contexts
+        std::string prefix(dictionary_filename);
+        for (int s = 0; s != constants::num_selectors; ++s)
+        {
+            std::string large_dict_filename = prefix + "."
+                + std::to_string(constants::selector_codes[s]) + ".large";
+            typename large_dictionary_type::builder large_dict_builder;
+            large_dict_builder.load_from_file(large_dict_filename);
+            large_dict_builder.build(large_dicts[s]);
+
+            std::string small_dict_filename = prefix + "."
+                + std::to_string(constants::selector_codes[s]) + ".small";
+            typename small_dictionary_type::builder small_dict_builder;
+            small_dict_builder.load_from_file(small_dict_filename);
+            small_dict_builder.build(small_dicts[s]);
+        }
     }
 
     std::vector<uint32_t> decoded;
@@ -63,7 +86,9 @@ void decode(std::string const& type,
         uint32_t n, universe;
         begin = header::read(begin, &n, &universe);
         auto start = clock_type::now();
-        begin = Decoder::decode(begin, decoded.data(), universe, n, &dict
+        begin = Decoder::decode(large_dicts, small_dicts,
+                                begin, decoded.data(), universe, n
+                                // &dict
                                 // , stats
                                 );
         auto finish = clock_type::now();
@@ -298,11 +323,49 @@ void decode(std::string const& type,
     file.close();
 }
 
+void decode_pef(char const* encoded_data_filename, bool freqs)
+{
+    succinct::bit_vector bv;
+    boost::iostreams::mapped_file_source m(encoded_data_filename);
+    succinct::mapper::map(bv, m);
+    uint64_t num_bits = bv.size();
+
+    std::vector<uint32_t> decoded;
+    decoded.resize(constants::max_size, 0);
+    std::vector<double> timings;
+
+    uint64_t num_decoded_ints = 0;
+    uint64_t num_decoded_lists = 0;
+    uint64_t offset = 0;
+    uint64_t universe, n;
+
+    logger() << "decoding..." << std::endl;
+    while (offset < num_bits) {
+        auto start = clock_type::now();
+        offset = pef::decode(
+            bv, decoded.data(), offset, universe, n, freqs
+        );
+        auto finish = clock_type::now();
+        std::chrono::duration<double> elapsed = finish - start;
+        timings.push_back(elapsed.count());
+        num_decoded_ints += n;
+        ++num_decoded_lists;
+    }
+
+    double tot_elapsed = std::accumulate(timings.begin(), timings.end(), double(0.0));
+    double ns_x_int = tot_elapsed * 1000000000 / num_decoded_ints;
+    uint64_t ints_x_sec = uint64_t(1 / ns_x_int * 1000000000);
+
+    logger() << "elapsed time " << tot_elapsed << " [sec]" << std::endl;
+    logger() << ns_x_int << " [ns] x int" << std::endl;
+    logger() << ints_x_sec << " ints x [sec]" << std::endl;
+}
+
 int main(int argc, char** argv) {
 
     if (argc < 3) {
         std::cerr << "Usage " << argv[0] << ":\n"
-                  << "\t<type> <encoded_data_filename> [--dict <dictionary_filename>]"
+                  << "\t<type> <encoded_data_filename> [--dict <dictionary_filename>] [--freqs]"
                   << std::endl;
         return 1;
     }
@@ -311,6 +374,7 @@ int main(int argc, char** argv) {
     std::string type = argv[1];
     char const* encoded_data_filename = argv[2];
     char const* dictionary_filename = nullptr;
+    bool freqs = false;
 
     std::string cmd(std::string(argv[0]) + " " + type + " " + std::string(encoded_data_filename));
 
@@ -319,14 +383,27 @@ int main(int argc, char** argv) {
             ++i;
             dictionary_filename = argv[i];
             cmd += " --dict " + std::string(dictionary_filename);
-        } else {
+        }
+        else
+        if (argv[i] == std::string("--freqs")) {
+            freqs = true;
+            ++i;
+            cmd += " --freqs";
+        }
+        else {
             throw std::runtime_error("unknown parameter");
         }
     }
 
     logger() << cmd << std::endl;
 
-    decode<dint>(type, encoded_data_filename, dictionary_filename);
+    if (type == std::string("dint")) {
+        decode<dint>(type, encoded_data_filename, dictionary_filename);
+    }
+
+    if (type == std::string("pef")) {
+        decode_pef(encoded_data_filename, freqs);
+    } else {
 
 //     if (false) {
 // #define LOOP_BODY(R, DATA, T)                                          \
@@ -341,6 +418,7 @@ int main(int argc, char** argv) {
 //         logger() << "ERROR: unknown type '"
 //                  << type << "'" << std::endl;
 //     }
+    }
 
     return 0;
 }

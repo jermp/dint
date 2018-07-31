@@ -22,57 +22,63 @@ namespace ds2i {
     typedef std::unordered_map<uint64_t, block_type> map_type;
 
     struct selector {
-        selector(uint32_t block_size)
-            : m_block_size(block_size)
-        {
-            assert(m_block_size % 2 == 0);
-            m_buf.reserve(m_block_size);
-            m_occs.reserve(m_block_size);
-        }
+        // selector(uint32_t block_size)
+        //     : m_block_size(block_size)
+        // {
+        //     // assert(m_block_size % 2 == 0);
+        //     // if (constants::context == constants::block_selector::median) {
+        //     //     m_buf.reserve(m_block_size);
+        //     // }
+        //     // if (constants::context == constants::block_selector::mode) {
+        //     //     m_occs.reserve(m_block_size);
+        //     // }
+        // }
 
-        uint32_t get(uint32_t const* entry) {
+        uint32_t get(uint32_t const* entry, size_t n) {
             uint32_t x = 0;
             if (constants::context == constants::block_selector::max) {
-                for (auto ptr = entry; ptr != entry + m_block_size; ++ptr) {
+                for (auto ptr = entry; ptr != entry + n; ++ptr) {
                     if (*ptr > x) {
                         x = *ptr;
                     }
                 }
                 // std::cout << "block max " << x << "\n";
-            } else
-            if (constants::context == constants::block_selector::median) {
-                auto ptr = entry;
-                for (uint32_t s = 0; s != m_block_size; ++s) {
-                    m_buf[s] = *ptr;
-                    ++ptr;
-                }
-                std::sort(m_buf.begin(), m_buf.end());
-                x = (m_buf[m_block_size / 2 - 1] + m_buf[m_block_size / 2]) / 2;
-            } else
-            if (constants::context == constants::block_selector::mode)
-            {
-                m_occs.clear();
-                auto ptr = entry;
-                uint32_t best_occ = 0;
-                for (uint32_t s = 0; s != m_block_size; ++s)
-                {
-                    auto it = m_occs.find(*ptr);
-                    if (it == m_occs.end()) {
-                        m_occs[*ptr] = 1;
-                    } else {
-                        uint32_t occ = (*it).second;
-                        if (occ > best_occ) {
-                            best_occ = occ;
-                            x = *ptr;
-                        }
-                    }
-                    ++ptr;
-                }
-            } else {
+            }
+            // else
+            // if (constants::context == constants::block_selector::median) {
+            //     auto ptr = entry;
+            //     for (uint32_t s = 0; s != m_block_size; ++s) {
+            //         m_buf[s] = *ptr;
+            //         ++ptr;
+            //     }
+            //     std::sort(m_buf.begin(), m_buf.end());
+            //     x = (m_buf[m_block_size / 2 - 1] + m_buf[m_block_size / 2]) / 2;
+            // } else
+            // if (constants::context == constants::block_selector::mode)
+            // {
+            //     m_occs.clear();
+            //     auto ptr = entry;
+            //     uint32_t best_occ = 0;
+            //     for (uint32_t s = 0; s != m_block_size; ++s)
+            //     {
+            //         auto it = m_occs.find(*ptr);
+            //         if (it == m_occs.end()) {
+            //             m_occs[*ptr] = 1;
+            //         } else {
+            //             uint32_t occ = (*it).second;
+            //             if (occ > best_occ) {
+            //                 best_occ = occ;
+            //                 x = *ptr;
+            //             }
+            //         }
+            //         ++ptr;
+            //     }
+            // }
+            else {
                 throw std::runtime_error("Unsupported context");
             }
 
-            uint32_t selector_code = ceil_log2(x) + 1;
+            uint32_t selector_code = (x == 0 ? 0 : ceil_log2(x)) + 1;
             // std::cout << "selector_code " << selector_code << "\n";
             uint32_t index = 0;
 
@@ -81,14 +87,14 @@ namespace ds2i {
                 ++index;
             }
 
-            assert(index < num_selectors);
+            assert(index < constants::num_selectors);
             return index;
         }
 
-    private:
-        uint32_t m_block_size;
-        std::vector<uint32_t> m_buf;
-        std::unordered_map<uint32_t, uint32_t> m_occs;
+    // private:
+    //     uint32_t m_block_size;
+        // std::vector<uint32_t> m_buf;
+        // std::unordered_map<uint32_t, uint32_t> m_occs;
     };
 
     struct freq_sorter {
@@ -155,10 +161,10 @@ namespace ds2i {
             // }
 
             uint32_t blocks = buf.size() / constants::block_size;
-            selector sct(constants::block_size);
+            selector sct;
             for (uint32_t i = 0, pos = 0; i < blocks; ++i, pos += constants::block_size)
             {
-                uint32_t index = sct.get(b + pos);
+                uint32_t index = sct.get(b + pos, constants::block_size);
                 // std::cout << "index " << index << "\n";
                 for (uint32_t s = 0; s < constants::num_target_sizes; ++s) {
                     uint32_t jump_size = constants::target_sizes[s];

@@ -38,12 +38,35 @@ void check(char const* collection_filename,
     binary_collection input(collection_filename);
     auto it = input.begin();
 
-    dictionary_type dict;
+    std::vector<large_dictionary_type> large_dicts(constants::num_selectors);
+    std::vector<small_dictionary_type> small_dicts(constants::num_selectors);
+
+    // NOTE: single dict
+    // dictionary_type dict;
+    // if (dictionary_filename) {
+    //     typename dictionary_type::builder builder;
+    //     std::ifstream dictionary_file(dictionary_filename);
+    //     builder.load(dictionary_file);
+    //     builder.build(dict);
+    // }
+
+    // NOTE: multi dicts
     if (dictionary_filename) {
-        typename dictionary_type::builder builder;
-        std::ifstream dictionary_file(dictionary_filename);
-        builder.load(dictionary_file);
-        builder.build(dict);
+        std::string prefix(dictionary_filename);
+        for (int s = 0; s != constants::num_selectors; ++s)
+        {
+            std::string large_dict_filename = prefix + "."
+                + std::to_string(constants::selector_codes[s]) + ".large";
+            typename large_dictionary_type::builder large_dict_builder;
+            large_dict_builder.load_from_file(large_dict_filename);
+            large_dict_builder.build(large_dicts[s]);
+
+            std::string small_dict_filename = prefix + "."
+                + std::to_string(constants::selector_codes[s]) + ".small";
+            typename small_dictionary_type::builder small_dict_builder;
+            small_dict_builder.load_from_file(small_dict_filename);
+            small_dict_builder.build(small_dicts[s]);
+        }
     }
 
     std::vector<uint32_t> decoded;
@@ -70,7 +93,7 @@ void check(char const* collection_filename,
     {
         auto const& list = *it;
         uint32_t size = list.size();
-        if (size > constants::min_size)
+        if (size > constants::min_size/* and sequence == 302*/)
         {
             uint32_t n, universe;
             begin = header::read(begin, &n, &universe);
@@ -79,9 +102,11 @@ void check(char const* collection_filename,
                           << n << " but expected " << sequence << std::endl;
             }
 
-            begin = Decoder::decode(begin,
+            begin = Decoder::decode(large_dicts, small_dicts,
+                                    begin,
                                     decoded.data(),
-                                    universe, n, &dict
+                                    universe, n
+                                    // , &dict
                                     // , stats
                                     );
             total_decoded_ints += n;
@@ -94,7 +119,9 @@ void check(char const* collection_filename,
                     prev = *b;
                 }
                 if (decoded[j] != expected) {
-                    std::cerr << "Error at position " << j << "/" << n << ": got " << decoded[j] << " but expected " << expected << std::endl;
+                    std::cerr << "Sequence " << sequence << ": error at position "
+                              << j << "/" << n << " (got " << decoded[j]
+                              << " but expected " << expected << ")" << std::endl;
                 }
                 decoded[j] = 0; // re-init
             }

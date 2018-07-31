@@ -29,6 +29,23 @@
 
 namespace ds2i {
 
+    namespace constants {
+        const static uint64_t GiB = 1073741824;
+    }
+
+    struct node {
+        node()
+        {}
+
+        node(uint32_t p, uint32_t w, uint32_t c)
+            : parent(p), codeword(w), cost(c)
+        {}
+
+        uint32_t parent;
+        uint32_t codeword;
+        uint32_t cost;
+    };
+
     typedef std::chrono::high_resolution_clock clock_type;
 
     constexpr bool is_power_of_two(uint64_t x) {

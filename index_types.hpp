@@ -13,6 +13,7 @@
 #include "block_codecs.hpp"
 #include "mixed_block.hpp"
 
+#include "dictionary.hpp"
 #include "dint_configuration.hpp"
 #include "dictionary_builders.hpp"
 #include "block_statistics.hpp"
@@ -20,21 +21,25 @@
 
 namespace ds2i {
 
-    typedef freq_index<compact_elias_fano,
-                       positive_sequence<strict_elias_fano>> ef_index;
-
-    typedef freq_index<indexed_sequence,
-                       positive_sequence<>> single_index;
+    typedef freq_index<
+                compact_elias_fano,
+                positive_sequence<strict_elias_fano>
+            > ef_index;
 
     typedef freq_index<
-        uniform_partitioned_sequence<>,
-        positive_sequence<uniform_partitioned_sequence<strict_sequence>>
-        > uniform_index;
+                indexed_sequence,
+                positive_sequence<>
+            > single_index;
 
     typedef freq_index<
-        partitioned_sequence<>,
-        positive_sequence<partitioned_sequence<strict_sequence>>
-        > opt_index;
+                uniform_partitioned_sequence<>,
+                positive_sequence<uniform_partitioned_sequence<strict_sequence>>
+            > uniform_index;
+
+    typedef freq_index<
+                partitioned_sequence<>,
+                positive_sequence<partitioned_sequence<strict_sequence>>
+            > opt_index;
 
     typedef block_freq_index<optpfor_block> block_optpfor_index;
     typedef block_freq_index<varint_G8IU_block> block_varintg8iu_index;
@@ -49,13 +54,6 @@ namespace ds2i {
     typedef block_freq_index<streamvbyte_block> block_streamvbyte_index;
 
     // DINT codecs
-
-    using large_dictionary_type = dictionary
-                                <constants::num_entries,
-                                 constants::max_entry_size>;
-    using small_dictionary_type = dictionary
-                                <256,
-                                 large_dictionary_type::max_entry_size>;
 
     using adjusted_collector_type = adjusted<large_dictionary_type::max_entry_size>;
     // using     full_collector_type =     full<large_dictionary_type::max_entry_size>;

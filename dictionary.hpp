@@ -442,7 +442,13 @@ namespace ds2i {
         succinct::mapper::mappable_vector<uint32_t> m_table;
     };
 
+    using large_dictionary_type = dictionary
+                                <constants::num_entries,
+                                 constants::max_entry_size>;
 
+    using small_dictionary_type = dictionary
+                                <256,
+                                 large_dictionary_type::max_entry_size>;
 
     // PACKED_SCS
     // template<uint32_t t_num_entries,
