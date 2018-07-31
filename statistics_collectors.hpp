@@ -149,29 +149,28 @@ namespace ds2i {
 
         static void collect(std::vector<uint32_t>& buf, std::vector<map_type>& block_maps) {
             auto b = buf.data();
-            // for (uint32_t s = 0; s < constants::num_target_sizes; ++s) {
-            //     uint32_t block_size = constants::target_sizes[s];
-            //     selector sct(block_size);
-            //     uint32_t blocks = buf.size() / block_size;
-            //     for (uint32_t i = 0, pos = 0; i < blocks; ++i, pos += block_size) {
-            //         uint32_t index = sct.get(b + pos);
-            //         // std::cout << "index " << index << "\n";
-            //         increase_frequency(b + pos, block_size, block_maps[index]);
-            //     }
-            // }
-
             uint32_t blocks = buf.size() / constants::block_size;
             selector sct;
             for (uint32_t i = 0, pos = 0; i < blocks; ++i, pos += constants::block_size)
             {
                 uint32_t index = sct.get(b + pos, constants::block_size);
-                // std::cout << "index " << index << "\n";
                 for (uint32_t s = 0; s < constants::num_target_sizes; ++s) {
                     uint32_t jump_size = constants::target_sizes[s];
                     uint32_t jumps = constants::block_size / jump_size;
                     for (uint32_t j = 0, p = 0; j < jumps; ++j, p += jump_size) {
                         increase_frequency(b + pos + p, jump_size, block_maps[index]);
                     }
+                }
+            }
+        }
+
+        static void collect(std::vector<uint32_t>& buf, map_type& block_map) {
+            auto b = buf.data();
+            for (uint32_t s = 0; s < constants::num_target_sizes; ++s) {
+                uint32_t block_size = constants::target_sizes[s];
+                uint32_t blocks = buf.size() / block_size;
+                for (uint32_t i = 0, pos = 0; i < blocks; ++i, pos += block_size) {
+                    increase_frequency(b + pos, block_size, block_map);
                 }
             }
         }

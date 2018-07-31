@@ -129,7 +129,7 @@ namespace ds2i {
                 return m_size == num_entries;
             }
 
-            bool append(uint32_t const* entry, uint32_t entry_size, uint64_t /*freq*/)
+            bool append(uint32_t const* entry, uint32_t entry_size)
             {
                 if (full()) return false;
 

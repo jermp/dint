@@ -323,7 +323,7 @@ namespace ds2i {
     struct qmx_block
     {
         static const uint64_t block_size = constants::block_size;
-        static const uint64_t overflow = 512; // qmx can potentially overshoot...
+        static const uint64_t overflow = 512;
 
         static void encode(uint32_t const *in, uint32_t sum_of_values, size_t n,
                            std::vector<uint8_t> &out) {
@@ -511,127 +511,160 @@ namespace ds2i {
     struct dint_block
     {
         static const uint64_t block_size = constants::block_size;
-        static const uint64_t overflow = 512;
 
-        // NOTE: greedy parsing
-        // template<typename Builder>
-        // static void encode(Builder& builder, // TODO: restore constness
-        //                    uint32_t const* in,
-        //                    uint32_t sum_of_values,
-        //                    uint32_t n,
-        //                    std::vector<uint8_t>& out)
-        // {
-        //     if (n < block_size) {
-        //         interpolative_block::encode(in, sum_of_values, n, out);
-        //         return;
-        //     }
+        template<typename Dictionary>
+        static uint8_t const* decode(Dictionary const& dict,
+                                     uint8_t const* in,
+                                     uint32_t* out,
+                                     uint32_t sum_of_values,
+                                     size_t n)
+        {
+            if (DS2I_UNLIKELY(n < block_size)) {
+                return interpolative_block::decode(in, out, sum_of_values, n);
+            }
 
-        //     uint32_t const* begin = in;
-        //     uint32_t const* end = begin + n;
+            uint16_t const* ptr = reinterpret_cast<uint16_t const*>(in);
+            // uint8_t const* ptr = in; // if b = 8
+            for (size_t i = 0; i != n; ++ptr) {
+                uint32_t index = *ptr;
+                uint32_t decoded_ints = 1;
+                if (DS2I_LIKELY(index > EXCEPTIONS - 1)) {
+                    decoded_ints = dict.copy(index, out);
+                } else {
+                    if (index == 1) { // 4-byte exception
+                        *out = *(reinterpret_cast<uint32_t const*>(++ptr));
+                        ++ptr;
+                        // if b = 8
+                        // *out = *(reinterpret_cast<uint32_t const*>(++ptr));
+                        // ptr += 3;
+                    } else { // 2-byte exception
+                        *out = *(++ptr);
+                        // if b = 8
+                        // *out = *(reinterpret_cast<uint16_t const*>(++ptr));
+                        // ptr += 1;
+                    }
+                }
+                out += decoded_ints;
+                i += decoded_ints;
+            }
 
-        //     uint32_t i = 0;
-        //     uint32_t pos = 0;
-        //     uint32_t cost = 0;
+            return reinterpret_cast<uint8_t const*>(ptr);
+            // if b = 8
+            // return ptr;
+        }
+    };
 
-        //     while (begin < end)
-        //     {
-        //         uint32_t longest_run_size = 0;
-        //         uint32_t run_size = std::min<uint64_t>(256, end - begin);
-        //         uint32_t index = EXCEPTIONS;
-
-        //         for (uint32_t const* ptr  = begin;
-        //                              ptr != begin + run_size;
-        //                            ++ptr)
-        //         {
-        //             if (*ptr == 0) {
-        //                 ++longest_run_size;
-        //             } else {
-        //                 break;
-        //             }
-        //         }
-
-        //         if (longest_run_size >= 16) {
-        //             uint32_t k = 256;
-        //             while (longest_run_size < k and k > 16) {
-        //                 ++index;
-        //                 k /= 2;
-        //             }
-
-        //             cost += 1;
-        //             // std::cout << "cost " << cost << "; pos " << pos << "; len " << k << "; codeword: " << index << std::endl;
-        //             write_index(index, out);
-        //             ++builder.codewords;
-        //             begin += k;
-        //             pos += k;
-
-        //         } else {
-        //             for (uint32_t s = 0; s < constants::num_target_sizes; ++s) {
-        //                 uint32_t sub_block_size = constants::target_sizes[s];
-        //                 uint32_t len = std::min<uint32_t>(sub_block_size, end - begin);
-        //                 index = builder.lookup(begin, len);
-        //                 if (index != Builder::invalid_index) {
-
-        //                     cost += 1;
-        //                     // std::cout << "cost " << cost << "; pos " << pos << "; len " << len << "; codeword: " << index << std::endl;
-        //                     write_index(index, out);
-        //                     ++builder.codewords;
-        //                     begin += len;
-        //                     pos += len;
-
-        //                     break;
-        //                 }
-        //             }
-
-        //             if (index == Builder::invalid_index)
-        //             {
-        //                 uint32_t exception = *begin;
-        //                 auto ptr = reinterpret_cast<uint8_t const*>(&exception);
-
-        //                 // USED WITH EXCEPTIONS = 1
-        //                 // out.insert(out.end(), 0);
-        //                 // out.insert(out.end(), 0); // comment if b = 8
-        //                 // out.insert(out.end(), ptr, ptr + 4);
-
-        //                 if (exception < 65536) {
-
-        //                     ++builder.small_exceptions;
-        //                     out.insert(out.end(), 0);
-        //                     out.insert(out.end(), 0); // comment if b = 8
-        //                     out.insert(out.end(), ptr, ptr + 2);
-        //                     cost += 2;
-
-        //                     // std::cout << "cost " << cost << "; pos " << pos << "; len 1; codeword: 0" << std::endl;
-
-        //                 } else {
-
-        //                     ++builder.large_exceptions;
-        //                     out.insert(out.end(), 1);
-        //                     out.insert(out.end(), 0); // comment if b = 8
-        //                     out.insert(out.end(), ptr, ptr + 4);
-        //                     cost += 3;
-
-        //                     // std::cout << "cost " << cost << "; pos " << pos << "; len 1; codeword: 1" << std::endl;
-        //                 }
-
-        //                 pos += 1;
-        //                 begin += 1;
-        //             }
-        //         }
-
-        //         ++i;
-        //     }
-
-        //     // std::cout << "cost = " << cost << std::endl;
-        // }
+    struct greedy_dint_block
+    {
+        static const uint64_t block_size = constants::block_size;
+        static const uint64_t overflow = 0;
 
         template<typename Builder>
         static void encode(Builder& builder,
-                           uint32_t const* begin, uint32_t const* end,
-                           std::vector<uint8_t>& out, int b // 8 or 16
-                           )
+                           uint32_t const* in,
+                           uint32_t sum_of_values,
+                           uint32_t n,
+                           std::vector<uint8_t>& out)
         {
-            // opt parsing
-            uint64_t n = end - begin;
+            if (n < block_size) {
+                interpolative_block::encode(in, sum_of_values, n, out);
+                return;
+            }
+
+            uint32_t const* begin = in;
+            uint32_t const* end = begin + n;
+
+            while (begin < end)
+            {
+                uint32_t longest_run_size = 0;
+                uint32_t run_size = std::min<uint64_t>(256, end - begin);
+                uint32_t index = EXCEPTIONS;
+
+                for (uint32_t const* ptr  = begin;
+                                     ptr != begin + run_size;
+                                   ++ptr)
+                {
+                    if (*ptr == 0) {
+                        ++longest_run_size;
+                    } else {
+                        break;
+                    }
+                }
+
+                if (longest_run_size >= 16) {
+                    uint32_t k = 256;
+                    while (longest_run_size < k and k > 16) {
+                        ++index;
+                        k /= 2;
+                    }
+                    write_index(index, out);
+                    ++builder.codewords;
+                    begin += k;
+                } else {
+                    for (uint32_t s = 0; s < constants::num_target_sizes; ++s) {
+                        uint32_t sub_block_size = constants::target_sizes[s];
+                        uint32_t len = std::min<uint32_t>(sub_block_size, end - begin);
+                        index = builder.lookup(begin, len);
+                        if (index != Builder::invalid_index) {
+                            write_index(index, out);
+                            ++builder.codewords;
+                            begin += len;
+                            break;
+                        }
+                    }
+
+                    if (index == Builder::invalid_index)
+                    {
+                        uint32_t exception = *begin;
+                        auto ptr = reinterpret_cast<uint8_t const*>(&exception);
+                        if (exception < 65536) {
+                            ++builder.small_exceptions;
+                            out.insert(out.end(), 0);
+                            out.insert(out.end(), 0); // comment if b = 8
+                            out.insert(out.end(), ptr, ptr + 2);
+
+                        } else {
+                            ++builder.large_exceptions;
+                            out.insert(out.end(), 1);
+                            out.insert(out.end(), 0); // comment if b = 8
+                            out.insert(out.end(), ptr, ptr + 4);
+                        }
+
+                        begin += 1;
+                    }
+                }
+            }
+        }
+
+        template<typename Dictionary>
+        static uint8_t const* decode(Dictionary const& dict,
+                                     uint8_t const* in,
+                                     uint32_t* out,
+                                     uint32_t sum_of_values,
+                                     size_t n)
+        {
+            return dint_block::decode(dict, in, out, sum_of_values, n);
+        }
+
+    private:
+        static void write_index(uint32_t index, std::vector<uint8_t>& out) {
+            auto ptr = reinterpret_cast<uint8_t const*>(&index);
+            out.insert(out.end(), ptr, ptr + 2); // b = 16
+            // out.insert(out.end(), ptr, ptr + 1); // b = 8
+        }
+    };
+
+    struct opt_dint_block
+    {
+        static const uint64_t block_size = constants::block_size;
+        static const uint64_t overflow = 0;
+
+        template<typename Builder>
+        static void encode(Builder& builder,
+                           uint32_t const* begin,
+                           uint64_t n,
+                           std::vector<uint8_t>& out, uint32_t b)
+        {
             std::vector<node> path(n + 2);
             path[0] = {0, 1, 0}; // dummy node
             for (uint32_t i = 1; i < n + 1; ++i) {
@@ -717,11 +750,9 @@ namespace ds2i {
                     ++builder.codewords;
                     write_index(index, out, b);
                 } else {
-
                     assert(len == 1);
                     uint32_t exception = begin[pos];
                     auto ptr = reinterpret_cast<uint8_t const*>(&exception);
-
                     if (index == 0) {
                         ++builder.small_exceptions;
                         out.insert(out.end(), 0);
@@ -738,81 +769,25 @@ namespace ds2i {
                         out.insert(out.end(), ptr, ptr + 4);
                     }
                 }
-
                 pos += len;
             }
 
-            // greedy parsing
-            // while (begin < end)
-            // {
-            //     uint32_t longest_run_size = 0;
-            //     uint32_t run_size = std::min<uint64_t>(256, end - begin);
-            //     uint32_t index = EXCEPTIONS;
+            assert(pos == n);
+        }
 
-            //     for (uint32_t const* ptr  = begin;
-            //                          ptr != begin + run_size;
-            //                        ++ptr)
-            //     {
-            //         if (*ptr == 0) {
-            //             ++longest_run_size;
-            //         } else {
-            //             break;
-            //         }
-            //     }
+        template<typename Builder>
+        static void encode(Builder& builder,
+                           uint32_t const* in,
+                           uint32_t sum_of_values,
+                           uint32_t n,
+                           std::vector<uint8_t>& out)
+        {
+            if (n < block_size) {
+                interpolative_block::encode(in, sum_of_values, n, out);
+                return;
+            }
 
-            //     if (longest_run_size >= 16) {
-            //         uint32_t k = 256;
-            //         while (longest_run_size < k and k > 16) {
-            //             ++index;
-            //             k /= 2;
-            //         }
-
-            //         write_index(index, out, b);
-            //         ++builder.codewords;
-            //         begin += k;
-
-            //     } else {
-            //         for (uint32_t s = 0; s < constants::num_target_sizes; ++s) {
-            //             uint32_t sub_block_size = constants::target_sizes[s];
-            //             uint32_t len = std::min<uint32_t>(sub_block_size, end - begin);
-            //             index = builder.lookup(begin, len);
-            //             if (index != Builder::invalid_index) {
-            //                 write_index(index, out, b);
-            //                 ++builder.codewords;
-            //                 begin += len;
-            //                 break;
-            //             }
-            //         }
-
-            //         if (index == Builder::invalid_index)
-            //         {
-            //             uint32_t exception = *begin;
-            //             auto ptr = reinterpret_cast<uint8_t const*>(&exception);
-
-            //             if (exception < 65536) {
-
-            //                 ++builder.small_exceptions;
-            //                 out.insert(out.end(), 0);
-            //                 if (b == 16) {
-            //                     out.insert(out.end(), 0);
-            //                 }
-            //                 out.insert(out.end(), ptr, ptr + 2);
-
-            //             } else {
-
-            //                 ++builder.large_exceptions;
-            //                 out.insert(out.end(), 1);
-            //                 if (b == 16) {
-            //                     out.insert(out.end(), 0);
-            //                 }
-            //                 out.insert(out.end(), ptr, ptr + 4);
-
-            //             }
-
-            //             begin += 1;
-            //         }
-            //     }
-            // }
+            encode(builder, in, n, out, constants::log2_num_entries);
         }
 
         template<typename LargeDictBuilder,
@@ -829,44 +804,35 @@ namespace ds2i {
                 return;
             }
 
-            uint32_t const* begin = in;
-            uint32_t const* end = begin + n;
-
-            // option 1: choose the best dictionary
+            // Option (1): choose the best dictionary
             // std::vector<std::vector<uint8_t>> encoded(2 * constants::num_selectors);
             // size_t best_size = size_t(-1);
             // int selector_code = 0;
             // for (int s = 0; s != constants::num_selectors; ++s) {
-            //     encode(large_dict_builders[s], begin, end, encoded[s], 16);
-            //     encode(small_dict_builders[s], begin, end, encoded[s + constants::num_selectors], 8);
-
+            //     encode(large_dict_builders[s], in, n, encoded[s], 16);
+            //     encode(small_dict_builders[s], in, n, encoded[s + constants::num_selectors], 8);
             //     size_t smallest_size = encoded[s].size();
             //     int sc = s;
             //     if (encoded[s + constants::num_selectors].size() <= smallest_size) {
             //         smallest_size = encoded[s + constants::num_selectors].size();
             //         sc += constants::num_selectors;
             //     }
-
             //     if (smallest_size < best_size) {
             //         best_size = smallest_size;
             //         selector_code = sc;
             //     }
             // }
-
             // // control byte
             // out.push_back(selector_code);
             // out.insert(out.end(), encoded[selector_code].begin(),
             //                       encoded[selector_code].end());
 
-
-
-
-            // option 2: select the dictionary based on the context
+            // Option (2): select the dictionary based on the context
             selector sct;
-            uint32_t selector_code = sct.get(begin, n);
+            uint32_t selector_code = sct.get(in, n);
             std::vector<std::vector<uint8_t>> encoded(2);
-            encode(large_dict_builders[selector_code], begin, end, encoded[0], 16);
-            encode(small_dict_builders[selector_code], begin, end, encoded[1],  8);
+            encode(large_dict_builders[selector_code], in, n, encoded[0], 16);
+            encode(small_dict_builders[selector_code], in, n, encoded[1],  8);
             size_t smallest_size = encoded[0].size();
             if (encoded[1].size() <= smallest_size) {
                 selector_code += constants::num_selectors;
@@ -878,158 +844,15 @@ namespace ds2i {
                                   encoded[selector_code >= constants::num_selectors].end());
         }
 
-        // NOTE: optimal parsing
-        // template<typename Builder>
-        // static void encode(Builder& builder, // TODO: restore constness
-        //                    uint32_t const* in,
-        //                    uint32_t sum_of_values,
-        //                    uint32_t n,
-        //                    std::vector<uint8_t>& out)
-        // {
-        //     if (n < block_size) {
-        //         interpolative_block::encode(in, sum_of_values, n, out);
-        //         return;
-        //     }
-
-        //     // NOTE: everything at the beginning is a large exception
-        //     // costs are in shorts! (1 short = 16 bits)
-        //     std::vector<node> path(n + 2);
-        //     path[0] = {0, 1, 0}; // dummy node
-        //     for (uint32_t i = 1; i < n + 1; ++i) {
-        //         path[i] = {i - 1, 1, 3 * i};
-        //     }
-
-        //     // logger() << "finding shortest path" << std::endl;
-
-        //     for (uint32_t i = 0; i < n; ++i)
-        //     {
-        //         // std::cout << "current node " << i << ":\n";
-        //         // std::cout << "parent " << path[i].parent << "\n";
-        //         // std::cout << "codeword " << path[i].codeword << "\n";
-        //         // std::cout << "cost " << path[i].cost << "\n\n";
-
-        //         uint32_t longest_run_size = 0;
-        //         uint32_t run_size = std::min<uint64_t>(256, n - i);
-        //         uint32_t index = EXCEPTIONS;
-
-        //         for (uint32_t j = i; j != i + run_size; ++j) {
-        //             if (in[j] == 0) {
-        //                 ++longest_run_size;
-        //             } else {
-        //                 break;
-        //             }
-        //         }
-
-        //         // std::cout << "longest_run_size " << longest_run_size << std::endl;
-
-        //         if (longest_run_size >= 16) {
-        //             uint32_t k = 256;
-        //             while (longest_run_size < k and k > 16) {
-        //                 k /= 2;
-        //                 ++index;
-        //             }
-        //             while (k >= 16) {
-        //                 // std::cout << "k " << k << "; index " << index << std::endl;
-
-        //                 uint32_t c = path[i].cost + 1;
-        //                 if (path[i + k].cost > c) {
-        //                     path[i + k] = {i, index, c};
-        //                 }
-
-        //                 k /= 2;
-        //                 ++index;
-        //             }
-
-        //             // std::cout << std::endl;
-        //         }
-
-        //         for (uint32_t s = 0; s < constants::num_target_sizes; ++s) {
-        //             uint32_t sub_block_size = constants::target_sizes[s];
-        //             uint32_t len = std::min<uint32_t>(sub_block_size, n - i);
-        //             index = builder.lookup(in + i, len);
-        //             if (index != Builder::invalid_index) {
-        //                 uint32_t c = path[i].cost + 1;
-        //                 if (path[i + len].cost > c) {
-        //                     path[i + len] = {i, index, c};
-        //                 }
-        //             } else {
-        //                 if (sub_block_size == 1) { // exceptions
-        //                     uint32_t exception = in[i];
-        //                     uint32_t c = path[i].cost + 2; // small exception cost
-        //                     index = 0;
-
-        //                     if (exception > 65536) {
-        //                         c += 1; // large exception cost
-        //                         index = 1;
-        //                     }
-
-        //                     if (path[i + 1].cost > c) {
-        //                         path[i + 1] = {i, index, c};
-        //                     }
-        //                 }
-        //             }
-        //         }
-        //     }
-
-        //     // std::cout << "min_cost " << path.back().cost << std::endl;
-
-        //     std::vector<node> encoding;
-        //     uint32_t i = n;
-        //     while (i != 0) {
-        //         uint32_t parent = path[i].parent;
-        //         encoding.push_back(path[i]);
-        //         i = parent;
-        //     }
-
-        //     // std::cout << std::endl;
-        //     std::reverse(encoding.begin(), encoding.end());
-        //     encoding.emplace_back(n, 1, inf); // final dummy node
-
-        //     // logger() << "encoding" << std::endl;
-        //     uint32_t pos = 0;
-        //     uint32_t cost = 0;
-        //     for (uint32_t i = 0; i < encoding.size() - 1; ++i) {
-        //         uint32_t index = encoding[i].codeword;
-        //         uint32_t len = encoding[i + 1].parent - encoding[i].parent;
-
-        //         assert(len == builder.size(index));
-
-        //         cost += 1;
-
-        //         if (index > 1) {
-        //             ++builder.codewords;
-        //             write_index(index, out);
-        //         } else {
-
-        //             assert(len == 1);
-        //             uint32_t exception = in[pos];
-        //             auto ptr = reinterpret_cast<uint8_t const*>(&exception);
-        //             cost += 1;
-
-        //             if (index == 0) {
-        //                 ++builder.small_exceptions;
-        //                 out.insert(out.end(), 0);
-        //                 out.insert(out.end(), 0); // comment if b = 8
-        //                 out.insert(out.end(), ptr, ptr + 2);
-        //             } else {
-        //                 cost += 1;
-        //                 ++builder.large_exceptions;
-        //                 out.insert(out.end(), 1);
-        //                 out.insert(out.end(), 0); // comment if b = 8
-        //                 out.insert(out.end(), ptr, ptr + 4);
-        //             }
-        //         }
-
-        //         // std::cout << "cost " << cost << "; pos " << pos << "; len " << len << "; codeword: " << index << std::endl;
-
-        //         pos += len;
-        //     }
-
-        //     assert(pos == n);
-
-        //     // std::cout << "pos " << pos << "/" << block_size << std::endl;
-        //     // std::cout << "cost = " << cost << std::endl;
-        // }
+        template<typename Dictionary>
+        static uint8_t const* decode(Dictionary const& dict,
+                                     uint8_t const* in,
+                                     uint32_t* out,
+                                     uint32_t sum_of_values,
+                                     size_t n)
+        {
+            return dint_block::decode(dict, in, out, sum_of_values, n);
+        }
 
         template<typename LargeDictionary,
                  typename SmallDictionary>
@@ -1039,8 +862,8 @@ namespace ds2i {
             uint8_t const* in,
             uint32_t* out,
             uint32_t sum_of_values,
-            size_t n
-        ) {
+            size_t n)
+        {
             if (DS2I_UNLIKELY(n < block_size)) {
                 return interpolative_block::decode(in, out, sum_of_values, n);
             }
@@ -1092,13 +915,7 @@ namespace ds2i {
         }
 
     private:
-        static void write_index(uint32_t index, std::vector<uint8_t>& out) {
-            auto ptr = reinterpret_cast<uint8_t const*>(&index);
-            out.insert(out.end(), ptr, ptr + 2); // b = 16
-            // out.insert(out.end(), ptr, ptr + 1); // b = 8
-        }
-
-        static void write_index(uint32_t index, std::vector<uint8_t>& out, int b) {
+        static void write_index(uint32_t index, std::vector<uint8_t>& out, uint32_t b) {
             auto ptr = reinterpret_cast<uint8_t const*>(&index);
             assert(b == 8 or b == 16);
             out.insert(out.end(), ptr, ptr + b / 8);

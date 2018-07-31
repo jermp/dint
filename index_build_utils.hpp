@@ -67,8 +67,10 @@ namespace ds2i {
         return size_tree->size;
     }
 
-    template<typename DictionaryBuilder, typename Encoder>
-    size_t get_size_stats(dict_freq_index<DictionaryBuilder, Encoder>& coll,
+    // template<typename DictionaryBuilder, typename Encoder>
+    template<typename DictIndex>
+    size_t get_size_stats(//dict_freq_index<DictionaryBuilder, Encoder>& coll,
+                          DictIndex& coll,
                           uint64_t& docs_size, uint64_t& freqs_size)
     {
         auto size_tree = succinct::mapper::size_tree_of(coll);
@@ -88,7 +90,7 @@ namespace ds2i {
         return size_tree->size;
     }
 
-    template <typename Collection>
+    template<typename Collection>
     void dump_stats(Collection& coll,
                     std::string const& type,
                     uint64_t postings)
