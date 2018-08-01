@@ -18,7 +18,8 @@ namespace ds2i {
         static_assert(is_power_of_two(Collector::max_block_size));
 
         static std::string type() {
-            return "block_multi_statistics-" + std::to_string(Collector::max_block_size) + "-" + Collector::type();
+            return "block_multi_statistics-" + std::to_string(Collector::max_block_size) +
+                    "-" + Collector::type() + ".multi";
         }
 
         template<typename Filter>
@@ -195,7 +196,8 @@ namespace ds2i {
         static_assert(is_power_of_two(Collector::max_block_size));
 
         static std::string type() {
-            return "block_statistics-" + std::to_string(Collector::max_block_size) + "-" + Collector::type();
+            return "block_statistics-" + std::to_string(Collector::max_block_size) +
+                   "-" + Collector::type();
         }
 
         template<typename Filter>

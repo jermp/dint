@@ -649,8 +649,8 @@ namespace ds2i {
     private:
         static void write_index(uint32_t index, std::vector<uint8_t>& out) {
             auto ptr = reinterpret_cast<uint8_t const*>(&index);
-            out.insert(out.end(), ptr, ptr + 2); // b = 16
-            // out.insert(out.end(), ptr, ptr + 1); // b = 8
+            // out.insert(out.end(), ptr, ptr + 2); // b = 16
+            out.insert(out.end(), ptr, ptr + 1); // b = 8
         }
     };
 
@@ -827,6 +827,8 @@ namespace ds2i {
             // out.insert(out.end(), encoded[selector_code].begin(),
             //                       encoded[selector_code].end());
 
+
+
             // Option (2): select the dictionary based on the context
             selector sct;
             uint32_t selector_code = sct.get(in, n);
@@ -842,6 +844,14 @@ namespace ds2i {
             out.push_back(selector_code);
             out.insert(out.end(), encoded[selector_code >= constants::num_selectors].begin(),
                                   encoded[selector_code >= constants::num_selectors].end());
+
+
+
+            // Option (3): select the LARGE dictionary (only) based on the context
+            // selector sct;
+            // uint32_t selector_code = sct.get(in, n);
+            // out.push_back(selector_code);
+            // encode(large_dict_builders[selector_code], in, n, out, 16);
         }
 
         template<typename Dictionary>
