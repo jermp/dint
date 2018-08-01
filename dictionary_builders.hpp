@@ -55,7 +55,7 @@ namespace ds2i {
         static void build(typename large_dictionary_type::builder& dict_builder,
                           statistics_type& stats)
         {
-            logger() << "building " << type() << " dictionaries for " << stats.total_integers << std::endl;
+            logger() << "building " << type() << " dictionary for " << stats.total_integers << std::endl;
 
             dict_builder.init();
             uint64_t n = large_dictionary_type::num_entries;
@@ -106,15 +106,31 @@ namespace ds2i {
                     }
 
                     auto it = stats.blocks[s].begin();
+                    // std::string file_name = "dict." + type() + "." + std::to_string(constants::selector_codes[s]);
+                    // std::ofstream out(file_name.c_str());
                     for (uint64_t i = 0; i < n; ++i, ++it) {
                         auto const& block = *it;
+
+                        // out << i << ": entry [";
+                        // for (uint64_t k = 0; k != block.data.size(); ++k) {
+                        //     out << block.data[k];
+                        //     if (k == block.data.size() - 1) {
+                        //         out << "] ";
+                        //     } else {
+                        //         out << ", ";
+                        //     }
+                        // }
+                        // out << "; freq " << block.freq << "\n";
+
                         large_dict_builders[s].append(block.data.data(),
                                                       block.data.size());
                     }
+                    // out.close();
                 }
             }
 
             logger() << "DONE" << std::endl;
+            // std::abort();
         }
     };
 

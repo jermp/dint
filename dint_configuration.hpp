@@ -18,13 +18,19 @@ namespace ds2i {
 
         static const int context = block_selector::max;
 
-        static const uint32_t num_selectors = 16;
-        static const uint32_t selector_codes[] =
-               {1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16, 19, 22, 25, 29};
-        //                           8  10  12  14  16  19  22  25  29
-        //                           9  11  13  15  17  20  23  26  30
-        //                                          18  21  24  27  31
-        //                                                      28  32
+        // static const uint32_t num_selectors = 16;
+        // static const uint32_t selector_codes[] =
+        //        {1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16, 19, 22, 25, 29};
+        // //                           8  10  12  14  16  19  22  25  29
+        // //                           9  11  13  15  17  20  23  26  30
+        // //                                          18  21  24  27  31
+        // //                                                      28  32
+
+        // static const uint32_t num_selectors = 5;
+        // static const uint32_t selector_codes[] = {1, 2, 3, 4, 5};
+
+        static const uint32_t num_selectors = 6;
+        static const uint32_t selector_codes[] = {0, 1, 2, 3, 4, 5};
 
         // static const uint32_t num_selectors = 32;
         // static const uint32_t selector_codes[] =
@@ -65,22 +71,25 @@ namespace ds2i {
         /********/
 
         // b = 12, l = 16
-        // static const uint32_t num_target_sizes = 5;
         // static const uint32_t max_entry_size = 16;
         // static const uint32_t target_sizes[] = {16, 8, 4, 2, 1};
         // static const uint32_t num_entries = 4096;
+        // static const uint32_t log2_num_entries = 16;
+        // static const uint32_t num_target_sizes = std::log2(max_entry_size) + 1;
 
         // b = 12, l = 8
-        // static const uint32_t num_target_sizes = 4;
         // static const uint32_t max_entry_size = 8;
         // static const uint32_t target_sizes[] = {8, 4, 2, 1};
         // static const uint32_t num_entries = 4096;
+        // static const uint32_t log2_num_entries = 16;
+        // static const uint32_t num_target_sizes = std::log2(max_entry_size) + 1;
 
         // b = 12, l = 4
-        // static const uint32_t num_target_sizes = 3;
         // static const uint32_t max_entry_size = 4;
         // static const uint32_t target_sizes[] = {4, 2, 1};
         // static const uint32_t num_entries = 4096;
+        // static const uint32_t log2_num_entries = 16;
+        // static const uint32_t num_target_sizes = std::log2(max_entry_size) + 1;
 
         /********/
 

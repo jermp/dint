@@ -41,9 +41,11 @@ namespace ds2i {
             {
                 if (!n) throw std::invalid_argument("List must be nonempty");
 
-                // sequence_type::write(m_docs_large_dict_builder, m_freqs_large_dict_builder,
-                //                      m_docs_small_dict_builder, m_freqs_small_dict_builder,
-                //                      m_lists, n, docs_begin, freqs_begin);
+                // sequence_type::write(m_docs_dict_builder,
+                //                      m_freqs_dict_builder,
+                //                      m_lists, n,
+                //                      docs_begin,
+                //                      freqs_begin);
                 // m_endpoints.push_back(m_lists.size());
 
                 std::shared_ptr<list_adder<DocsIterator, FreqsIterator>>
@@ -55,14 +57,14 @@ namespace ds2i {
 
             void build_model(std::string const& prefix_name)
             {
-                logger() << "building or loading dictionaries for docs..." << std::endl;
+                logger() << "building or loading dictionary for docs..." << std::endl;
                 build_or_load_dict(
                     m_docs_dict_builder,
                     prefix_name, data_type::docs
                 );
                 logger() << "DONE" << std::endl;
 
-                logger() << "building or loading dictionaries for freqs..." << std::endl;
+                logger() << "building or loading dictionary for freqs..." << std::endl;
                 build_or_load_dict(
                     m_freqs_dict_builder,
                     prefix_name, data_type::freqs
@@ -81,6 +83,13 @@ namespace ds2i {
                 dfi.m_size = m_endpoints.size() - 1;
                 dfi.m_num_docs = m_num_docs;
                 dfi.m_lists.steal(m_lists);
+
+                // std::cout << "docs codewords: " << m_docs_dict_builder.codewords << std::endl;
+                // std::cout << "docs small exceptions: " << m_docs_dict_builder.small_exceptions << std::endl;
+                // std::cout << "docs large exceptions: " << m_docs_dict_builder.large_exceptions << std::endl;
+                // std::cout << "freqs codewords: " << m_freqs_dict_builder.codewords << std::endl;
+                // std::cout << "freqs small exceptions: " << m_freqs_dict_builder.small_exceptions << std::endl;
+                // std::cout << "freqs large exceptions: " << m_freqs_dict_builder.large_exceptions << std::endl;
 
                 m_docs_dict_builder.build(dfi.m_docs_dict);
                 m_freqs_dict_builder.build(dfi.m_freqs_dict);
@@ -146,6 +155,7 @@ namespace ds2i {
                                             + p.filename().string() + "."
                                             + d_type::type() + "."
                                             + dictionary_builder::type();
+
                 if (boost::filesystem::exists(dictionary_file)) {
                     builder.load_from_file(dictionary_file);
                 } else {

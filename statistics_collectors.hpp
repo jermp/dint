@@ -42,7 +42,7 @@ namespace ds2i {
                         x = *ptr;
                     }
                 }
-                // std::cout << "block max " << x << "\n";
+                // std::cout << "block max " << x << "; ";
             }
             // else
             // if (constants::context == constants::block_selector::median) {
@@ -78,16 +78,29 @@ namespace ds2i {
                 throw std::runtime_error("Unsupported context");
             }
 
-            uint32_t selector_code = (x == 0 ? 0 : ceil_log2(x)) + 1;
-            // std::cout << "selector_code " << selector_code << "\n";
-            uint32_t index = 0;
+            // uint32_t selector_code = (x == 0 ? 0 : ceil_log2(x)) + 1;
+            // uint32_t selector_code = 0;
+            // if (x > 1) {
+            //     selector_code = ceil_log2(ceil_log2(x));
+            // }
 
-            while (selector_code > constants::selector_codes[index]
-                   and index != constants::num_selectors) {
-                ++index;
+            uint32_t selector_code = 0;
+            if (x > 1) {
+                selector_code = ceil_log2(ceil_log2(x + 1));
             }
 
+            // std::cout << "selector_code " << selector_code << "; ";
+            uint32_t index = selector_code;
+            // uint32_t index = 0;
+
+            // while (selector_code > constants::selector_codes[index]
+            //        and index != constants::num_selectors) {
+            //     ++index;
+            // }
+
+            // std::cout << "index " << index << "\n";
             assert(index < constants::num_selectors);
+
             return index;
         }
 

@@ -598,7 +598,7 @@ namespace ds2i {
                         k /= 2;
                     }
                     write_index(index, out);
-                    ++builder.codewords;
+                    // ++builder.codewords;
                     begin += k;
                 } else {
                     for (uint32_t s = 0; s < constants::num_target_sizes; ++s) {
@@ -607,7 +607,7 @@ namespace ds2i {
                         index = builder.lookup(begin, len);
                         if (index != Builder::invalid_index) {
                             write_index(index, out);
-                            ++builder.codewords;
+                            // ++builder.codewords;
                             begin += len;
                             break;
                         }
@@ -618,13 +618,13 @@ namespace ds2i {
                         uint32_t exception = *begin;
                         auto ptr = reinterpret_cast<uint8_t const*>(&exception);
                         if (exception < 65536) {
-                            ++builder.small_exceptions;
+                            // ++builder.small_exceptions;
                             out.insert(out.end(), 0);
                             out.insert(out.end(), 0); // comment if b = 8
                             out.insert(out.end(), ptr, ptr + 2);
 
                         } else {
-                            ++builder.large_exceptions;
+                            // ++builder.large_exceptions;
                             out.insert(out.end(), 1);
                             out.insert(out.end(), 0); // comment if b = 8
                             out.insert(out.end(), ptr, ptr + 4);
@@ -649,8 +649,8 @@ namespace ds2i {
     private:
         static void write_index(uint32_t index, std::vector<uint8_t>& out) {
             auto ptr = reinterpret_cast<uint8_t const*>(&index);
-            // out.insert(out.end(), ptr, ptr + 2); // b = 16
-            out.insert(out.end(), ptr, ptr + 1); // b = 8
+            out.insert(out.end(), ptr, ptr + 2); // b = 16
+            // out.insert(out.end(), ptr, ptr + 1); // b = 8
         }
     };
 
@@ -742,7 +742,8 @@ namespace ds2i {
             std::reverse(encoding.begin(), encoding.end());
             encoding.emplace_back(n, 1, -1); // final dummy node
 
-            for (uint32_t i = 0, pos = 0; i < encoding.size() - 1; ++i) {
+            uint32_t pos = 0;
+            for (uint32_t i = 0; i < encoding.size() - 1; ++i) {
                 uint32_t index = encoding[i].codeword;
                 uint32_t len = encoding[i + 1].parent - encoding[i].parent;
 
