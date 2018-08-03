@@ -89,8 +89,9 @@ namespace ds2i {
                 selector_code = ceil_log2(ceil_log2(x + 1));
             }
 
+            return selector_code;
             // std::cout << "selector_code " << selector_code << "; ";
-            uint32_t index = selector_code;
+            // uint32_t index = selector_code;
             // uint32_t index = 0;
 
             // while (selector_code > constants::selector_codes[index]
@@ -98,10 +99,10 @@ namespace ds2i {
             //     ++index;
             // }
 
-            // std::cout << "index " << index << "\n";
-            assert(index < constants::num_selectors);
+            // // std::cout << "index " << index << "\n";
+            // assert(index < constants::num_selectors);
 
-            return index;
+            // return index;
         }
 
     // private:

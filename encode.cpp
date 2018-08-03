@@ -27,8 +27,11 @@ struct sequence_adder : semiasync_queue::job {
     sequence_adder(
         Iterator begin,
         uint64_t n,
+
         std::vector<typename large_dictionary_type::builder>& large_dict_builders,
         std::vector<typename small_dictionary_type::builder>& small_dict_builders,
+        // typename large_dictionary_type::builder& builder,
+
         boost::progress_display& progress,
         std::vector<uint8_t>& output,
         bool docs,
@@ -40,14 +43,15 @@ struct sequence_adder : semiasync_queue::job {
         , universe(0)
         , large_dict_builders(large_dict_builders)
         , small_dict_builders(small_dict_builders)
+
+        // , builder(builder)
+
         , progress(progress)
         , output(output)
         , docs(docs)
         , num_processed_lists(num_processed_lists)
         , num_total_ints(num_total_ints)
-    {
-        // std::cout << "*** n = " << n << std::endl;
-    }
+    {}
 
     virtual void prepare()
     {
@@ -69,6 +73,10 @@ struct sequence_adder : semiasync_queue::job {
             small_dict_builders,
             buf.data(), universe, buf.size(), tmp
         );
+
+        // Encoder::encode(
+        //     buf.data(), universe, buf.size(), tmp, &builder
+        // );
     }
 
     virtual void commit()
@@ -86,6 +94,8 @@ struct sequence_adder : semiasync_queue::job {
 
     std::vector<typename large_dictionary_type::builder>& large_dict_builders;
     std::vector<typename small_dictionary_type::builder>& small_dict_builders;
+    // typename large_dictionary_type::builder& builder;
+
     boost::progress_display& progress;
     std::vector<uint8_t> tmp;
     std::vector<uint8_t>& output;
@@ -176,8 +186,11 @@ void encode(std::string const& type,
             // std::cout << "n = " << n << std::endl;
             std::shared_ptr<sequence_adder<iterator_type, Encoder>>
                 ptr(new sequence_adder<iterator_type, Encoder>(list.begin(), n,
+
                                                 large_dict_builders,
                                                 small_dict_builders,
+                                                // builder,
+
                                                 progress, output, docs,
                                                 num_processed_lists, num_total_ints));
             jobs_queue.add_job(ptr, n);
@@ -221,7 +234,7 @@ void encode(std::string const& type,
         //         // );
 
         //         buf.clear();
-        //     //     break;
+        //         break;
         //     // }
 
         //     ++num_processed_lists;
@@ -238,7 +251,6 @@ void encode(std::string const& type,
         // }
     }
 
-    // logger() << "completing jobs in queue..." << std::endl;
     jobs_queue.complete();
 
     double GiB_space = output.size() * 1.0 / constants::GiB;
@@ -367,8 +379,14 @@ int main(int argc, char** argv) {
 
     logger() << cmd << std::endl;
 
-    if (type == std::string("dint")) {
-        encode<dint>(type, collection_name, output_filename, dictionary_filename);
+
+    // TODO: refactor this later
+    // if (type == std::string("greedy_dint")) {
+    //     encode<greedy_dint>(type, collection_name, output_filename, dictionary_filename);
+    // }
+
+    if (type == std::string("opt_dint")) {
+        encode<opt_dint>(type, collection_name, output_filename, dictionary_filename);
     }
 
     if (type == std::string("pef")) {

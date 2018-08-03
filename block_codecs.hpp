@@ -806,45 +806,45 @@ namespace ds2i {
             }
 
             // Option (1): choose the best dictionary
-            // std::vector<std::vector<uint8_t>> encoded(2 * constants::num_selectors);
-            // size_t best_size = size_t(-1);
-            // int selector_code = 0;
-            // for (int s = 0; s != constants::num_selectors; ++s) {
-            //     encode(large_dict_builders[s], in, n, encoded[s], 16);
-            //     encode(small_dict_builders[s], in, n, encoded[s + constants::num_selectors], 8);
-            //     size_t smallest_size = encoded[s].size();
-            //     int sc = s;
-            //     if (encoded[s + constants::num_selectors].size() <= smallest_size) {
-            //         smallest_size = encoded[s + constants::num_selectors].size();
-            //         sc += constants::num_selectors;
-            //     }
-            //     if (smallest_size < best_size) {
-            //         best_size = smallest_size;
-            //         selector_code = sc;
-            //     }
-            // }
-            // // control byte
-            // out.push_back(selector_code);
-            // out.insert(out.end(), encoded[selector_code].begin(),
-            //                       encoded[selector_code].end());
+            std::vector<std::vector<uint8_t>> encoded(2 * constants::num_selectors);
+            size_t best_size = size_t(-1);
+            int selector_code = 0;
+            for (int s = 0; s != constants::num_selectors; ++s) {
+                encode(large_dict_builders[s], in, n, encoded[s], 16);
+                encode(small_dict_builders[s], in, n, encoded[s + constants::num_selectors], 8);
+                size_t smallest_size = encoded[s].size();
+                int sc = s;
+                if (encoded[s + constants::num_selectors].size() <= smallest_size) {
+                    smallest_size = encoded[s + constants::num_selectors].size();
+                    sc += constants::num_selectors;
+                }
+                if (smallest_size < best_size) {
+                    best_size = smallest_size;
+                    selector_code = sc;
+                }
+            }
+            // control byte
+            out.push_back(selector_code);
+            out.insert(out.end(), encoded[selector_code].begin(),
+                                  encoded[selector_code].end());
 
 
 
             // Option (2): select the dictionary based on the context
-            selector sct;
-            uint32_t selector_code = sct.get(in, n);
-            std::vector<std::vector<uint8_t>> encoded(2);
-            encode(large_dict_builders[selector_code], in, n, encoded[0], 16);
-            encode(small_dict_builders[selector_code], in, n, encoded[1],  8);
-            size_t smallest_size = encoded[0].size();
-            if (encoded[1].size() <= smallest_size) {
-                selector_code += constants::num_selectors;
-            }
+            // selector sct;
+            // uint32_t selector_code = sct.get(in, n);
+            // std::vector<std::vector<uint8_t>> encoded(2);
+            // encode(large_dict_builders[selector_code], in, n, encoded[0], 16);
+            // encode(small_dict_builders[selector_code], in, n, encoded[1],  8);
+            // size_t smallest_size = encoded[0].size();
+            // if (encoded[1].size() <= smallest_size) {
+            //     selector_code += constants::num_selectors;
+            // }
 
-            // control byte
-            out.push_back(selector_code);
-            out.insert(out.end(), encoded[selector_code >= constants::num_selectors].begin(),
-                                  encoded[selector_code >= constants::num_selectors].end());
+            // // control byte
+            // out.push_back(selector_code);
+            // out.insert(out.end(), encoded[selector_code >= constants::num_selectors].begin(),
+            //                       encoded[selector_code >= constants::num_selectors].end());
 
 
 

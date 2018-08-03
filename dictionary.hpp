@@ -236,12 +236,12 @@ namespace ds2i {
 
                 for (uint64_t i = 0, k = 0; i < m_table.size(); i += max_entry_size + 1, ++k) {
                     uint32_t size = m_table[i + max_entry_size];
-                    std::cout << k << ": " << size << " - [";
-                    for (uint32_t k = 0; k < max_entry_size; ++k) {
-                        std::cout << m_table[i + k];
-                        if (k != max_entry_size - 1) std::cout << "|";
-                    }
-                    std::cout << "]" << std::endl;
+                    // std::cout << k << ": " << size << " - [";
+                    // for (uint32_t k = 0; k < max_entry_size; ++k) {
+                    //     std::cout << m_table[i + k];
+                    //     if (k != max_entry_size - 1) std::cout << "|";
+                    // }
+                    // std::cout << "]" << std::endl;
                     sizes[ceil_log2(size) + 1] += 1;
                 }
 
@@ -357,7 +357,9 @@ namespace ds2i {
 
             // APPROACH 1: always copy max_entry_size * sizeof(uint32_t) bytes,
             // regardless the fact that most entries need less bytes
+            // std::cout << "i " << i << "/" << num_entries << std::endl;
             memcpy(out, ptr, max_entry_size * sizeof(uint32_t));
+            // std::cout << "done" << std::endl;
 
             // NOTE: slower than memcpy
             // *(out + 0) = *(ptr + 0);

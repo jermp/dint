@@ -84,12 +84,18 @@ namespace ds2i {
                 dfi.m_num_docs = m_num_docs;
                 dfi.m_lists.steal(m_lists);
 
+                // NOTE: need single-threaded encoding
                 // std::cout << "docs codewords: " << m_docs_dict_builder.codewords << std::endl;
                 // std::cout << "docs small exceptions: " << m_docs_dict_builder.small_exceptions << std::endl;
                 // std::cout << "docs large exceptions: " << m_docs_dict_builder.large_exceptions << std::endl;
                 // std::cout << "freqs codewords: " << m_freqs_dict_builder.codewords << std::endl;
                 // std::cout << "freqs small exceptions: " << m_freqs_dict_builder.small_exceptions << std::endl;
                 // std::cout << "freqs large exceptions: " << m_freqs_dict_builder.large_exceptions << std::endl;
+
+                logger() << "Usage distribution for docs:" << std::endl;
+                m_docs_dict_builder.print();
+                logger() << "Usage distribution for freqs:" << std::endl;
+                m_freqs_dict_builder.print();
 
                 m_docs_dict_builder.build(dfi.m_docs_dict);
                 m_freqs_dict_builder.build(dfi.m_freqs_dict);

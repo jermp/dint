@@ -612,16 +612,32 @@ namespace ds2i {
 
     struct dint_statistics
     {
-        dint_statistics(uint32_t /*num_entries*/)
+        dint_statistics()
             : ints_distr(7, 0)
             , codewords_distr(7, 0)
+            , occs(constants::num_entries, 0)
         {}
 
         std::vector<uint64_t> ints_distr;       // 0:runs; 1:1; 2:2; 3:4; 4:8; 5:16; 6:exceptions
         std::vector<uint64_t> codewords_distr;  // 0:runs; 1:1; 2:2; 3:4; 4:8; 5:16; 6:exceptions
 
+        std::vector<uint64_t> occs;
+
         uint64_t decoded_ints_from_dict = 0;
         uint64_t dict_codewords = 0;
+        uint64_t total_ints = 0;
+
+        std::unordered_map<uint32_t, uint32_t> exceptions;
+
+        void incr(uint32_t exception) {
+            auto it = exceptions.find(exception);
+            if (it == exceptions.end()) {
+                exceptions[exception] = 1;
+            } else {
+                ++exceptions[exception];
+            }
+        }
+
     };
 
     // NOTE: old version without contexts
@@ -1260,16 +1276,172 @@ namespace ds2i {
     //     }
     // };
 
-    struct dint
+    struct greedy_dint {
+
+        static void encode(uint32_t const* in,
+                           uint32_t /*universe*/, uint32_t n,
+                           std::vector<uint8_t>& out,
+                           dictionary_type::builder* builder)
+        {
+            // if (n < block_size) {
+            //     interpolative_block::encode(in, sum_of_values, n, out);
+            //     return;
+            // }
+
+            uint32_t const* begin = in;
+            uint32_t const* end = begin + n;
+
+            while (begin < end)
+            {
+                uint32_t longest_run_size = 0;
+                uint32_t run_size = std::min<uint64_t>(256, end - begin);
+                uint32_t index = EXCEPTIONS;
+
+                for (uint32_t const* ptr  = begin;
+                                     ptr != begin + run_size;
+                                   ++ptr)
+                {
+                    if (*ptr == 0) {
+                        ++longest_run_size;
+                    } else {
+                        break;
+                    }
+                }
+
+                if (longest_run_size >= 16) {
+                    uint32_t k = 256;
+                    while (longest_run_size < k and k > 16) {
+                        ++index;
+                        k /= 2;
+                    }
+                    write_index(index, out);
+                    begin += k;
+                } else {
+                    for (uint32_t s = 0; s < constants::num_target_sizes; ++s) {
+                        uint32_t sub_block_size = constants::target_sizes[s];
+                        uint32_t len = std::min<uint32_t>(sub_block_size, end - begin);
+                        index = builder->lookup(begin, len);
+                        if (index != dictionary_type::invalid_index) {
+                            write_index(index, out);
+                            begin += len;
+                            break;
+                        }
+                    }
+
+                    if (index == dictionary_type::invalid_index)
+                    {
+                        uint32_t exception = *begin;
+                        auto ptr = reinterpret_cast<uint8_t const*>(&exception);
+                        if (exception < 65536) {
+                            out.insert(out.end(), 0);
+                            out.insert(out.end(), 0); // comment if b = 8
+                            out.insert(out.end(), ptr, ptr + 2);
+
+                        } else {
+                            out.insert(out.end(), 1);
+                            out.insert(out.end(), 0); // comment if b = 8
+                            out.insert(out.end(), ptr, ptr + 4);
+                        }
+
+                        begin += 1;
+                    }
+                }
+            }
+        }
+
+        static uint8_t const* decode(uint8_t const* in,
+                                     uint32_t* out,
+                                     uint32_t /*universe*/, size_t n,
+                                     dictionary_type const* dict
+                                     , dint_statistics& stats
+                                     )
+        {
+            uint16_t const* ptr = reinterpret_cast<uint16_t const*>(in);
+            // uint8_t const* ptr = in; // if b = 8
+            for (size_t i = 0; i != n; ++ptr) {
+                uint32_t index = *ptr;
+                uint32_t decoded_ints = 1;
+
+                ++stats.occs[index];
+
+                if (DS2I_LIKELY(index > EXCEPTIONS - 1))
+                {
+                    decoded_ints = dict->copy(index, out);
+
+                    // if (decoded_ints == 1) {
+                    //     stats.ints_distr[1] += 1;
+                    //     stats.codewords_distr[1] += 1;
+                    // } else if (decoded_ints == 2) {
+                    //     stats.ints_distr[2] += 2;
+                    //     stats.codewords_distr[2] += 1;
+                    // } else if (decoded_ints == 4) {
+                    //     stats.ints_distr[3] += 4;
+                    //     stats.codewords_distr[3] += 1;
+                    // } else if (decoded_ints == 8) {
+                    //     stats.ints_distr[4] += 8;
+                    //     stats.codewords_distr[4] += 1;
+                    // } else if (decoded_ints == 16 and index > dictionary_type::reserved - 1) {
+                    //     stats.ints_distr[5] += 16;
+                    //     stats.codewords_distr[5] += 1;
+                    // } else if (decoded_ints >= 16) {
+                    //     stats.ints_distr[0] += decoded_ints;
+                    //     stats.codewords_distr[0] += 1;
+                    // }
+
+                    // stats.dict_codewords++;
+                    // stats.decoded_ints_from_dict += decoded_ints;
+                    stats.total_ints += decoded_ints;
+
+                } else {
+
+                    // stats.ints_distr[6] += 1;
+                    ++stats.total_ints;
+
+                    if (index == 1) { // 4-byte exception
+                        *out = *(reinterpret_cast<uint32_t const*>(++ptr));
+                        ++ptr;
+                        // stats.codewords_distr[6] += 3;
+
+                        // if b = 8
+                        // *out = *(reinterpret_cast<uint32_t const*>(++ptr));
+                        // ptr += 3;
+                    } else { // 2-byte exception
+                        *out = *(++ptr);
+                        // stats.codewords_distr[6] += 2;
+
+                        // if b = 8
+                        // *out = *(reinterpret_cast<uint16_t const*>(++ptr));
+                        // ptr += 1;
+                    }
+                }
+                out += decoded_ints;
+                i += decoded_ints;
+
+            }
+
+            return reinterpret_cast<uint8_t const*>(ptr);
+            // if b = 8
+            // return ptr;
+        }
+
+    private:
+        static void write_index(uint32_t index, std::vector<uint8_t>& out) {
+            auto ptr = reinterpret_cast<uint8_t const*>(&index);
+            out.insert(out.end(), ptr, ptr + 2); // b = 16
+            // out.insert(out.end(), ptr, ptr + 1); // b = 8
+        }
+    };
+
+    struct opt_dint
     {
         std::vector<node> path;
         std::vector<node> encoding;
         std::vector<std::vector<uint8_t>> encoded;
         selector sct;
 
-        dint() {
-            // encoded.resize(2 * constants::num_selectors);
-            encoded.resize(2);
+        opt_dint() {
+            encoded.resize(2 * constants::num_selectors);
+            // encoded.resize(2);
         }
 
         template<typename Builder>
@@ -1279,6 +1451,7 @@ namespace ds2i {
             std::vector<uint8_t>& out,
             int b /* 8 or 16 */)
         {
+            // logger() << "opt_parsing for " << n << " ints; b = " << b << std::endl;
             // opt parsing
             path.resize(n + 2);
             path[0] = {0, 1, 0}; // dummy node
@@ -1286,7 +1459,7 @@ namespace ds2i {
                 path[i] = {i - 1, 1, 3 * i};
             }
 
-            for (uint32_t i = 0; i < n; ++i)
+            for (uint32_t i = 0; i != n; ++i)
             {
                 uint32_t longest_run_size = 0;
                 uint32_t run_size = std::min<uint64_t>(256, n - i);
@@ -1361,7 +1534,7 @@ namespace ds2i {
                 uint32_t len = encoding[i + 1].parent - encoding[i].parent;
 
                 if (index > 1) {
-                    ++builder.codewords;
+                    // ++builder.codewords;
                     write_index(index, out, b);
                 } else {
 
@@ -1370,14 +1543,14 @@ namespace ds2i {
                     auto ptr = reinterpret_cast<uint8_t const*>(&exception);
 
                     if (index == 0) {
-                        ++builder.small_exceptions;
+                        // ++builder.small_exceptions;
                         out.insert(out.end(), 0);
                         if (b == 16) {
                             out.insert(out.end(), 0);
                         }
                         out.insert(out.end(), ptr, ptr + 2);
                     } else {
-                        ++builder.large_exceptions;
+                        // ++builder.large_exceptions;
                         out.insert(out.end(), 1);
                         if (b == 16) {
                             out.insert(out.end(), 0);
@@ -1387,81 +1560,10 @@ namespace ds2i {
                 }
 
                 pos += len;
+                assert(pos <= n);
             }
 
             encoding.clear();
-
-            // greedy parsing
-            // while (begin < end)
-            // {
-            //     uint32_t longest_run_size = 0;
-            //     uint32_t run_size = std::min<uint64_t>(256, end - begin);
-            //     uint32_t index = EXCEPTIONS;
-
-            //     for (uint32_t const* ptr  = begin;
-            //                          ptr != begin + run_size;
-            //                        ++ptr)
-            //     {
-            //         if (*ptr == 0) {
-            //             ++longest_run_size;
-            //         } else {
-            //             break;
-            //         }
-            //     }
-
-            //     if (longest_run_size >= 16) {
-            //         uint32_t k = 256;
-            //         while (longest_run_size < k and k > 16) {
-            //             ++index;
-            //             k /= 2;
-            //         }
-
-            //         write_index(index, out, b);
-            //         ++builder.codewords;
-            //         begin += k;
-
-            //     } else {
-            //         for (uint32_t s = 0; s < constants::num_target_sizes; ++s) {
-            //             uint32_t sub_block_size = constants::target_sizes[s];
-            //             uint32_t len = std::min<uint32_t>(sub_block_size, end - begin);
-            //             index = builder.lookup(begin, len);
-            //             if (index != Builder::invalid_index) {
-            //                 write_index(index, out, b);
-            //                 ++builder.codewords;
-            //                 begin += len;
-            //                 break;
-            //             }
-            //         }
-
-            //         if (index == Builder::invalid_index)
-            //         {
-            //             uint32_t exception = *begin;
-            //             auto ptr = reinterpret_cast<uint8_t const*>(&exception);
-
-            //             if (exception < 65536) {
-
-            //                 ++builder.small_exceptions;
-            //                 out.insert(out.end(), 0);
-            //                 if (b == 16) {
-            //                     out.insert(out.end(), 0);
-            //                 }
-            //                 out.insert(out.end(), ptr, ptr + 2);
-
-            //             } else {
-
-            //                 ++builder.large_exceptions;
-            //                 out.insert(out.end(), 1);
-            //                 if (b == 16) {
-            //                     out.insert(out.end(), 0);
-            //                 }
-            //                 out.insert(out.end(), ptr, ptr + 4);
-
-            //             }
-
-            //             begin += 1;
-            //         }
-            //     }
-            // }
         }
 
         void encode(
@@ -1484,7 +1586,7 @@ namespace ds2i {
             // std::cout << "tail = " << tail << std::endl;
             // uint64_t sum = 0;
 
-            for (uint64_t b = 0; b != num_blocks; ++b, begin += constants::block_size)
+            for (uint64_t b = 0; b != num_blocks; ++b)
             {
                 // std::cout << "block " << b;
                 // uint32_t const* end = begin;
@@ -1500,55 +1602,79 @@ namespace ds2i {
                 }
 
                 // sum += size;
-                // std::cout << "; size: " << size << std::endl;
+                // if (sum % 998400 == 0) {
+                //     logger() << sum << "/" << n << std::endl;
+                // }
+                // // std::cout << "; size: " << size << std::endl;
 
                 // option 1: choose the best dictionary
-                // size_t best_size = size_t(-1);
-                // int selector_code = 0;
-                // for (int s = 0; s != constants::num_selectors; ++s) {
-                //     encode(large_dict_builders[s], begin, end, encoded[s], 16);
-                //     encode(small_dict_builders[s], begin, end, encoded[s + constants::num_selectors], 8);
+                size_t best_size = size_t(-1);
+                uint32_t selector_code = 0;
+                for (uint32_t s = 0; s != constants::num_selectors; ++s) {
+                    encode(large_dict_builders[s], begin, size, encoded[s], 16);
+                    encode(small_dict_builders[s], begin, size, encoded[s + constants::num_selectors], 8);
 
-                //     size_t smallest_size = encoded[s].size();
-                //     int sc = s;
-                //     if (encoded[s + constants::num_selectors].size() <= smallest_size) {
-                //         smallest_size = encoded[s + constants::num_selectors].size();
-                //         sc += constants::num_selectors;
-                //     }
+                    size_t smallest_size = encoded[s].size();
+                    uint32_t sc = s;
+                    if (encoded[s + constants::num_selectors].size() <= smallest_size) {
+                        smallest_size = encoded[s + constants::num_selectors].size();
+                        sc += constants::num_selectors;
+                    }
 
-                //     if (smallest_size < best_size) {
-                //         best_size = smallest_size;
-                //         selector_code = sc;
-                //     }
+                    if (smallest_size < best_size) {
+                        best_size = smallest_size;
+                        selector_code = sc;
+                    }
+                }
+                // std::cout << "best_size = " << best_size << std::endl;
+                // bool small = selector_code >= constants::num_selectors;
+                // if (small) {
+                //     std::cout << "\t small selector_code = " << (selector_code - constants::num_selectors) << ", for block " << b << " of size " << size << std::endl;
+                // } else {
+                //     std::cout << "\t large selector_code = " << selector_code << ", for block " << b << " of size " << size << std::endl;
                 // }
+                // control byte
+                // std::cout << "pushing selector_code = " << selector_code << std::endl;
+                out.push_back(selector_code);
+                // assert(encoded[selector_code].size() == best_size);
+                // uint64_t s = out.size();
+                out.insert(out.end(), encoded[selector_code].begin(),
+                                      encoded[selector_code].end());
+                // uint64_t ss = out.size();
+                // assert(ss - s == best_size);
 
-                // // control byte
-                // out.push_back(selector_code);
-                // out.insert(out.end(), encoded[selector_code].begin(),
-                //                       encoded[selector_code].end());
+                for (auto& e: encoded) {
+                    e.clear();
+                }
 
-                // for (int s = 0; s != constants::num_selectors; ++s) {
-                //     encoded[s].clear();
-                // }
+
+
 
 
 
 
                 // option 2: select the dictionary based on the context
-                uint32_t selector_code = sct.get(begin, size);
-                encode(large_dict_builders[selector_code], begin, size, encoded[0], 16);
-                encode(small_dict_builders[selector_code], begin, size, encoded[1],  8);
-                size_t smallest_size = encoded[0].size();
-                if (encoded[1].size() <= smallest_size) {
-                    selector_code += constants::num_selectors;
-                }
+                // uint32_t selector_code = sct.get(begin, size);
+                // encode(large_dict_builders[selector_code], begin, size, encoded[0], 16);
+                // encode(small_dict_builders[selector_code], begin, size, encoded[1],  8);
+                // size_t smallest_size = encoded[0].size();
+                // if (encoded[1].size() <= smallest_size) {
+                //     selector_code += constants::num_selectors;
+                // }
 
-                // control byte
-                out.push_back(selector_code);
-                out.insert(out.end(), encoded[selector_code >= constants::num_selectors].begin(),
-                                      encoded[selector_code >= constants::num_selectors].end());
-                encoded[0].clear();
-                encoded[1].clear();
+                // // control byte
+                // out.push_back(selector_code);
+                // out.insert(out.end(), encoded[selector_code >= constants::num_selectors].begin(),
+                //                       encoded[selector_code >= constants::num_selectors].end());
+                // encoded[0].clear();
+                // encoded[1].clear();
+
+
+
+
+
+
+                begin += size;
             }
 
             // std::cout << "sum " << sum << "/" << n << std::endl;
@@ -1560,8 +1686,10 @@ namespace ds2i {
             std::vector<small_dictionary_type> const& small_dicts,
             uint8_t const* in,
             uint32_t* out,
-            uint32_t universe,
-            size_t n)
+            uint32_t /*universe*/,
+            size_t n
+            , dint_statistics& stats
+            )
         {
             // if (DS2I_UNLIKELY(n < constants::block_size)) {
             //     return interpolative_block::decode(in, out, sum_of_values, n);
@@ -1569,50 +1697,96 @@ namespace ds2i {
 
             uint64_t num_blocks = succinct::util::ceil_div(n, constants::block_size);
             size_t tail = n - (n / constants::block_size * constants::block_size);
+            // uint64_t sum = 0;
             for (uint64_t b = 0; b != num_blocks; ++b)
             {
-                size_t n = constants::block_size;
+                size_t size = constants::block_size;
                 if (b == num_blocks - 1 and tail != 0) {
-                    n = tail;
+                    size = tail;
                 }
+
+                // std::cout << sum << "/" << n << std::endl;
+
 
                 uint8_t selector_code = *in;
                 if (selector_code < constants::num_selectors) {
+                    // std::cout << "\t large selector_code = " << int(selector_code) << ", for block " << b << " of size " << size << std::endl;
                     auto const& large_dict = large_dicts[selector_code];
                     uint16_t const* ptr = reinterpret_cast<uint16_t const*>(in + 1);
-                    for (size_t i = 0; i != n; ++ptr) {
+                    for (size_t i = 0; i != size; ++ptr) {
                         uint32_t index = *ptr;
                         uint32_t decoded_ints = 1;
+
+                        // ++stats.occs[index];
+
                         if (DS2I_LIKELY(index > EXCEPTIONS - 1)) {
+                            // std::cout << index << std::endl;
                             decoded_ints = large_dict.copy(index, out);
+
+                            // stats.total_ints += decoded_ints;
+
                         } else {
+
+                            // ++stats.total_ints;
+
                             if (index == 1) { // 4-byte exception
-                                *out = *(reinterpret_cast<uint32_t const*>(++ptr));
+                                uint32_t exception = *(reinterpret_cast<uint32_t const*>(++ptr));
+                                *out = exception;
+                                // *out = *(reinterpret_cast<uint32_t const*>(++ptr));
                                 ++ptr;
+
+                                // stats.incr(exception);
+
                             } else { // 2-byte exception
-                                *out = *(++ptr);
+                                uint32_t exception = *(++ptr);
+                                *out = exception;
+
+                                // stats.incr(exception);
                             }
                         }
                         out += decoded_ints;
                         i += decoded_ints;
+
+                        // if (i > size) {
+                        //     std::cout << i << "/" << size << std::endl;
+                        // }
+                        // assert(i <= size);
                     }
                     in = reinterpret_cast<uint8_t const*>(ptr);
                 } else {
                     selector_code -= constants::num_selectors;
+                    // std::cout << "\t small selector_code = " << int(selector_code) << ", for block " << b << " of size " << size << std::endl;
+
                     auto const& small_dict = small_dicts[selector_code];
                     uint8_t const* ptr = in + 1;
-                    for (size_t i = 0; i != n; ++ptr) {
+                    for (size_t i = 0; i != size; ++ptr) {
                         uint32_t index = *ptr;
                         uint32_t decoded_ints = 1;
+
+                        // ++stats.occs[index];
+
                         if (DS2I_LIKELY(index > EXCEPTIONS - 1)) {
                             decoded_ints = small_dict.copy(index, out);
+
+                            // stats.total_ints += decoded_ints;
+
                         } else {
+
+                            // ++stats.total_ints;
+
                             if (index == 1) { // 4-byte exception
-                                *out = *(reinterpret_cast<uint32_t const*>(++ptr));
+                                uint32_t exception = *(reinterpret_cast<uint32_t const*>(++ptr));
+                                *out = exception;
                                 ptr += 3;
+
+                                // stats.incr(exception);
+
                             } else { // 2-byte exception
-                                *out = *(reinterpret_cast<uint16_t const*>(++ptr));
+                                uint32_t exception = *(reinterpret_cast<uint16_t const*>(++ptr));
+                                *out = exception;
                                 ptr += 1;
+
+                                // stats.incr(exception);
                             }
                         }
                         out += decoded_ints;
@@ -1620,7 +1794,12 @@ namespace ds2i {
                     }
                     in = ptr;
                 }
+
+                // sum += size;
+                // assert(sum <= n);
             }
+
+            // assert(sum == n);
 
             return in;
         }
@@ -1633,5 +1812,5 @@ namespace ds2i {
         }
     };
 
-    #define CODECS (interpolative)(optpfor)(varintg8iu)(qmx)(vbyte)(u32)(simple16)(streamvbyte)(maskedvbyte)(varintgb)(dint)
+    #define CODECS (interpolative)(optpfor)(varintg8iu)(qmx)(vbyte)(u32)(simple16)(streamvbyte)(maskedvbyte)(varintgb)(greedy_dint)(opt_dint)
 }
