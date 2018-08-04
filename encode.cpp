@@ -21,6 +21,7 @@
 using namespace ds2i;
 
 typedef binary_collection::posting_type const* iterator_type;
+const uint32_t num_jobs = 1 << 24;
 
 template<typename Iterator, typename Encoder>
 struct sequence_adder : semiasync_queue::job {
@@ -168,10 +169,7 @@ void encode(std::string const& type,
 
     std::vector<uint32_t> buf;
     // std::vector<uint8_t> tmp;
-
     boost::progress_display progress(total_progress);
-
-    uint32_t num_jobs = 1 << 24;
     semiasync_queue jobs_queue(num_jobs);
 
     // Encoder e;
@@ -281,6 +279,61 @@ void encode(std::string const& type,
     }
 }
 
+template<typename Iterator>
+struct pef_sequence_adder : semiasync_queue::job {
+    pef_sequence_adder(Iterator begin,
+                       uint64_t n, uint64_t universe,
+                       succinct::bit_vector_builder& bvb,
+                       boost::progress_display& progress,
+                       bool docs,
+                       uint64_t& num_processed_lists,
+                       uint64_t& num_total_ints)
+        : begin(begin)
+        , n(n)
+        , universe(universe)
+        , bvb(bvb)
+        , progress(progress)
+        , docs(docs)
+        , num_processed_lists(num_processed_lists)
+        , num_total_ints(num_total_ints)
+    {}
+
+    virtual void prepare()
+    {
+        if (not docs) { // on freqs, PEF needs the perfix sums
+            universe = 0;
+            auto in = begin;
+            for (uint64_t i = 0; i != n; ++i, ++in) {
+                universe += *in;
+            }
+            universe += 1;
+        }
+        pef::encode(begin, universe, n, tmp, not docs);
+    }
+
+    virtual void commit()
+    {
+        progress += n + 1;
+        ++num_processed_lists;
+        num_total_ints += n;
+        uint64_t offset = bvb.size() + tmp.size();
+        bvb.append_bits(offset + 64 + 32 + 32, 64);
+        bvb.append_bits(universe, 32);
+        bvb.append_bits(n, 32);
+        bvb.append(tmp);
+    }
+
+    Iterator begin;
+    uint64_t n;
+    uint64_t universe;
+    succinct::bit_vector_builder& bvb;
+    succinct::bit_vector_builder tmp;
+    boost::progress_display& progress;
+    bool docs;
+    uint64_t& num_processed_lists;
+    uint64_t& num_total_ints;
+};
+
 // specialized version for PEF
 void encode_pef(char const* collection_name,
                 char const* output_filename)
@@ -307,19 +360,35 @@ void encode_pef(char const* collection_name,
     }
 
     succinct::bit_vector_builder bvb;
-
     boost::progress_display progress(total_progress);
+    semiasync_queue jobs_queue(num_jobs);
 
-    for (; it != input.end(); ++it) {
+    for (; it != input.end(); ++it)
+    {
         auto const& list = *it;
         uint32_t n = list.size();
-        if (n > constants::min_size) {
-            pef::encode(list.begin(), list.back(), n, bvb, not docs);
-            ++num_processed_lists;
-            num_total_ints += n;
-            progress += n + 1;
+        // if (n > constants::min_size) {
+        //     pef::encode(list.begin(), list.back(), n, bvb, not docs);
+        //     ++num_processed_lists;
+        //     num_total_ints += n;
+        //     progress += n + 1;
+        // }
+
+        if (n > constants::min_size)
+        {
+            std::shared_ptr<pef_sequence_adder<iterator_type>>
+                ptr(new pef_sequence_adder<iterator_type>(
+                    list.begin(),
+                    n, list.back() + 1, bvb,
+                    progress, docs,
+                    num_processed_lists, num_total_ints
+                )
+            );
+            jobs_queue.add_job(ptr, n);
         }
     }
+
+    jobs_queue.complete();
 
     double GiB_space = (bvb.size() + 7.0) / 8.0 / constants::GiB;
     double bpi_space = double(bvb.size()) / num_total_ints;

@@ -197,9 +197,20 @@ void decode_pef(char const* encoded_data_filename, bool freqs)
     uint64_t universe, n;
 
     logger() << "decoding..." << std::endl;
+    // std::cout << "num_bits " << num_bits << std::endl;
     while (offset < num_bits) {
+
+        uint64_t next_offset = bv.get_bits(offset, 64);
+        offset += 64;
+        universe = bv.get_bits(offset, 32);
+        // std::cout << "universe " << universe << "; n ";
+        offset += 32;
+        n = bv.get_bits(offset, 32);
+        // std::cout << n << std::endl;
+        offset += 32;
+
         auto start = clock_type::now();
-        offset = pef::decode(
+        pef::decode(
             bv, decoded.data(), offset, universe, n, freqs
         );
         auto finish = clock_type::now();
@@ -207,6 +218,9 @@ void decode_pef(char const* encoded_data_filename, bool freqs)
         timings.push_back(elapsed.count());
         num_decoded_ints += n;
         ++num_decoded_lists;
+        offset = next_offset;
+
+        // std::cout << num_decoded_lists << ": offset " << offset << "/" << num_bits << std::endl;
     }
 
     double tot_elapsed = std::accumulate(timings.begin(), timings.end(), double(0.0));

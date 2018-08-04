@@ -561,38 +561,26 @@ namespace ds2i {
                            bool freqs)
         {
             static const global_parameters params;
-            succinct::bit_vector_builder tmp;
             if (freqs) {
-                freqs_sequence_type::write(tmp, in, universe, n, params);
+                freqs_sequence_type::write(bvb, in, universe, n, params);
             } else {
-                docs_sequence_type::write(tmp, in, universe, n, params);
+                docs_sequence_type::write(bvb, in, universe, n, params);
             }
-
-            uint64_t offset = bvb.size() + tmp.size();
-            bvb.append_bits(offset + 64 + 32 + 32, 64);
-            bvb.append_bits(universe, 32);
-            bvb.append_bits(n, 32);
-            bvb.append(tmp);
         }
 
-        static uint64_t decode(succinct::bit_vector const& bv,
-                               uint32_t* out, uint64_t offset,
-                               uint64_t& universe, uint64_t& n,
-                               bool freqs)
+        static void decode(succinct::bit_vector const& bv,
+                           uint32_t* out, uint64_t offset,
+                           uint64_t universe, uint64_t n,
+                           bool freqs)
         {
             static const global_parameters params;
-            uint64_t next_offset = bv.get_bits(offset, 64);
-            offset += 64;
-            universe = bv.get_bits(offset, 32);
-            offset += 32;
-            n = bv.get_bits(offset, 32);
-            offset += 32;
 
             if (freqs) {
                 auto e = freqs_sequence_type::enumerator(
                     bv, offset, universe, n, params
                 );
 
+                e.move(0);
                 for (size_t i = 0; i != n; ++i, ++out) {
                     *out = e.next().second;
                 }
@@ -601,12 +589,11 @@ namespace ds2i {
                     bv, offset, universe, n, params
                 );
 
+                e.move(0);
                 for (size_t i = 0; i != n; ++i, ++out) {
                     *out = e.next().second;
                 }
             }
-
-            return next_offset;
         }
     };
 
