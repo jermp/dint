@@ -293,13 +293,12 @@ namespace ds2i {
             uint64_t n;
         };
 
-        struct worker {
-
-            worker()
+        struct collector {
+            collector()
             {}
 
             void start() {
-                m_thread = std::thread(&worker::run, this);
+                m_thread = std::thread(&collector::run, this);
             }
 
             void join() {
@@ -308,8 +307,16 @@ namespace ds2i {
                 }
             }
 
-            void run() {
+            typename std::vector<iter_length>::iterator begin;
+            uint64_t n;
+            bool compute_gaps;
+            map_type block_map;
 
+        private:
+            std::thread m_thread;
+
+            void run()
+            {
                 std::vector<uint32_t> buf;
                 for (uint64_t i = 0; i != n; ++i) {
                     auto const& il = *begin;
@@ -328,16 +335,46 @@ namespace ds2i {
 
                     ++begin;
                 }
+            }
+        };
 
+        struct merger {
+
+            merger(map_type& l, map_type& r)
+                : l(l)
+                , r(r)
+            {}
+
+            void start() {
+                m_thread = std::thread(&merger::run, this);
             }
 
-            typename std::vector<iter_length>::iterator begin;
-            uint64_t n;
-            bool compute_gaps;
-            map_type block_map;
+            void join() {
+                if (m_thread.joinable()) {
+                    m_thread.join();
+                }
+            }
+
+            map_type& l;
+            map_type& r;
+            map_type result;
 
         private:
             std::thread m_thread;
+
+            void run()
+            {
+                result.swap(l);
+                for (auto& pair: r) {
+                    uint64_t hash = pair.first;
+                    auto it = result.find(hash);
+                    if (it == result.end()) {
+                        result[hash] = std::move(pair.second);
+                    } else {
+                        (*it).second.freq += pair.second.freq;
+                    }
+                }
+            }
         };
 
         template<typename Filter>
@@ -358,14 +395,12 @@ namespace ds2i {
 
             // semiasync_queue jobs_queue(num_jobs);
 
-
             std::vector<iter_length> iterators;
 
             for (; it != input.end(); ++it) {
                 auto const& list = *it;
                 size_t n = list.size();
                 if (n > constants::min_size) {
-
                     iterators.emplace_back(list.begin(), n);
                     total_integers += n;
 
@@ -406,8 +441,8 @@ namespace ds2i {
             uint64_t grain = total_integers / num_threads;
 
             // parallel_executor p(num_threads);
-            std::vector<worker> workers;
-            workers.reserve(num_threads);
+            std::vector<collector> collectors;
+            collectors.reserve(num_threads);
 
             auto begin = iterators.begin();
             uint64_t sum = 0;
@@ -418,8 +453,8 @@ namespace ds2i {
                     work = total_integers - sum;
                 }
 
-                worker w;
-                w.begin = begin;
+                collector c;
+                c.begin = begin;
 
                 uint64_t integers = 0;
                 while (integers < work) {
@@ -428,54 +463,57 @@ namespace ds2i {
                 }
 
                 sum += integers;
-                w.n = begin - w.begin;
-                std::cout << "thread-" << i << " processing " << w.n
+                c.n = begin - c.begin;
+                std::cout << "thread-" << i << " processing " << c.n
                           << " lists (" << integers << " integers)"
                           << std::endl;
-                w.compute_gaps = compute_gaps;
+                c.compute_gaps = compute_gaps;
 
-                workers.push_back(std::move(w));
-
-
-                workers.back().start();
+                collectors.push_back(std::move(c));
+                collectors.back().start();
             }
 
-            std::cout << "sum = " << sum << "/" << total_integers << std::endl;
-
-            // task_region(*(p.executor), [&](task_region_handle& trh) {
-            //     for (uint64_t i = 0; i != num_threads; ++i) {
-            //         trh.run([&, i] {
-            //             workers[i].run();
-            //         });
-            //     }
-            // });
+            // std::cout << "sum = " << sum << "/" << total_integers << std::endl;
 
             for (uint64_t i = 0; i != num_threads; ++i) {
-                workers[i].join();
+                collectors[i].join();
             }
 
             logger() << "merging..." << std::endl;
-            uint64_t num_blocks = 0;
-            for (uint64_t i = 0; i != num_threads; ++i) {
-                num_blocks += workers[i].block_map.size();
-            }
-            block_map.reserve(num_blocks);
 
-            for (uint64_t i = 0; i != num_threads; ++i) {
-                auto const& w = workers[i];
-                for (auto& pair: w.block_map) {
-                    uint64_t hash = pair.first;
-                    auto it = block_map.find(hash);
-                    if (it == block_map.end()) {
-                        block_map[hash] = std::move(pair.second);
-                    } else {
-                        (*it).second.freq += pair.second.freq;
-                    }
+            std::vector<map_type> maps;
+            for (auto& c: collectors) {
+                maps.push_back(std::move(c.block_map));
+            }
+
+            std::vector<merger> mergers;
+            while (maps.size() != 1)
+            {
+                uint64_t num_mergers = maps.size() / 2;
+                mergers.reserve(num_mergers);
+                for (uint64_t i = 0; i != maps.size(); i += 2) {
+                    mergers.emplace_back(maps[i], maps[i + 1]);
                 }
-                logger() << "merging-" << i << ": DONE" << std::endl;
+
+                for (auto& m: mergers) {
+                    m.start();
+                }
+
+                for (uint64_t i = 0; i != num_mergers; ++i) {
+                    mergers[i].join();
+                    // logger() << "merging-" << i << ": DONE" << std::endl;
+                }
+
+                maps.clear();
+                for (uint64_t i = 0; i != num_mergers; ++i) {
+                    maps.push_back(std::move(mergers[i].result));
+                }
+                mergers.clear();
             }
 
-            std::vector<worker>().swap(workers);
+            // std::vector<worker>().swap(workers);
+
+            block_map.swap(maps.front());
 
             logger() << "selecting entries..." << std::endl;
             uint64_t num_singletons = 0;
