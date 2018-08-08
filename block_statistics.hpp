@@ -204,63 +204,6 @@ namespace ds2i {
                    "-" + Collector::type();
         }
 
-        template<typename Iterator>
-        struct sequence_collector : semiasync_queue::job {
-            sequence_collector(
-                Iterator begin,
-                uint64_t n,
-                bool compute_gaps,
-                map_type& block_map,
-                boost::progress_display& progress,
-                uint64_t& total_integers
-            )
-                : begin(begin)
-                , n(n)
-                , compute_gaps(compute_gaps)
-                , block_map(block_map)
-                , progress(progress)
-                , total_integers(total_integers)
-            {}
-
-            virtual void prepare()
-            {
-                std::vector<uint32_t> buf;
-                buf.reserve(n);
-                uint32_t prev = compute_gaps ? -1 : 0;
-                for (uint32_t i = 0; i != n; ++i, ++begin) {
-                    buf.push_back(*begin - prev - 1);
-                    if (compute_gaps) prev = *begin;
-                }
-                Collector::collect(buf,
-                                   block_tmp_map
-                                   );
-            }
-
-            virtual void commit()
-            {
-                for (auto& pair: block_tmp_map) {
-                    uint64_t hash = pair.first;
-                    auto it = block_map.find(hash);
-                    if (it == block_map.end()) {
-                        block_map[hash] = std::move(pair.second);
-                    } else {
-                        (*it).second.freq += pair.second.freq;
-                    }
-                }
-                progress += n + 1;
-                total_integers += n;
-                map_type().swap(block_tmp_map);
-            }
-
-            Iterator begin;
-            uint64_t n;
-            bool compute_gaps;
-            map_type& block_map;
-            map_type block_tmp_map;
-            boost::progress_display& progress;
-            uint64_t& total_integers;
-        };
-
         template<typename Filter>
         static block_statistics
         create_or_load(std::string prefix_name,
@@ -393,8 +336,6 @@ namespace ds2i {
                 ++it; // skip first singleton sequence, containing # of docs
             }
 
-            // semiasync_queue jobs_queue(num_jobs);
-
             std::vector<iter_length> iterators;
 
             for (; it != input.end(); ++it) {
@@ -418,29 +359,14 @@ namespace ds2i {
                     // }
                     // Collector::collect(buf, block_map);
                     // buf.clear();
-
-                    // NOTE: parallel version with semiasync_queue
-                    // std::shared_ptr<sequence_collector<iterator_type>>
-                    //     ptr(new sequence_collector<iterator_type>(
-                    //         list.begin(), n,
-                    //         compute_gaps,
-                    //         block_map,
-                    //         progress,
-                    //         total_integers
-                    //     )
-                    // );
-                    // jobs_queue.add_job(ptr, 3 * n);
                 }
             }
-
-            // jobs_queue.complete();
 
 
             logger() << "processing " << iterators.size() << " lists..." << std::endl;
             uint64_t num_threads = std::thread::hardware_concurrency();
             uint64_t grain = total_integers / num_threads;
 
-            // parallel_executor p(num_threads);
             std::vector<collector> collectors;
             collectors.reserve(num_threads);
 
