@@ -136,6 +136,7 @@ namespace ds2i {
             std::streamsize bytes = sizeof(uint32_t);
             uint32_t num_blocks, size, freq;
             in.read(reinterpret_cast<char*>(&total_integers), sizeof(uint64_t));
+            std::cout << "total_integers " << total_integers << std::endl;
             blocks.resize(constants::num_selectors);
 
             for (int s = 0; s != constants::num_selectors; ++s) {
@@ -143,8 +144,9 @@ namespace ds2i {
                 logger() << "reading block stats for context " << constants::selector_codes[s]
                          << " (num_blocks = " << num_blocks << ")" << std::endl;
 
-                // NOTE: load only the needed entries
-                num_blocks = std::min<uint32_t>(constants::num_entries, num_blocks);
+                // TODO
+                // // NOTE: load only the needed entries
+                // num_blocks = std::min<uint32_t>(constants::num_entries, num_blocks);
 
                 blocks[s].reserve(num_blocks);
                 uint32_t num_singletons = 0;
@@ -173,9 +175,9 @@ namespace ds2i {
                 logger() << "storing stats to disk..." << std::endl;
                 out.write(reinterpret_cast<char const*>(&total_integers), sizeof(uint64_t));
 
+                std::streamsize bytes = sizeof(uint32_t);
                 for (int s = 0; s != constants::num_selectors; ++s) {
                     uint32_t num_blocks = blocks[s].size();
-                    std::streamsize bytes = sizeof(uint32_t);
                     out.write(reinterpret_cast<char const*>(&num_blocks), bytes);
                     for (auto const& block: blocks[s]) {
                         uint32_t size = block.data.size();

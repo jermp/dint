@@ -69,9 +69,9 @@ namespace ds2i {
                 }
             }
 
-            void load_from_file(std::string dict_file) {
+            size_t load_from_file(std::string dict_file) {
                 std::ifstream ifs(dict_file);
-                load(ifs);
+                return load(ifs);
             }
 
             bool try_store_to_file(std::string dict_file) const {
@@ -88,12 +88,17 @@ namespace ds2i {
                 dictionary_file.write(reinterpret_cast<char const*>(m_table.data()), num_bytes_for(m_size));
             }
 
-            void load(std::ifstream& dictionary_file) {
+            size_t load(std::ifstream& dictionary_file) {
                 uint32_t size = 0;
+                size_t read_bytes = 0;
                 dictionary_file.read(reinterpret_cast<char*>(&size), sizeof(uint32_t));
+                read_bytes += sizeof(uint32_t);
                 init();
                 m_size = size;
-                dictionary_file.read(reinterpret_cast<char*>(m_table.data()), num_bytes_for(m_size));
+                size_t table_bytes = num_bytes_for(m_size);
+                dictionary_file.read(reinterpret_cast<char*>(m_table.data()), table_bytes);
+                read_bytes += table_bytes;
+                return table_bytes;
             }
 
             bool full() {
@@ -372,9 +377,9 @@ namespace ds2i {
                 }
             }
 
-            void load_from_file(std::string dict_file) {
+            size_t load_from_file(std::string dict_file) {
                 std::ifstream ifs(dict_file);
-                load(ifs);
+                return load(ifs);
             }
 
             bool try_store_to_file(std::string dict_file) const {
@@ -396,16 +401,20 @@ namespace ds2i {
                 dictionary_file.write(reinterpret_cast<char const*>(m_table.data()), table_size * sizeof(uint32_t));
             }
 
-            void load(std::ifstream& dictionary_file) {
+            size_t load(std::ifstream& dictionary_file) {
                 uint32_t offsets_size = 0;
                 uint32_t table_size = 0;
+                size_t read_bytes = 0;
                 dictionary_file.read(reinterpret_cast<char*>(&m_size), sizeof(uint32_t));
                 dictionary_file.read(reinterpret_cast<char*>(&offsets_size), sizeof(uint32_t));
                 dictionary_file.read(reinterpret_cast<char*>(&table_size), sizeof(uint32_t));
+                read_bytes += 3 * sizeof(uint32_t);
                 m_table.resize(table_size);
                 m_offsets.resize(offsets_size);
                 dictionary_file.read(reinterpret_cast<char*>(m_offsets.data()), offsets_size * sizeof(uint32_t));
                 dictionary_file.read(reinterpret_cast<char*>(m_table.data()), table_size * sizeof(uint32_t));
+                read_bytes += (offsets_size + table_size) * sizeof(uint32_t);
+                return read_bytes;
             }
 
             bool full() {

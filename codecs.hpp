@@ -1578,31 +1578,31 @@ namespace ds2i {
 
 
                 // option 1: choose the best dictionary
-                size_t best_size = size_t(-1);
-                uint32_t selector_code = 0;
-                for (uint32_t s = 0; s != constants::num_selectors; ++s) {
-                    encode(large_dict_builders[s], begin, size, encoded[s], 16);
-                    encode(small_dict_builders[s], begin, size, encoded[s + constants::num_selectors], 8);
+                // size_t best_size = size_t(-1);
+                // uint32_t selector_code = 0;
+                // for (uint32_t s = 0; s != constants::num_selectors; ++s) {
+                //     encode(large_dict_builders[s], begin, size, encoded[s], 16);
+                //     encode(small_dict_builders[s], begin, size, encoded[s + constants::num_selectors], 8);
 
-                    size_t smallest_size = encoded[s].size();
-                    uint32_t sc = s;
-                    if (encoded[s + constants::num_selectors].size() <= smallest_size) {
-                        smallest_size = encoded[s + constants::num_selectors].size();
-                        sc += constants::num_selectors;
-                    }
+                //     size_t smallest_size = encoded[s].size();
+                //     uint32_t sc = s;
+                //     if (encoded[s + constants::num_selectors].size() <= smallest_size) {
+                //         smallest_size = encoded[s + constants::num_selectors].size();
+                //         sc += constants::num_selectors;
+                //     }
 
-                    if (smallest_size < best_size) {
-                        best_size = smallest_size;
-                        selector_code = sc;
-                    }
-                }
+                //     if (smallest_size < best_size) {
+                //         best_size = smallest_size;
+                //         selector_code = sc;
+                //     }
+                // }
 
-                out.push_back(selector_code);
-                out.insert(out.end(), encoded[selector_code].begin(),
-                                      encoded[selector_code].end());
-                for (auto& e: encoded) {
-                    e.clear();
-                }
+                // out.push_back(selector_code);
+                // out.insert(out.end(), encoded[selector_code].begin(),
+                //                       encoded[selector_code].end());
+                // for (auto& e: encoded) {
+                //     e.clear();
+                // }
 
 
 
@@ -1611,20 +1611,20 @@ namespace ds2i {
 
 
                 // option 2: select the dictionary based on the context
-                // uint32_t selector_code = sct.get(begin, size);
-                // encode(large_dict_builders[selector_code], begin, size, encoded[0], 16);
-                // encode(small_dict_builders[selector_code], begin, size, encoded[1],  8);
-                // size_t smallest_size = encoded[0].size();
-                // if (encoded[1].size() <= smallest_size) {
-                //     selector_code += constants::num_selectors;
-                // }
+                uint32_t selector_code = sct.get(begin, size);
+                encode(large_dict_builders[selector_code], begin, size, encoded[0], 16);
+                encode(small_dict_builders[selector_code], begin, size, encoded[1],  8);
+                size_t smallest_size = encoded[0].size();
+                if (encoded[1].size() <= smallest_size) {
+                    selector_code += constants::num_selectors;
+                }
 
-                // // control byte
-                // out.push_back(selector_code);
-                // out.insert(out.end(), encoded[selector_code >= constants::num_selectors].begin(),
-                //                       encoded[selector_code >= constants::num_selectors].end());
-                // encoded[0].clear();
-                // encoded[1].clear();
+                // control byte
+                out.push_back(selector_code);
+                out.insert(out.end(), encoded[selector_code >= constants::num_selectors].begin(),
+                                      encoded[selector_code >= constants::num_selectors].end());
+                encoded[0].clear();
+                encoded[1].clear();
 
 
 
@@ -1642,7 +1642,7 @@ namespace ds2i {
             uint32_t* out,
             uint32_t /*universe*/,
             size_t n
-            , dint_statistics& stats
+            // , dint_statistics& stats
             )
         {
             // if (DS2I_UNLIKELY(n < constants::block_size)) {
