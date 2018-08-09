@@ -1566,33 +1566,16 @@ namespace ds2i {
             // }
 
             uint32_t const* begin = in;
-            // std::cout << "n = " << n << std::endl;
             uint64_t num_blocks = succinct::util::ceil_div(n, constants::block_size);
-            // std::cout << "num_blocks = " << num_blocks << std::endl;
             uint64_t tail = n - (n / constants::block_size * constants::block_size);
-            // std::cout << "tail = " << tail << std::endl;
-            // uint64_t sum = 0;
 
             for (uint64_t b = 0; b != num_blocks; ++b)
             {
-                // std::cout << "block " << b;
-                // uint32_t const* end = begin;
-                // if (b != num_blocks - 1) {
-                //     end += constants::block_size;
-                // } else {
-                //     end += tail;
-                // }
-
                 uint64_t size = constants::block_size;
                 if (b == num_blocks - 1 and tail != 0) {
                     size = tail;
                 }
 
-                // sum += size;
-                // if (sum % 998400 == 0) {
-                //     logger() << sum << "/" << n << std::endl;
-                // }
-                // // std::cout << "; size: " << size << std::endl;
 
                 // option 1: choose the best dictionary
                 size_t best_size = size_t(-1);
@@ -1613,23 +1596,10 @@ namespace ds2i {
                         selector_code = sc;
                     }
                 }
-                // std::cout << "best_size = " << best_size << std::endl;
-                // bool small = selector_code >= constants::num_selectors;
-                // if (small) {
-                //     std::cout << "\t small selector_code = " << (selector_code - constants::num_selectors) << ", for block " << b << " of size " << size << std::endl;
-                // } else {
-                //     std::cout << "\t large selector_code = " << selector_code << ", for block " << b << " of size " << size << std::endl;
-                // }
-                // control byte
-                // std::cout << "pushing selector_code = " << selector_code << std::endl;
+
                 out.push_back(selector_code);
-                // assert(encoded[selector_code].size() == best_size);
-                // uint64_t s = out.size();
                 out.insert(out.end(), encoded[selector_code].begin(),
                                       encoded[selector_code].end());
-                // uint64_t ss = out.size();
-                // assert(ss - s == best_size);
-
                 for (auto& e: encoded) {
                     e.clear();
                 }
@@ -1663,14 +1633,11 @@ namespace ds2i {
 
                 begin += size;
             }
-
-            // std::cout << "sum " << sum << "/" << n << std::endl;
-            // assert(sum == n);
         }
 
         static uint8_t const* decode(
             std::vector<large_dictionary_type> const& large_dicts,
-            std::vector<small_dictionary_type> const& small_dicts,
+            // std::vector<small_dictionary_type> const& small_dicts,
             uint8_t const* in,
             uint32_t* out,
             uint32_t /*universe*/,
@@ -1744,7 +1711,8 @@ namespace ds2i {
                     selector_code -= constants::num_selectors;
                     // std::cout << "\t small selector_code = " << int(selector_code) << ", for block " << b << " of size " << size << std::endl;
 
-                    auto const& small_dict = small_dicts[selector_code];
+                    // auto const& small_dict = small_dicts[selector_code];
+                    auto const& small_dict = large_dicts[selector_code];
                     uint8_t const* ptr = in + 1;
                     for (size_t i = 0; i != size; ++ptr) {
                         uint32_t index = *ptr;

@@ -96,6 +96,13 @@ namespace ds2i {
                         n = stats.blocks[s].size();
                     }
 
+                    // NOTE: sort by decreasing length
+                    std::sort(stats.blocks[s].begin(),
+                              stats.blocks[s].begin() + n,
+                        [](auto const& l, auto const& r) {
+                            return l.data.size() > r.data.size();
+                        });
+
                     auto it = stats.blocks[s].begin();
                     for (uint64_t i = 0; i < n; ++i, ++it) {
                         auto const& block = *it;

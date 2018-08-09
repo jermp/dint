@@ -314,17 +314,17 @@ namespace ds2i {
         succinct::mapper::mappable_vector<uint32_t> m_table;
     };
 
-    // using large_dictionary_type = dictionary
-    //                             <constants::num_entries,
-    //                              constants::max_entry_size>;
+    using large_dictionary_type = dictionary
+                                <constants::num_entries,
+                                 constants::max_entry_size>;
 
-    // using small_dictionary_type = dictionary
-    //                             <256,
-    //                              large_dictionary_type::max_entry_size>;
-
-
+    using small_dictionary_type = dictionary
+                                <256,
+                                 large_dictionary_type::max_entry_size>;
 
 
+
+    // PACKED
     template<uint32_t t_num_entries,
              uint32_t t_max_entry_size>
     struct dictionary_packed
@@ -652,13 +652,13 @@ namespace ds2i {
     };
 
 
-    using large_dictionary_type = dictionary_packed
-                                <constants::num_entries,
-                                 constants::max_entry_size>;
+    // using large_dictionary_type = dictionary_packed
+    //                             <constants::num_entries,
+    //                              constants::max_entry_size>;
 
-    using small_dictionary_type = dictionary_packed
-                                <256,
-                                 large_dictionary_type::max_entry_size>;
+    // using small_dictionary_type = dictionary_packed
+    //                             <256,
+    //                              large_dictionary_type::max_entry_size>;
 
 
 

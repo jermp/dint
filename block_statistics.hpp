@@ -142,6 +142,10 @@ namespace ds2i {
                 in.read(reinterpret_cast<char*>(&num_blocks), bytes);
                 logger() << "reading block stats for context " << constants::selector_codes[s]
                          << " (num_blocks = " << num_blocks << ")" << std::endl;
+
+                // NOTE: load only the needed entries
+                num_blocks = std::min<uint32_t>(constants::num_entries, num_blocks);
+
                 blocks[s].reserve(num_blocks);
                 uint32_t num_singletons = 0;
                 for (uint32_t i = 0; i < num_blocks; ++i) {
@@ -477,7 +481,7 @@ namespace ds2i {
             logger() << "reading block stats (num_blocks = " << num_blocks << ")" << std::endl;
 
             // NOTE: load only the needed entries
-            num_blocks = constants::num_entries;
+            num_blocks = std::min<uint32_t>(constants::num_entries, num_blocks);
 
             blocks.reserve(num_blocks);
             uint32_t num_singletons = 0;
