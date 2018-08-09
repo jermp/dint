@@ -336,110 +336,109 @@ namespace ds2i {
                 ++it; // skip first singleton sequence, containing # of docs
             }
 
-            std::vector<iter_length> iterators;
+            // std::vector<iter_length> iterators;
 
             for (; it != input.end(); ++it) {
                 auto const& list = *it;
                 size_t n = list.size();
                 if (n > constants::min_size) {
-                    iterators.emplace_back(list.begin(), n);
-                    total_integers += n;
+                    // iterators.emplace_back(list.begin(), n);
+                    // total_integers += n;
 
                     // NOTE: sequential version
-                    // total_integers += n;
-                    // progress += n + 1;
-                    // buf.reserve(n);
-                    // uint32_t prev = compute_gaps ? -1 : 0;
-                    // auto it = list.begin();
-                    // for (uint32_t i = 0; i < n; ++i, ++it) {
-                    //     buf.push_back(*it - prev - 1);
-                    //     if (compute_gaps) {
-                    //         prev = *it;
-                    //     }
-                    // }
-                    // Collector::collect(buf, block_map);
-                    // buf.clear();
+                    total_integers += n;
+                    progress += n + 1;
+                    buf.reserve(n);
+                    uint32_t prev = compute_gaps ? -1 : 0;
+                    auto it = list.begin();
+                    for (uint32_t i = 0; i < n; ++i, ++it) {
+                        buf.push_back(*it - prev - 1);
+                        if (compute_gaps) {
+                            prev = *it;
+                        }
+                    }
+                    Collector::collect(buf, block_map);
+                    buf.clear();
                 }
             }
 
+            // logger() << "processing " << iterators.size() << " lists..." << std::endl;
+            // uint64_t num_threads = std::thread::hardware_concurrency();
+            // uint64_t grain = total_integers / num_threads;
 
-            logger() << "processing " << iterators.size() << " lists..." << std::endl;
-            uint64_t num_threads = std::thread::hardware_concurrency();
-            uint64_t grain = total_integers / num_threads;
+            // std::vector<collector> collectors;
+            // collectors.reserve(num_threads);
 
-            std::vector<collector> collectors;
-            collectors.reserve(num_threads);
+            // auto begin = iterators.begin();
+            // uint64_t sum = 0;
+            // for (uint64_t i = 0; i != num_threads; ++i)
+            // {
+            //     uint64_t work = grain;
+            //     if (i == num_threads - 1) {
+            //         work = total_integers - sum;
+            //     }
 
-            auto begin = iterators.begin();
-            uint64_t sum = 0;
-            for (uint64_t i = 0; i != num_threads; ++i)
-            {
-                uint64_t work = grain;
-                if (i == num_threads - 1) {
-                    work = total_integers - sum;
-                }
+            //     collector c;
+            //     c.begin = begin;
 
-                collector c;
-                c.begin = begin;
+            //     uint64_t integers = 0;
+            //     while (integers < work) {
+            //         integers += (*begin).n;
+            //         ++begin;
+            //     }
 
-                uint64_t integers = 0;
-                while (integers < work) {
-                    integers += (*begin).n;
-                    ++begin;
-                }
+            //     sum += integers;
+            //     c.n = begin - c.begin;
+            //     std::cout << "thread-" << i << " processing " << c.n
+            //               << " lists (" << integers << " integers)"
+            //               << std::endl;
+            //     c.compute_gaps = compute_gaps;
 
-                sum += integers;
-                c.n = begin - c.begin;
-                std::cout << "thread-" << i << " processing " << c.n
-                          << " lists (" << integers << " integers)"
-                          << std::endl;
-                c.compute_gaps = compute_gaps;
+            //     collectors.push_back(std::move(c));
+            //     collectors.back().start();
+            // }
 
-                collectors.push_back(std::move(c));
-                collectors.back().start();
-            }
+            // // std::cout << "sum = " << sum << "/" << total_integers << std::endl;
 
-            // std::cout << "sum = " << sum << "/" << total_integers << std::endl;
+            // for (uint64_t i = 0; i != num_threads; ++i) {
+            //     collectors[i].join();
+            // }
 
-            for (uint64_t i = 0; i != num_threads; ++i) {
-                collectors[i].join();
-            }
+            // logger() << "merging..." << std::endl;
 
-            logger() << "merging..." << std::endl;
+            // std::vector<map_type> maps;
+            // for (auto& c: collectors) {
+            //     maps.push_back(std::move(c.block_map));
+            // }
 
-            std::vector<map_type> maps;
-            for (auto& c: collectors) {
-                maps.push_back(std::move(c.block_map));
-            }
+            // std::vector<merger> mergers;
+            // while (maps.size() != 1)
+            // {
+            //     uint64_t num_mergers = maps.size() / 2;
+            //     mergers.reserve(num_mergers);
+            //     for (uint64_t i = 0; i != maps.size(); i += 2) {
+            //         mergers.emplace_back(maps[i], maps[i + 1]);
+            //     }
 
-            std::vector<merger> mergers;
-            while (maps.size() != 1)
-            {
-                uint64_t num_mergers = maps.size() / 2;
-                mergers.reserve(num_mergers);
-                for (uint64_t i = 0; i != maps.size(); i += 2) {
-                    mergers.emplace_back(maps[i], maps[i + 1]);
-                }
+            //     for (auto& m: mergers) {
+            //         m.start();
+            //     }
 
-                for (auto& m: mergers) {
-                    m.start();
-                }
+            //     for (uint64_t i = 0; i != num_mergers; ++i) {
+            //         mergers[i].join();
+            //         // logger() << "merging-" << i << ": DONE" << std::endl;
+            //     }
 
-                for (uint64_t i = 0; i != num_mergers; ++i) {
-                    mergers[i].join();
-                    // logger() << "merging-" << i << ": DONE" << std::endl;
-                }
+            //     maps.clear();
+            //     for (uint64_t i = 0; i != num_mergers; ++i) {
+            //         maps.push_back(std::move(mergers[i].result));
+            //     }
+            //     mergers.clear();
+            // }
 
-                maps.clear();
-                for (uint64_t i = 0; i != num_mergers; ++i) {
-                    maps.push_back(std::move(mergers[i].result));
-                }
-                mergers.clear();
-            }
+            // // std::vector<worker>().swap(workers);
 
-            // std::vector<worker>().swap(workers);
-
-            block_map.swap(maps.front());
+            // block_map.swap(maps.front());
 
             logger() << "selecting entries..." << std::endl;
             uint64_t num_singletons = 0;
@@ -476,6 +475,10 @@ namespace ds2i {
             in.read(reinterpret_cast<char*>(&total_integers), sizeof(uint64_t));
             in.read(reinterpret_cast<char*>(&num_blocks), bytes);
             logger() << "reading block stats (num_blocks = " << num_blocks << ")" << std::endl;
+
+            // NOTE: load only the needed entries
+            num_blocks = constants::num_entries;
+
             blocks.reserve(num_blocks);
             uint32_t num_singletons = 0;
             for (uint32_t i = 0; i < num_blocks; ++i) {

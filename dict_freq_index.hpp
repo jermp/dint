@@ -93,9 +93,9 @@ namespace ds2i {
                 // std::cout << "freqs large exceptions: " << m_freqs_dict_builder.large_exceptions << std::endl;
 
                 logger() << "Usage distribution for docs:" << std::endl;
-                m_docs_dict_builder.print();
+                m_docs_dict_builder.print_usage();
                 logger() << "Usage distribution for freqs:" << std::endl;
-                m_freqs_dict_builder.print();
+                m_freqs_dict_builder.print_usage();
 
                 m_docs_dict_builder.build(dfi.m_docs_dict);
                 m_freqs_dict_builder.build(dfi.m_freqs_dict);
