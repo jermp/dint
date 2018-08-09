@@ -29,9 +29,9 @@ struct sequence_adder : semiasync_queue::job {
         Iterator begin,
         uint64_t n,
 
-        std::vector<typename large_dictionary_type::builder>& large_dict_builders,
-        std::vector<typename small_dictionary_type::builder>& small_dict_builders,
-        // typename large_dictionary_type::builder& builder,
+        // std::vector<typename large_dictionary_type::builder>& large_dict_builders,
+        // std::vector<typename small_dictionary_type::builder>& small_dict_builders,
+        typename large_dictionary_type::builder& builder,
 
         boost::progress_display& progress,
         std::vector<uint8_t>& output,
@@ -42,10 +42,10 @@ struct sequence_adder : semiasync_queue::job {
         : begin(begin)
         , n(n)
         , universe(0)
-        , large_dict_builders(large_dict_builders)
-        , small_dict_builders(small_dict_builders)
+        // , large_dict_builders(large_dict_builders)
+        // , small_dict_builders(small_dict_builders)
 
-        // , builder(builder)
+        , builder(builder)
 
         , progress(progress)
         , output(output)
@@ -68,34 +68,33 @@ struct sequence_adder : semiasync_queue::job {
         // std::cout << "n " << n << std::endl;
         assert(buf.size() == n);
 
-        Encoder e;
-        e.encode(
-            large_dict_builders,
-            small_dict_builders,
-            buf.data(), universe, buf.size(), tmp
-        );
-
-        // Encoder::encode(
-        //     buf.data(), universe, buf.size(), tmp, &builder
+        // Encoder e;
+        // e.encode(
+        //     large_dict_builders,
+        //     small_dict_builders,
+        //     buf.data(), universe, buf.size(), tmp
         // );
+
+        Encoder::encode(
+            buf.data(), universe, buf.size(), tmp, &builder
+        );
     }
 
-    virtual void commit()
-    {
+    virtual void commit() {
+        header::write(n, universe, output);
+        output.insert(output.end(), tmp.begin(), tmp.end());
         progress += n + 1;
         ++num_processed_lists;
         num_total_ints += n;
-        header::write(n, universe, output);
-        output.insert(output.end(), tmp.begin(), tmp.end());
     }
 
     Iterator begin;
     uint64_t n;
     uint32_t universe;
 
-    std::vector<typename large_dictionary_type::builder>& large_dict_builders;
-    std::vector<typename small_dictionary_type::builder>& small_dict_builders;
-    // typename large_dictionary_type::builder& builder;
+    // std::vector<typename large_dictionary_type::builder>& large_dict_builders;
+    // std::vector<typename small_dictionary_type::builder>& small_dict_builders;
+    typename large_dictionary_type::builder& builder;
 
     boost::progress_display& progress;
     std::vector<uint8_t> tmp;
@@ -117,35 +116,35 @@ void encode(std::string const& type,
     uint64_t num_processed_lists = 0;
     uint64_t num_total_ints = 0;
 
-    // typename dictionary_type::builder builder;
+    typename dictionary_type::builder builder;
 
-    std::vector<typename large_dictionary_type::builder>
-        large_dict_builders(constants::num_selectors);
-    std::vector<typename small_dictionary_type::builder>
-        small_dict_builders(constants::num_selectors);
+    // std::vector<typename large_dictionary_type::builder>
+    //     large_dict_builders(constants::num_selectors);
+    // std::vector<typename small_dictionary_type::builder>
+    //     small_dict_builders(constants::num_selectors);
 
     if (dictionary_filename) {
         // NOTE: single dictionary
-        // std::ifstream dictionary_file(dictionary_filename);
-        // builder.load(dictionary_file);
-        // logger() << "preparing for encoding..." << std::endl;
-        // builder.prepare_for_encoding();
-        // builder.print();
+        std::ifstream dictionary_file(dictionary_filename);
+        builder.load(dictionary_file);
+        logger() << "preparing for encoding..." << std::endl;
+        builder.prepare_for_encoding();
+        builder.print_usage();
 
         // NOTE: contexts
-        std::string prefix(dictionary_filename);
-        for (int s = 0; s != constants::num_selectors; ++s)
-        {
-            std::string large_dict_filename = prefix + "."
-                + std::to_string(constants::selector_codes[s]) + ".large";
-            large_dict_builders[s].load_from_file(large_dict_filename);
-            large_dict_builders[s].prepare_for_encoding();
+        // std::string prefix(dictionary_filename);
+        // for (int s = 0; s != constants::num_selectors; ++s)
+        // {
+        //     std::string large_dict_filename = prefix + "."
+        //         + std::to_string(constants::selector_codes[s]) + ".large";
+        //     large_dict_builders[s].load_from_file(large_dict_filename);
+        //     large_dict_builders[s].prepare_for_encoding();
 
-            std::string small_dict_filename = prefix + "."
-                + std::to_string(constants::selector_codes[s]) + ".small";
-            small_dict_builders[s].load_from_file(small_dict_filename);
-            small_dict_builders[s].prepare_for_encoding();
-        }
+        //     std::string small_dict_filename = prefix + "."
+        //         + std::to_string(constants::selector_codes[s]) + ".small";
+        //     small_dict_builders[s].load_from_file(small_dict_filename);
+        //     small_dict_builders[s].prepare_for_encoding();
+        // }
     }
 
     uint64_t total_progress = input.num_postings();
@@ -185,9 +184,9 @@ void encode(std::string const& type,
             std::shared_ptr<sequence_adder<iterator_type, Encoder>>
                 ptr(new sequence_adder<iterator_type, Encoder>(list.begin(), n,
 
-                                                large_dict_builders,
-                                                small_dict_builders,
-                                                // builder,
+                                                // large_dict_builders,
+                                                // small_dict_builders,
+                                                builder,
 
                                                 progress, output, docs,
                                                 num_processed_lists, num_total_ints));
@@ -450,13 +449,13 @@ int main(int argc, char** argv) {
 
 
     // TODO: refactor this later
-    // if (type == std::string("greedy_dint")) {
-    //     encode<greedy_dint>(type, collection_name, output_filename, dictionary_filename);
-    // }
-
-    if (type == std::string("opt_dint")) {
-        encode<opt_dint>(type, collection_name, output_filename, dictionary_filename);
+    if (type == std::string("greedy_dint")) {
+        encode<greedy_dint>(type, collection_name, output_filename, dictionary_filename);
     }
+
+    // if (type == std::string("opt_dint")) {
+    //     encode<opt_dint>(type, collection_name, output_filename, dictionary_filename);
+    // }
 
     if (type == std::string("pef")) {
         encode_pef(collection_name, output_filename);

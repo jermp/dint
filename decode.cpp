@@ -37,38 +37,39 @@ void decode(std::string const& type,
         logger() << "Error calling madvice: " << errno << std::endl;
     }
 
-    std::vector<large_dictionary_type> large_dicts(constants::num_selectors);
-    std::vector<small_dictionary_type> small_dicts(constants::num_selectors);
+    // std::vector<large_dictionary_type> large_dicts(constants::num_selectors);
+    // std::vector<small_dictionary_type> small_dicts(constants::num_selectors);
 
     // NOTE: single dictionary
-    // dictionary_type dict;
-    // uint64_t dict_size = 0;
+    dictionary_type dict;
+    uint64_t dict_size = 0;
+
     if (dictionary_filename) {
-        // typename dictionary_type::builder builder;
-        // std::ifstream dictionary_file(dictionary_filename);
-        // builder.load(dictionary_file);
-        // dict_size = builder.size();
-        // logger() << "dictionary with "
-        //          << dict_size << " entries" << std::endl;
-        // builder.print();
-        // builder.build(dict);
+        typename dictionary_type::builder builder;
+        std::ifstream dictionary_file(dictionary_filename);
+        builder.load(dictionary_file);
+        dict_size = builder.size();
+        logger() << "dictionary with "
+                 << dict_size << " entries" << std::endl;
+        builder.print_usage();
+        builder.build(dict);
 
         // NOTE: contexts
-        std::string prefix(dictionary_filename);
-        for (int s = 0; s != constants::num_selectors; ++s)
-        {
-            std::string large_dict_filename = prefix + "."
-                + std::to_string(constants::selector_codes[s]) + ".large";
-            typename large_dictionary_type::builder large_dict_builder;
-            large_dict_builder.load_from_file(large_dict_filename);
-            large_dict_builder.build(large_dicts[s]);
+        // std::string prefix(dictionary_filename);
+        // for (int s = 0; s != constants::num_selectors; ++s)
+        // {
+        //     std::string large_dict_filename = prefix + "."
+        //         + std::to_string(constants::selector_codes[s]) + ".large";
+        //     typename large_dictionary_type::builder large_dict_builder;
+        //     large_dict_builder.load_from_file(large_dict_filename);
+        //     large_dict_builder.build(large_dicts[s]);
 
-            std::string small_dict_filename = prefix + "."
-                + std::to_string(constants::selector_codes[s]) + ".small";
-            typename small_dictionary_type::builder small_dict_builder;
-            small_dict_builder.load_from_file(small_dict_filename);
-            small_dict_builder.build(small_dicts[s]);
-        }
+        //     std::string small_dict_filename = prefix + "."
+        //         + std::to_string(constants::selector_codes[s]) + ".small";
+        //     typename small_dictionary_type::builder small_dict_builder;
+        //     small_dict_builder.load_from_file(small_dict_filename);
+        //     small_dict_builder.build(small_dicts[s]);
+        // }
     }
 
     std::vector<uint32_t> decoded;
@@ -86,10 +87,10 @@ void decode(std::string const& type,
         uint32_t n, universe;
         begin = header::read(begin, &n, &universe);
         auto start = clock_type::now();
-        begin = Decoder::decode(large_dicts, small_dicts,
+        begin = Decoder::decode(// large_dicts, small_dicts,
                                 begin, decoded.data(), universe, n
-                                // , &dict
-                                , stats
+                                , &dict
+                                // , stats
                                 );
         auto finish = clock_type::now();
         std::chrono::duration<double> elapsed = finish - start;
@@ -268,13 +269,14 @@ int main(int argc, char** argv) {
 
     logger() << cmd << std::endl;
 
-    // if (type == std::string("greedy_dint")) {
-    //     decode<greedy_dint>(type, encoded_data_filename, dictionary_filename);
-    // }
-
-    if (type == std::string("opt_dint")) {
-        decode<opt_dint>(type, encoded_data_filename, dictionary_filename);
+    // TODO: refactor this later
+    if (type == std::string("greedy_dint")) {
+        decode<greedy_dint>(type, encoded_data_filename, dictionary_filename);
     }
+
+    // if (type == std::string("opt_dint")) {
+    //     decode<opt_dint>(type, encoded_data_filename, dictionary_filename);
+    // }
 
     if (type == std::string("pef")) {
         decode_pef(encoded_data_filename, freqs);

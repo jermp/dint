@@ -357,13 +357,13 @@ namespace ds2i {
                 m_size = reserved;
                 m_offsets.reserve(num_entries);
 
-                // for (uint32_t i = 0; i != reserved; ++i) { // unused offsets
-                //     m_offsets.push_back(0);
-                // }
-
+                // NOTE: push [max_entry_size] 0s at the beginning of the table
+                // to be copied in case of a run, thus the offset corresponding to
+                // the indexes 2, 3, 4, 5, 6 (i.e., runs) is always 0
+                for (uint32_t i = 0; i != max_entry_size; ++i) {
+                    m_table.push_back(0);
+                }
                 for (uint32_t i = 0; i != EXCEPTIONS; ++i) {
-                    // uint32_t size_and_offset = uint32_t(1) << 24; // offset is 0
-                    // m_offsets.push_back(size_and_offset);
                     m_offsets.push_back(0);
                 }
                 for (uint32_t i = 0, size = 256; i != 5; ++i, size /= 2) {
@@ -406,6 +406,11 @@ namespace ds2i {
                 m_offsets.resize(offsets_size);
                 dictionary_file.read(reinterpret_cast<char*>(m_offsets.data()), offsets_size * sizeof(uint32_t));
                 dictionary_file.read(reinterpret_cast<char*>(m_table.data()), table_size * sizeof(uint32_t));
+
+                // for (uint32_t i = 0; i != m_table.size(); ++i) {
+                //     std::cout << m_table[i] << "-";
+                // }
+                // std::cout << std::endl;
             }
 
             bool full() {

@@ -1340,7 +1340,7 @@ namespace ds2i {
                                      uint32_t* out,
                                      uint32_t /*universe*/, size_t n,
                                      dictionary_type const* dict
-                                     , dint_statistics& stats
+                                     // , dint_statistics& stats
                                      )
         {
             uint16_t const* ptr = reinterpret_cast<uint16_t const*>(in);
@@ -1349,7 +1349,7 @@ namespace ds2i {
                 uint32_t index = *ptr;
                 uint32_t decoded_ints = 1;
 
-                ++stats.occs[index];
+                // ++stats.occs[index];
 
                 if (DS2I_LIKELY(index > EXCEPTIONS - 1))
                 {
@@ -1377,12 +1377,12 @@ namespace ds2i {
 
                     // stats.dict_codewords++;
                     // stats.decoded_ints_from_dict += decoded_ints;
-                    stats.total_ints += decoded_ints;
+                    // stats.total_ints += decoded_ints;
 
                 } else {
 
                     // stats.ints_distr[6] += 1;
-                    ++stats.total_ints;
+                    // ++stats.total_ints;
 
                     if (index == 1) { // 4-byte exception
                         *out = *(reinterpret_cast<uint32_t const*>(++ptr));

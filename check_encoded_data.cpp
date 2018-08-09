@@ -38,36 +38,36 @@ void check(char const* collection_filename,
     binary_collection input(collection_filename);
     auto it = input.begin();
 
-    std::vector<large_dictionary_type> large_dicts(constants::num_selectors);
-    std::vector<small_dictionary_type> small_dicts(constants::num_selectors);
+    // std::vector<large_dictionary_type> large_dicts(constants::num_selectors);
+    // std::vector<small_dictionary_type> small_dicts(constants::num_selectors);
 
     // NOTE: single dict
-    // dictionary_type dict;
-    // if (dictionary_filename) {
-    //     typename dictionary_type::builder builder;
-    //     std::ifstream dictionary_file(dictionary_filename);
-    //     builder.load(dictionary_file);
-    //     builder.build(dict);
-    // }
+    dictionary_type dict;
+    if (dictionary_filename) {
+        typename dictionary_type::builder builder;
+        std::ifstream dictionary_file(dictionary_filename);
+        builder.load(dictionary_file);
+        builder.build(dict);
+    }
 
     // NOTE: multi dicts
-    if (dictionary_filename) {
-        std::string prefix(dictionary_filename);
-        for (int s = 0; s != constants::num_selectors; ++s)
-        {
-            std::string large_dict_filename = prefix + "."
-                + std::to_string(constants::selector_codes[s]) + ".large";
-            typename large_dictionary_type::builder large_dict_builder;
-            large_dict_builder.load_from_file(large_dict_filename);
-            large_dict_builder.build(large_dicts[s]);
+    // if (dictionary_filename) {
+    //     std::string prefix(dictionary_filename);
+    //     for (int s = 0; s != constants::num_selectors; ++s)
+    //     {
+    //         std::string large_dict_filename = prefix + "."
+    //             + std::to_string(constants::selector_codes[s]) + ".large";
+    //         typename large_dictionary_type::builder large_dict_builder;
+    //         large_dict_builder.load_from_file(large_dict_filename);
+    //         large_dict_builder.build(large_dicts[s]);
 
-            std::string small_dict_filename = prefix + "."
-                + std::to_string(constants::selector_codes[s]) + ".small";
-            typename small_dictionary_type::builder small_dict_builder;
-            small_dict_builder.load_from_file(small_dict_filename);
-            small_dict_builder.build(small_dicts[s]);
-        }
-    }
+    //         std::string small_dict_filename = prefix + "."
+    //             + std::to_string(constants::selector_codes[s]) + ".small";
+    //         typename small_dictionary_type::builder small_dict_builder;
+    //         small_dict_builder.load_from_file(small_dict_filename);
+    //         small_dict_builder.build(small_dicts[s]);
+    //     }
+    // }
 
     std::vector<uint32_t> decoded;
     decoded.resize(constants::max_size, 0);
@@ -87,7 +87,7 @@ void check(char const* collection_filename,
     uint64_t total_decoded_ints = 0;
     uint64_t sequence = 0;
 
-    // dint_statistics stats(dictionary_type::num_entries);
+    dint_statistics stats;
 
     for (; it != input.end(); ++it)
     {
@@ -97,16 +97,17 @@ void check(char const* collection_filename,
         {
             uint32_t n, universe;
             begin = header::read(begin, &n, &universe);
+            // std::cout << "n " << n << "; universe " << universe << std::endl;
             if (n != size) {
                 std::cerr << "sequence has wrong length: got "
                           << n << " but expected " << sequence << std::endl;
             }
 
-            begin = Decoder::decode(large_dicts, small_dicts,
+            begin = Decoder::decode(// large_dicts, small_dicts,
                                     begin,
                                     decoded.data(),
                                     universe, n
-                                    // , &dict
+                                    , &dict
                                     // , stats
                                     );
             total_decoded_ints += n;
@@ -123,7 +124,11 @@ void check(char const* collection_filename,
                               << j << "/" << n << " (got " << decoded[j]
                               << " but expected " << expected << ")" << std::endl;
                 }
-                decoded[j] = 0; // re-init
+                decoded[j] = 0;
+            }
+
+            for (; j != n + constants::max_entry_size; ++j) {
+                decoded[j] = 0;
             }
         }
 
@@ -159,7 +164,14 @@ int main(int argc, char** argv) {
         }
     }
 
-    check<dint>(collection_filename, encoded_data_filename, dictionary_filename);
+    // TODO: refactor this later
+    if (type == std::string("greedy_dint")) {
+        check<greedy_dint>(collection_filename, encoded_data_filename, dictionary_filename);
+    }
+
+    // if (type == std::string("opt_dint")) {
+    //     check<opt_dint>(collection_filename, encoded_data_filename, dictionary_filename);
+    // }
 
 //     if (false) {
 // #define LOOP_BODY(R, DATA, T)                                   \
