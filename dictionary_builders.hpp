@@ -59,9 +59,16 @@ namespace ds2i {
 
             dict_builder.init();
             uint64_t n = large_dictionary_type::num_entries;
+            std::cout << "stats.blocks.size() " << stats.blocks.size() << std::endl;
             if (stats.blocks.size() < n) {
                 n = stats.blocks.size();
             }
+
+            // NOTE: sort by decreasing length
+            std::sort(stats.blocks.begin(), stats.blocks.begin() + n,
+                [](auto const& l, auto const& r) {
+                    return l.data.size() > r.data.size();
+                });
 
             auto it = stats.blocks.begin();
             for (uint64_t i = 0; i < n; ++i, ++it) {

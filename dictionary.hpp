@@ -406,11 +406,6 @@ namespace ds2i {
                 m_offsets.resize(offsets_size);
                 dictionary_file.read(reinterpret_cast<char*>(m_offsets.data()), offsets_size * sizeof(uint32_t));
                 dictionary_file.read(reinterpret_cast<char*>(m_table.data()), table_size * sizeof(uint32_t));
-
-                // for (uint32_t i = 0; i != m_table.size(); ++i) {
-                //     std::cout << m_table[i] << "-";
-                // }
-                // std::cout << std::endl;
             }
 
             bool full() {
@@ -427,19 +422,87 @@ namespace ds2i {
                     return false;
                 }
 
-                // TODO: prefixes are not taken into account here
+                // Option 1: always push a new entry
+                // uint32_t size_and_offset = ((entry_size - 1) << 24) | uint32_t(m_table.size());
+                // m_offsets.push_back(size_and_offset);
+                // for (uint32_t i = 0; i != entry_size; ++i, ++entry) {
+                //     m_table.push_back(*entry);
+                // }
 
-                // 1. push a new size
-                uint32_t size_and_offset = ((entry_size - 1) << 24) | uint32_t(m_table.size());
-                m_offsets.push_back(size_and_offset);
+                // Option 2: search for a prefix
+                uint32_t S = (entry_size - 1) << 24;
+                uint32_t O = 0;
 
-
-                // 2. search for the pattern: if found, push that offset; otherwise push a new offset
-                // TODO
-
-                for (uint32_t i = 0; i != entry_size; ++i, ++entry) {
-                    m_table.push_back(*entry);
+                bool run = true;
+                for (uint32_t k = 0; k != entry_size; ++k) {
+                    if (entry[k] != 0) {
+                        run = false;
+                        break;
+                    }
                 }
+
+                if (run) {
+
+                    // std::cout << "searching for entry:" << std::endl;
+                    // for (uint32_t k = 0; k != entry_size; ++k) {
+                    //     std::cout << entry[k] << " ";
+                    // }
+                    // std::cout << std::endl;
+                    // std::cout << "RUN!" << std::endl;
+
+                    uint32_t size_and_offset = S;
+                    m_offsets.push_back(size_and_offset);
+
+                } else {
+                    bool found = false;
+                    O = max_entry_size;
+                    for (uint32_t i = reserved; i != m_size; ++i) {
+                        auto* ptr = get(i);
+                        uint32_t s = size(i);
+                        O = offset(i);
+
+                        if (s > entry_size) {
+                            found = true;
+                            for (uint32_t k = 0; k != entry_size; ++k) {
+                                if (ptr[k] != entry[k]) {
+                                    found = false;
+                                    break;
+                                }
+                            }
+
+                            if (found) {
+
+                                // std::cout << "searching for entry:" << std::endl;
+                                // for (uint32_t k = 0; k != entry_size; ++k) {
+                                //     std::cout << entry[k] << " ";
+                                // }
+                                // std::cout << std::endl;
+
+                                // std::cout << "s " << s << std::endl;
+                                // std::cout << "\tFOUND as prefix of:\n\t";
+                                // for (uint32_t k = 0; k != s; ++k) {
+                                //     std::cout << m_table[O + k] << " ";
+                                // }
+                                // std::cout << std::endl;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (found) {
+                        uint32_t size_and_offset = S | O;
+                        m_offsets.push_back(size_and_offset);
+                    } else {
+                        O = m_table.size();
+                        uint32_t size_and_offset = S | O;
+                        m_offsets.push_back(size_and_offset);
+                        for (uint32_t i = 0; i != entry_size; ++i) {
+                            m_table.push_back(entry[i]);
+                        }
+                    }
+
+                }
+
                 ++m_size;
 
                 return true;
@@ -537,10 +600,13 @@ namespace ds2i {
                 return (m_offsets[i] >> 24) + 1;
             }
 
-            uint32_t const* get(uint32_t i) const {
+            uint32_t offset(uint32_t i) const {
                 assert(i < size());
-                uint32_t offset = m_offsets[i] & 0xFFFFFF;
-                return &m_table[offset];
+                return m_offsets[i] & 0xFFFFFF;
+            }
+
+            uint32_t const* get(uint32_t i) const {
+                return &m_table[offset(i)];
             }
 
         private:
