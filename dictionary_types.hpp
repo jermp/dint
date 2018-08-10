@@ -1,18 +1,27 @@
 #pragma once
 
 #include "dint_configuration.hpp"
-#include "dictionary_rectangular.hpp"
-#include "dictionary_packed.hpp"
-#include "dictionary_overlapped.hpp"
+#include "rectangular_dictionary.hpp"
+#include "single_dictionary.hpp"
+#include "multi_dictionary.hpp"
 
 namespace ds2i {
 
-    using large_dictionary_type = dictionary_overlapped // dictionary_rectangular dictionary_packed dictionary_overlapped
+    using single_dictionary_rectangular_type = rectangular_dictionary
                                 <constants::num_entries,
                                  constants::max_entry_size>;
+    using single_dictionary_packed_type = single_dictionary
+                                <constants::num_entries,
+                                 constants::max_entry_size, pack_policy>;
+    using single_dictionary_overlapped_type = single_dictionary
+                                <constants::num_entries,
+                                 constants::max_entry_size, overlap_policy>;
 
-    using small_dictionary_type = dictionary_overlapped
-                                <256,
-                                 large_dictionary_type::max_entry_size>;
+    using multi_dictionary_packed_type = multi_dictionary
+                                <constants::num_entries,
+                                 constants::max_entry_size, pack_policy>;
+    using multi_dictionary_overlapped_type = multi_dictionary
+                                <constants::num_entries,
+                                 constants::max_entry_size, overlap_policy>;
 
 }

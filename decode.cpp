@@ -106,10 +106,10 @@ void print_statistics(std::string type,
     }
 }
 
-template<typename Decoder>
-void decode_single(std::string const& type,
-                   char const* encoded_data_filename,
-                   char const* dictionary_filename)
+template<typename Decoder, typename Dictionary>
+void decode(std::string const& type,
+            char const* encoded_data_filename,
+            char const* dictionary_filename)
 {
     boost::iostreams::mapped_file_source file;
     file.open(encoded_data_filename);
@@ -125,12 +125,12 @@ void decode_single(std::string const& type,
         logger() << "Error calling madvice: " << errno << std::endl;
     }
 
-    dictionary_type dict;
+    Dictionary dict;
     uint64_t dict_size = 0;
 
     size_t dictionaries_bytes = 0;
     if (dictionary_filename) {
-        typename dictionary_type::builder builder;
+        typename Dictionary::builder builder;
         std::ifstream dictionary_file(dictionary_filename);
         dictionaries_bytes += builder.load(dictionary_file);
         dict_size = builder.size();
@@ -157,85 +157,8 @@ void decode_single(std::string const& type,
         uint32_t n, universe;
         begin = header::read(begin, &n, &universe);
         auto start = clock_type::now();
-        begin = Decoder::decode(begin, decoded.data(), universe, n
-                                , &dict
-                                // , stats
-                                );
-        auto finish = clock_type::now();
-        std::chrono::duration<double> elapsed = finish - start;
-        timings.push_back(elapsed.count());
-        num_decoded_ints += n;
-        ++num_decoded_lists;
-    }
-
-    file.close();
-    print_statistics(type, encoded_data_filename, stats,
-                     timings, num_decoded_ints, num_decoded_lists);
-}
-
-template<typename Decoder>
-void decode_multi(std::string const& type,
-                  char const* encoded_data_filename,
-                  char const* dictionary_filename)
-{
-    boost::iostreams::mapped_file_source file;
-    file.open(encoded_data_filename);
-    if (!file.is_open()) {
-        throw std::runtime_error("Error opening index file");
-    }
-
-    uint8_t const* begin = (uint8_t const*) file.data();
-    uint64_t size = file.size() / sizeof(uint8_t);
-    uint8_t const* end = begin + size;
-    auto ret = posix_madvise((void*) begin, size, POSIX_MADV_SEQUENTIAL);
-    if (ret) {
-        logger() << "Error calling madvice: " << errno << std::endl;
-    }
-
-    std::vector<large_dictionary_type> large_dicts(constants::num_selectors);
-    // std::vector<small_dictionary_type> small_dicts(constants::num_selectors);
-
-    size_t dictionaries_bytes = 0;
-    if (dictionary_filename) {
-        std::string prefix(dictionary_filename);
-        for (int s = 0; s != constants::num_selectors; ++s)
-        {
-            std::string large_dict_filename = prefix + "."
-                + std::to_string(constants::selector_codes[s]) + ".large";
-            typename large_dictionary_type::builder large_dict_builder;
-            dictionaries_bytes +=
-                large_dict_builder.load_from_file(large_dict_filename);
-            large_dict_builder.build(large_dicts[s]);
-
-            // std::string small_dict_filename = prefix + "."
-            //     + std::to_string(constants::selector_codes[s]) + ".small";
-            // typename small_dictionary_type::builder small_dict_builder;
-            // small_dict_builder.load_from_file(small_dict_filename);
-            // small_dict_builder.build(small_dicts[s]);
-        }
-    }
-
-    logger() << "Dictionary memory: " << double(dictionaries_bytes) / constants::MiB << " [MiB]" << std::endl;
-
-    std::vector<uint32_t> decoded;
-    decoded.resize(constants::max_size, 0);
-
-    logger() << "decoding..." << std::endl;
-
-    uint64_t num_decoded_ints = 0;
-    uint64_t num_decoded_lists = 0;
-    std::vector<double> timings;
-
-    dint_statistics stats;
-
-    while (begin != end) {
-        uint32_t n, universe;
-        begin = header::read(begin, &n, &universe);
-        auto start = clock_type::now();
-        begin = Decoder::decode(large_dicts,
-                                // small_dicts,
+        begin = Decoder::decode(dict,
                                 begin, decoded.data(), universe, n
-                                // , &dict
                                 // , stats
                                 );
         auto finish = clock_type::now();
@@ -249,6 +172,83 @@ void decode_multi(std::string const& type,
     print_statistics(type, encoded_data_filename, stats,
                      timings, num_decoded_ints, num_decoded_lists);
 }
+
+// template<typename Decoder>
+// void decode_multi(std::string const& type,
+//                   char const* encoded_data_filename,
+//                   char const* dictionary_filename)
+// {
+//     boost::iostreams::mapped_file_source file;
+//     file.open(encoded_data_filename);
+//     if (!file.is_open()) {
+//         throw std::runtime_error("Error opening index file");
+//     }
+
+//     uint8_t const* begin = (uint8_t const*) file.data();
+//     uint64_t size = file.size() / sizeof(uint8_t);
+//     uint8_t const* end = begin + size;
+//     auto ret = posix_madvise((void*) begin, size, POSIX_MADV_SEQUENTIAL);
+//     if (ret) {
+//         logger() << "Error calling madvice: " << errno << std::endl;
+//     }
+
+//     std::vector<large_dictionary_type> large_dicts(constants::num_selectors);
+//     // std::vector<small_dictionary_type> small_dicts(constants::num_selectors);
+
+//     size_t dictionaries_bytes = 0;
+//     if (dictionary_filename) {
+//         std::string prefix(dictionary_filename);
+//         for (int s = 0; s != constants::num_selectors; ++s)
+//         {
+//             std::string large_dict_filename = prefix + "."
+//                 + std::to_string(constants::selector_codes[s]) + ".large";
+//             typename large_dictionary_type::builder large_dict_builder;
+//             dictionaries_bytes +=
+//                 large_dict_builder.load_from_file(large_dict_filename);
+//             large_dict_builder.build(large_dicts[s]);
+
+//             // std::string small_dict_filename = prefix + "."
+//             //     + std::to_string(constants::selector_codes[s]) + ".small";
+//             // typename small_dictionary_type::builder small_dict_builder;
+//             // small_dict_builder.load_from_file(small_dict_filename);
+//             // small_dict_builder.build(small_dicts[s]);
+//         }
+//     }
+
+//     logger() << "Dictionary memory: " << double(dictionaries_bytes) / constants::MiB << " [MiB]" << std::endl;
+
+//     std::vector<uint32_t> decoded;
+//     decoded.resize(constants::max_size, 0);
+
+//     logger() << "decoding..." << std::endl;
+
+//     uint64_t num_decoded_ints = 0;
+//     uint64_t num_decoded_lists = 0;
+//     std::vector<double> timings;
+
+//     dint_statistics stats;
+
+//     while (begin != end) {
+//         uint32_t n, universe;
+//         begin = header::read(begin, &n, &universe);
+//         auto start = clock_type::now();
+//         begin = Decoder::decode(large_dicts,
+//                                 // small_dicts,
+//                                 begin, decoded.data(), universe, n
+//                                 // , &dict
+//                                 // , stats
+//                                 );
+//         auto finish = clock_type::now();
+//         std::chrono::duration<double> elapsed = finish - start;
+//         timings.push_back(elapsed.count());
+//         num_decoded_ints += n;
+//         ++num_decoded_lists;
+//     }
+
+//     file.close();
+//     print_statistics(type, encoded_data_filename, stats,
+//                      timings, num_decoded_ints, num_decoded_lists);
+// }
 
 void decode_pef(char const* encoded_data_filename, bool freqs)
 {
@@ -338,15 +338,38 @@ int main(int argc, char** argv) {
 
     logger() << cmd << std::endl;
 
-    if (type == std::string("greedy_dint")) {
-        decode_single<greedy_dint>(type, encoded_data_filename, dictionary_filename);
+
+    if (type == std::string("single_rectangular_greedy_dint")) {
+        decode<greedy_dint, single_dictionary_rectangular_type>(
+            type, encoded_data_filename, dictionary_filename
+        );
     } else
-    if (type == std::string("opt_dint")) {
-        decode_multi<opt_dint>(type, encoded_data_filename, dictionary_filename);
+    if (type == std::string("single_packed_greedy_dint")) {
+        decode<greedy_dint, single_dictionary_packed_type>(
+            type, encoded_data_filename, dictionary_filename
+        );
     } else
+    if (type == std::string("single_overlapped_greedy_dint")) {
+        decode<greedy_dint, single_dictionary_overlapped_type>(
+            type, encoded_data_filename, dictionary_filename
+        );
+    } else
+
+    if (type == std::string("multi_packed_opt_dint")) {
+        decode<opt_dint, multi_dictionary_packed_type>(
+            type, encoded_data_filename, dictionary_filename
+        );
+    } else
+    if (type == std::string("multi_overlapped_opt_dint")) {
+        decode<opt_dint, multi_dictionary_overlapped_type>(
+            type, encoded_data_filename, dictionary_filename
+        );
+    } else
+
     if (type == std::string("pef")) {
         decode_pef(encoded_data_filename, freqs);
-    } else {
+    }
+    else {
 
 //     if (false) {
 // #define LOOP_BODY(R, DATA, T)                                          \
@@ -361,6 +384,7 @@ int main(int argc, char** argv) {
 //         logger() << "ERROR: unknown type '"
 //                  << type << "'" << std::endl;
 //     }
+
     }
 
     return 0;

@@ -8,6 +8,12 @@
 namespace ds2i {
 
     template<class t_entry>
+    bool prefix_overlap(t_entry& src,t_entry& target)
+    {
+        return std::equal(src.begin(),src.end(),target.begin(),target.begin()+src.size());
+    }
+
+    template<class t_entry>
     bool is_contained(t_entry& src,t_entry& target)
     {
         return std::search(target.begin(), target.end(), src.begin(), src.end()) != target.end();
@@ -159,54 +165,115 @@ namespace ds2i {
 
     }
 
-    // NOTE: takes as input an array of arrays of targets and returns the set of targets to
-    // be concatenated in the dictionary array
-    std::vector<target_t> compact(std::vector<std::vector<target_t>> const& targets) {
-        std::vector<target_t> all_targets;
-        for (auto& t: targets) {
-            std::copy(t.begin(), t.end(), std::back_inserter(all_targets));
+    struct overlap_policy {
+
+        static std::string type() {
+            return "overlapped";
         }
-        std::cout << "all targets = " << all_targets.size() << std::endl;
-        std::sort(all_targets.begin(),all_targets.end());
-        std::cout << "removing identical targets " << std::endl;
-        auto last = std::unique(all_targets.begin(),all_targets.end());
-        all_targets.erase(last,all_targets.end());
-        std::cout << "all unique targets = " << all_targets.size() << std::endl;
-        {
-            std::cout << "find substr overlaps" << std::endl;
-            boost::progress_display progress(all_targets.size());
-            for(size_t i=0;i<all_targets.size();i++) {
-                auto& cur = all_targets[i];
-                for(size_t j=0;j<all_targets.size();j++) {
-                    auto& other = all_targets[j];
-                    if(i!=j && other.valid && cur.entry.size() < other.entry.size()) {
-                        if(is_contained(cur.entry,other.entry)) {
-                            cur.valid = false;
-                            break;
+
+        static
+        std::vector<target_t> compact(std::vector<std::vector<target_t>> const& targets) {
+            std::vector<target_t> all_targets;
+            for (auto& t: targets) {
+                std::copy(t.begin(), t.end(), std::back_inserter(all_targets));
+            }
+            std::cout << "all targets = " << all_targets.size() << std::endl;
+            std::sort(all_targets.begin(),all_targets.end());
+            std::cout << "removing identical targets " << std::endl;
+            auto last = std::unique(all_targets.begin(),all_targets.end());
+            all_targets.erase(last,all_targets.end());
+            std::cout << "all unique targets = " << all_targets.size() << std::endl;
+            {
+                std::cout << "find substr overlaps" << std::endl;
+                boost::progress_display progress(all_targets.size());
+                for(size_t i=0;i<all_targets.size();i++) {
+                    auto& cur = all_targets[i];
+                    for(size_t j=0;j<all_targets.size();j++) {
+                        auto& other = all_targets[j];
+                        if(i!=j && other.valid && cur.entry.size() < other.entry.size()) {
+                            if(is_contained(cur.entry,other.entry)) {
+                                cur.valid = false;
+                                break;
+                            }
                         }
                     }
+                    ++progress;
                 }
-                ++progress;
             }
+
+            std::cout << "remove substr overlaps" << std::endl;
+            size_t size_before = all_targets.size();
+            auto itr = all_targets.begin();
+            while(itr != all_targets.end()) {
+                if(itr->valid == false) {
+                    itr = all_targets.erase(itr);
+                } else {
+                    ++itr;
+                }
+            }
+            size_t size_after = all_targets.size();
+            std::cout << "before = " << size_before << std::endl;
+            std::cout << "after = " << size_after << std::endl;
+            std::cout << "removed = " << size_before - size_after << std::endl;
+
+            std::cout << "find prefix-suffix overlaps" << std::endl;
+            perform_greedy_prefix_suffix_overlap(all_targets);
+            return all_targets;
+        }
+    };
+
+    struct pack_policy {
+
+        static std::string type() {
+            return "packed";
         }
 
-        std::cout << "remove substr overlaps" << std::endl;
-        size_t size_before = all_targets.size();
-        auto itr = all_targets.begin();
-        while(itr != all_targets.end()) {
-            if(itr->valid == false) {
-                itr = all_targets.erase(itr);
-            } else {
-                ++itr;
-            }
-        }
-        size_t size_after = all_targets.size();
-        std::cout << "before = " << size_before << std::endl;
-        std::cout << "after = " << size_after << std::endl;
-        std::cout << "removed = " << size_before - size_after << std::endl;
+        static
+        std::vector<target_t> compact(std::vector<std::vector<target_t>> const& targets) {
 
-        std::cout << "find prefix-suffix overlaps" << std::endl;
-        perform_greedy_prefix_suffix_overlap(all_targets);
-        return all_targets;
-    }
+            std::vector<target_t> all_targets;
+            for(auto& t: targets) {
+                std::copy(t.begin(), t.end(), std::back_inserter(all_targets));
+            }
+            std::cout << "all targets = " << all_targets.size() << std::endl;
+            std::sort(all_targets.begin(),all_targets.end());
+            std::cout << "removing identical targets " << std::endl;
+            auto last = std::unique(all_targets.begin(),all_targets.end());
+            all_targets.erase(last,all_targets.end());
+            std::cout << "all unique targets = " << all_targets.size() << std::endl;
+            {
+                std::cout << "find prefix overlaps" << std::endl;
+                boost::progress_display progress(all_targets.size());
+                for(size_t i=0;i<all_targets.size();i++) {
+                    auto& cur = all_targets[i];
+                    for(size_t j=0;j<all_targets.size();j++) {
+                        auto& other = all_targets[j];
+                        if(i!=j && other.valid && cur.entry.size() < other.entry.size()) {
+                            if(prefix_overlap(cur.entry,other.entry)) {
+                                cur.valid = false;
+                                break;
+                            }
+                        }
+                    }
+                    ++progress;
+                }
+            }
+
+            std::cout << "remove prefix overlaps" << std::endl;
+            size_t size_before = all_targets.size();
+            auto itr = all_targets.begin();
+            while(itr != all_targets.end()) {
+                if(itr->valid == false) {
+                    itr = all_targets.erase(itr);
+                } else {
+                    ++itr;
+                }
+            }
+            size_t size_after = all_targets.size();
+            std::cout << "before = " << size_before << std::endl;
+            std::cout << "after = " << size_after << std::endl;
+            std::cout << "removed = " << size_before - size_after << std::endl;
+            return all_targets;
+        }
+    };
 }

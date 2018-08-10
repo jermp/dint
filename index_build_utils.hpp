@@ -88,27 +88,6 @@ namespace ds2i {
         return size_tree->size;
     }
 
-    template<typename DictionaryBuilder, typename Encoder>
-    size_t get_size_stats(multi_dict_freq_index<DictionaryBuilder, Encoder>& coll,
-                          uint64_t& docs_size, uint64_t& freqs_size)
-    {
-        auto size_tree = succinct::mapper::size_tree_of(coll);
-        size_tree->dump();
-        uint64_t total_size = 0;
-        for (auto const& node: size_tree->children) {
-            if (node->name == "m_lists") {
-                total_size = node->size;
-            }
-        }
-
-        freqs_size = 0;
-        for (size_t i = 0; i < coll.size(); ++i) {
-            freqs_size += coll[i].stats_freqs_size();
-        }
-        docs_size = total_size - freqs_size;
-        return size_tree->size;
-    }
-
     template<typename Collection>
     void dump_stats(Collection& coll,
                     std::string const& type,

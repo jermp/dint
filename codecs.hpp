@@ -22,8 +22,6 @@
 
 namespace ds2i {
 
-    typedef large_dictionary_type dictionary_type;
-
     // workaround: VariableByte::decodeArray needs the buffer size, while we
     // only know the number of values. It also pads to 32 bits. We need to
     // rewrite
@@ -133,10 +131,8 @@ namespace ds2i {
 
         static void encode(uint32_t const* in,
                            uint32_t universe, uint32_t n,
-                           std::vector<uint8_t>& out,
-                           dictionary_type::builder const* builder = nullptr)
+                           std::vector<uint8_t>& out)
         {
-            (void) builder;
             std::vector<uint32_t> inbuf(n);
             std::vector<uint32_t> outbuf;
             inbuf[0] = *in;
@@ -153,10 +149,8 @@ namespace ds2i {
 
         static uint8_t const* DS2I_NOINLINE decode(uint8_t const* in,
                                                    uint32_t* out,
-                                                   uint32_t universe, uint32_t n,
-                                                   dictionary_type const* dict = nullptr)
+                                                   uint32_t universe, uint32_t n)
         {
-            (void) dict;
             uint8_t const* inbuf = in;
             out[n - 1] = universe;
             size_t read_interpolative = 0;
@@ -226,7 +220,6 @@ namespace ds2i {
         static void encode(uint32_t const* in,
                            uint32_t /*universe*/, uint32_t n,
                            std::vector<uint8_t>& out,
-                           dictionary_type::builder const* /*builder*/,
                            uint8_t const* b = nullptr) // if non-null forces b
         {
             if (n == 1) {
@@ -248,8 +241,7 @@ namespace ds2i {
 
         static uint8_t const* DS2I_NOINLINE decode(uint8_t const* in,
                                                    uint32_t* out,
-                                                   uint64_t /*universe*/, uint32_t n,
-                                                   dictionary_type const* /*dict*/)
+                                                   uint64_t /*universe*/, uint32_t n)
         {
             if (DS2I_UNLIKELY(n == 1)) {
                 return TightVariableByte::decode(in, out, 1);
@@ -302,8 +294,7 @@ namespace ds2i {
 
         static void encode(uint32_t const* in,
                            uint32_t universe, uint32_t n,
-                           std::vector<uint8_t>& out,
-                           dictionary_type::builder const* /*builder*/)
+                           std::vector<uint8_t>& out)
         {
             if (n < 8) {
                 interpolative::encode(in, universe, n, out);
@@ -328,13 +319,8 @@ namespace ds2i {
         // we only allow varint to be inlined (others have DS2I_NOILINE)
         static uint8_t const* decode(uint8_t const* in,
                                      uint32_t* out,
-                                     uint32_t universe, uint32_t n,
-                                     dictionary_type const* /*dict*/)
+                                     uint32_t universe, uint32_t n)
         {
-            // if (DS2I_UNLIKELY(n == 1)) {
-            //     return TightVariableByte::decode(in, out, 1);
-            // }
-
             if (DS2I_UNLIKELY(n < 8)) {
                 return interpolative::decode(in, out, universe, n);
             }
@@ -366,8 +352,7 @@ namespace ds2i {
 
         static void encode(uint32_t const* in,
                            uint32_t /*universe*/, uint32_t n,
-                           std::vector<uint8_t>& out,
-                           dictionary_type::builder const* /*builder*/)
+                           std::vector<uint8_t>& out)
         {
             if (n == 1) {
                 TightVariableByte::encode_single(in[0], out);
@@ -384,8 +369,7 @@ namespace ds2i {
 
         static uint8_t const* decode(uint8_t const* in,
                                      uint32_t* out,
-                                     uint32_t /*universe*/, uint32_t n,
-                                     dictionary_type const* /*dict*/)
+                                     uint32_t /*universe*/, uint32_t n)
         {
             if (DS2I_UNLIKELY(n == 1)) {
                 return TightVariableByte::decode(in, out, 1);
@@ -403,8 +387,7 @@ namespace ds2i {
 
         static void encode(uint32_t const* in,
                            uint32_t /*universe*/, uint32_t n,
-                           std::vector<uint8_t>& out,
-                           dictionary_type::builder const* /*builder*/)
+                           std::vector<uint8_t>& out)
         {
             std::vector<uint8_t> buf(2 * 4 * n);
             size_t out_len = buf.size();
@@ -414,8 +397,7 @@ namespace ds2i {
 
         static uint8_t const* decode(uint8_t const* in,
                                      uint32_t* out,
-                                     uint32_t /*universe*/, size_t n,
-                                     dictionary_type const* /*dict*/)
+                                     uint32_t /*universe*/, size_t n)
         {
             return TightVariableByte::decode(in, out, n);
         }
@@ -425,8 +407,7 @@ namespace ds2i {
 
         static void encode(uint32_t const* in,
                            uint32_t /*universe*/, uint32_t n,
-                           std::vector<uint8_t>& out,
-                           dictionary_type::builder const* /*builder*/)
+                           std::vector<uint8_t>& out)
         {
             size_t srclen = n * sizeof(uint32_t);
             const uint8_t* src = (const uint8_t*)in;
@@ -435,8 +416,7 @@ namespace ds2i {
 
         static uint8_t const* decode(uint8_t const* in,
                                      uint32_t* out,
-                                     uint32_t /*universe*/, size_t n,
-                                     dictionary_type const* /*dict*/)
+                                     uint32_t /*universe*/, size_t n)
         {
             const uint8_t* src = (const uint8_t*)in;
             uint8_t* dst = (uint8_t*)out;
@@ -454,8 +434,7 @@ namespace ds2i {
 
         static void encode(uint32_t const* in,
                            uint32_t /*universe*/, uint32_t n,
-                           std::vector<uint8_t>& out,
-                           dictionary_type::builder const* /*builder*/)
+                           std::vector<uint8_t>& out)
         {
             thread_local codec_type simple16_codec;
             std::vector<uint8_t> buf(2 * 8 * n);
@@ -467,8 +446,7 @@ namespace ds2i {
 
         static uint8_t const* decode(uint8_t const* in,
                                      uint32_t* out,
-                                     uint32_t /*universe*/, size_t n,
-                                     dictionary_type const* /*dict*/)
+                                     uint32_t /*universe*/, size_t n)
         {
             uint8_t const* ret;
             thread_local codec_type simple16_codec;
@@ -482,8 +460,7 @@ namespace ds2i {
 
         static void encode(uint32_t const* in,
                            uint32_t /*universe*/, uint32_t n,
-                           std::vector<uint8_t>& out,
-                           dictionary_type::builder const* /*builder*/)
+                           std::vector<uint8_t>& out)
         {
             uint32_t *src = const_cast<uint32_t*>(in);
             std::vector<uint8_t> buf(streamvbyte_max_compressedbytes(n));
@@ -493,8 +470,7 @@ namespace ds2i {
 
         static uint8_t const* decode(uint8_t const* in,
                                      uint32_t* out,
-                                     uint32_t /*universe*/, size_t n,
-                                     dictionary_type const* /*dict*/)
+                                     uint32_t /*universe*/, size_t n)
         {
             auto read = streamvbyte_decode(in, out, n);
             return in + read;
@@ -505,8 +481,7 @@ namespace ds2i {
 
         static void encode(uint32_t const* in,
                            uint32_t /*universe*/, uint32_t n,
-                           std::vector<uint8_t>& out,
-                           dictionary_type::builder const* /*builder*/)
+                           std::vector<uint8_t>& out)
         {
             uint32_t* src = const_cast<uint32_t*>(in);
             std::vector<uint8_t> buf(2 * n * sizeof(uint32_t));
@@ -516,8 +491,7 @@ namespace ds2i {
 
         static uint8_t const* decode(uint8_t const* in,
                                      uint32_t* out,
-                                     uint32_t /*universe*/, size_t n,
-                                     dictionary_type const* /*dict*/)
+                                     uint32_t /*universe*/, size_t n)
         {
             auto read = masked_vbyte_decode(in, out, n);
             return in + read;
@@ -528,8 +502,7 @@ namespace ds2i {
 
         static void encode(uint32_t const* in,
                            uint32_t /*universe*/, uint32_t n,
-                           std::vector<uint8_t>& out,
-                           dictionary_type::builder const* /*builder*/)
+                           std::vector<uint8_t>& out)
         {
             thread_local VarIntGB<false> varintgb_codec;
             thread_local std::vector<uint8_t> buf(2 * n * sizeof(uint32_t));
@@ -539,8 +512,7 @@ namespace ds2i {
 
         static uint8_t const* decode(uint8_t const* in,
                                      uint32_t* out,
-                                     uint32_t /*universe*/, size_t n,
-                                     dictionary_type const* /*dict*/)
+                                     uint32_t /*universe*/, size_t n)
         {
             thread_local VarIntGB<false> varintgb_codec;
             auto read = varintgb_codec.decodeArray(in, n, out);
@@ -1265,16 +1237,14 @@ namespace ds2i {
 
     struct greedy_dint {
 
-        static void encode(uint32_t const* in,
-                           uint32_t /*universe*/, uint32_t n,
-                           std::vector<uint8_t>& out,
-                           dictionary_type::builder* builder)
+        template<typename Builder>
+        static
+        void encode(Builder& builder,
+                    uint32_t const* in,
+                    uint32_t /*universe*/,
+                    uint32_t n,
+                    std::vector<uint8_t>& out)
         {
-            // if (n < block_size) {
-            //     interpolative_block::encode(in, sum_of_values, n, out);
-            //     return;
-            // }
-
             uint32_t const* begin = in;
             uint32_t const* end = begin + n;
 
@@ -1307,15 +1277,15 @@ namespace ds2i {
                     for (uint32_t s = 0; s < constants::num_target_sizes; ++s) {
                         uint32_t sub_block_size = constants::target_sizes[s];
                         uint32_t len = std::min<uint32_t>(sub_block_size, end - begin);
-                        index = builder->lookup(begin, len);
-                        if (index != dictionary_type::invalid_index) {
+                        index = builder.lookup(begin, len);
+                        if (index != Builder::invalid_index) {
                             write_index(index, out);
                             begin += len;
                             break;
                         }
                     }
 
-                    if (index == dictionary_type::invalid_index)
+                    if (index == Builder::invalid_index)
                     {
                         uint32_t exception = *begin;
                         auto ptr = reinterpret_cast<uint8_t const*>(&exception);
@@ -1336,12 +1306,15 @@ namespace ds2i {
             }
         }
 
-        static uint8_t const* decode(uint8_t const* in,
-                                     uint32_t* out,
-                                     uint32_t /*universe*/, size_t n,
-                                     dictionary_type const* dict
-                                     // , dint_statistics& stats
-                                     )
+        template<typename Dictionary>
+        static
+        uint8_t const* decode(Dictionary const& dict,
+                              uint8_t const* in,
+                              uint32_t* out,
+                              uint32_t /*universe*/,
+                              size_t n
+                              // , dint_statistics& stats
+                             )
         {
             uint16_t const* ptr = reinterpret_cast<uint16_t const*>(in);
             // uint8_t const* ptr = in; // if b = 8
@@ -1353,7 +1326,7 @@ namespace ds2i {
 
                 if (DS2I_LIKELY(index > EXCEPTIONS - 1))
                 {
-                    decoded_ints = dict->copy(index, out);
+                    decoded_ints = dict.copy(index, out);
 
                     // if (decoded_ints == 1) {
                     //     stats.ints_distr[1] += 1;
@@ -1421,25 +1394,18 @@ namespace ds2i {
 
     struct opt_dint
     {
-        std::vector<node> path;
-        std::vector<node> encoding;
-        std::vector<std::vector<uint8_t>> encoded;
-        selector sct;
-
-        opt_dint() {
-            encoded.resize(2 * constants::num_selectors);
-            // encoded.resize(2);
-        }
-
         template<typename Builder>
-        void encode(
-            Builder& builder,
-            uint32_t const* begin, uint64_t n,
-            std::vector<uint8_t>& out,
-            int b /* 8 or 16 */)
+        static
+        void encode(Builder& builder,
+                    uint32_t dictionary_id,
+                    uint32_t const* begin,
+                    uint64_t n,
+                    std::vector<uint8_t>& out,
+                    int b /* 8 or 16 */)
         {
             // logger() << "opt_parsing for " << n << " ints; b = " << b << std::endl;
             // opt parsing
+            std::vector<node> path;
             path.resize(n + 2);
             path[0] = {0, 1, 0}; // dummy node
             for (uint32_t i = 1; i < n + 1; ++i) {
@@ -1481,7 +1447,7 @@ namespace ds2i {
                 for (uint32_t s = 0; s < constants::num_target_sizes; ++s) {
                     uint32_t sub_block_size = constants::target_sizes[s];
                     uint32_t len = std::min<uint32_t>(sub_block_size, n - i);
-                    index = builder.lookup(begin + i, len);
+                    index = builder.lookup(dictionary_id, begin + i, len, b);
                     if (index != Builder::invalid_index) {
                         uint32_t c = path[i].cost + 1;
                         if (path[i + len].cost > c) {
@@ -1506,6 +1472,7 @@ namespace ds2i {
                 }
             }
 
+            std::vector<node> encoding;
             uint32_t i = n;
             while (i != 0) {
                 uint32_t parent = path[i].parent;
@@ -1553,18 +1520,14 @@ namespace ds2i {
             encoding.clear();
         }
 
-        void encode(
-            std::vector<typename large_dictionary_type::builder>& large_dict_builders,
-            std::vector<typename small_dictionary_type::builder>& small_dict_builders,
-            uint32_t const* in,
-            uint32_t /*universe*/, uint32_t n,
-            std::vector<uint8_t>& out)
+        template<typename Builder>
+        static
+        void encode(Builder& builder,
+                    uint32_t const* in,
+                    uint32_t /*universe*/,
+                    uint32_t n,
+                    std::vector<uint8_t>& out)
         {
-            // if (n < constants::block_size) {
-            //     interpolative_block::encode(in, sum_of_values, n, out);
-            //     return;
-            // }
-
             uint32_t const* begin = in;
             uint64_t num_blocks = succinct::util::ceil_div(n, constants::block_size);
             uint64_t tail = n - (n / constants::block_size * constants::block_size);
@@ -1576,13 +1539,15 @@ namespace ds2i {
                     size = tail;
                 }
 
+                std::vector<std::vector<uint8_t>> encoded;
 
                 // option 1: choose the best dictionary
                 // size_t best_size = size_t(-1);
                 // uint32_t selector_code = 0;
+                // encoded.resize(2 * constants::num_selectors);
                 // for (uint32_t s = 0; s != constants::num_selectors; ++s) {
-                //     encode(large_dict_builders[s], begin, size, encoded[s], 16);
-                //     encode(small_dict_builders[s], begin, size, encoded[s + constants::num_selectors], 8);
+                //     encode(builder, s, begin, size, encoded[s], 16);
+                //     encode(builder, s, begin, size, encoded[s + constants::num_selectors], 8);
 
                 //     size_t smallest_size = encoded[s].size();
                 //     uint32_t sc = s;
@@ -1605,15 +1570,12 @@ namespace ds2i {
                 // }
 
 
-
-
-
-
-
                 // option 2: select the dictionary based on the context
+                selector sct;
+                encoded.resize(2);
                 uint32_t selector_code = sct.get(begin, size);
-                encode(large_dict_builders[selector_code], begin, size, encoded[0], 16);
-                encode(small_dict_builders[selector_code], begin, size, encoded[1],  8);
+                encode(builder, selector_code, begin, size, encoded[0], 16);
+                encode(builder, selector_code, begin, size, encoded[1],  8);
                 size_t smallest_size = encoded[0].size();
                 if (encoded[1].size() <= smallest_size) {
                     selector_code += constants::num_selectors;
@@ -1623,8 +1585,6 @@ namespace ds2i {
                 out.push_back(selector_code);
                 out.insert(out.end(), encoded[selector_code >= constants::num_selectors].begin(),
                                       encoded[selector_code >= constants::num_selectors].end());
-                encoded[0].clear();
-                encoded[1].clear();
 
 
 
@@ -1635,20 +1595,16 @@ namespace ds2i {
             }
         }
 
-        static uint8_t const* decode(
-            std::vector<large_dictionary_type> const& large_dicts,
-            // std::vector<small_dictionary_type> const& small_dicts,
-            uint8_t const* in,
-            uint32_t* out,
-            uint32_t /*universe*/,
-            size_t n
-            // , dint_statistics& stats
-            )
+        template<typename MultiDictionary>
+        static
+        uint8_t const* decode(MultiDictionary const& multi_dict,
+                              uint8_t const* in,
+                              uint32_t* out,
+                              uint32_t /*universe*/,
+                              size_t n
+                              // , dint_statistics& stats
+                             )
         {
-            // if (DS2I_UNLIKELY(n < constants::block_size)) {
-            //     return interpolative_block::decode(in, out, sum_of_values, n);
-            // }
-
             uint64_t num_blocks = succinct::util::ceil_div(n, constants::block_size);
             size_t tail = n - (n / constants::block_size * constants::block_size);
             // uint64_t sum = 0;
@@ -1659,13 +1615,9 @@ namespace ds2i {
                     size = tail;
                 }
 
-                // std::cout << sum << "/" << n << std::endl;
-
-
                 uint8_t selector_code = *in;
                 if (selector_code < constants::num_selectors) {
                     // std::cout << "\t large selector_code = " << int(selector_code) << ", for block " << b << " of size " << size << std::endl;
-                    auto const& large_dict = large_dicts[selector_code];
                     uint16_t const* ptr = reinterpret_cast<uint16_t const*>(in + 1);
                     for (size_t i = 0; i != size; ++ptr) {
                         uint32_t index = *ptr;
@@ -1675,7 +1627,7 @@ namespace ds2i {
 
                         if (DS2I_LIKELY(index > EXCEPTIONS - 1)) {
                             // std::cout << index << std::endl;
-                            decoded_ints = large_dict.copy(index, out);
+                            decoded_ints = multi_dict.copy(selector_code, index, out);
 
                             // stats.total_ints += decoded_ints;
 
@@ -1712,7 +1664,7 @@ namespace ds2i {
                     // std::cout << "\t small selector_code = " << int(selector_code) << ", for block " << b << " of size " << size << std::endl;
 
                     // auto const& small_dict = small_dicts[selector_code];
-                    auto const& small_dict = large_dicts[selector_code];
+                    // auto const& small_dict = large_dicts[selector_code];
                     uint8_t const* ptr = in + 1;
                     for (size_t i = 0; i != size; ++ptr) {
                         uint32_t index = *ptr;
@@ -1721,7 +1673,7 @@ namespace ds2i {
                         // ++stats.occs[index];
 
                         if (DS2I_LIKELY(index > EXCEPTIONS - 1)) {
-                            decoded_ints = small_dict.copy(index, out);
+                            decoded_ints = multi_dict.copy(selector_code, index, out);
 
                             // stats.total_ints += decoded_ints;
 
@@ -1767,5 +1719,5 @@ namespace ds2i {
         }
     };
 
-    #define CODECS (interpolative)(optpfor)(varintg8iu)(qmx)(vbyte)(u32)(simple16)(streamvbyte)(maskedvbyte)(varintgb)(greedy_dint)(opt_dint)
+    #define CODECS (interpolative)(optpfor)(varintg8iu)(qmx)(vbyte)(u32)(simple16)(streamvbyte)(maskedvbyte)(varintgb)
 }

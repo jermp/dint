@@ -12,7 +12,6 @@ namespace ds2i {
 
         static const uint64_t min_size = 0; // 4096
         static const uint64_t max_size = 50000000;
-        static const uint32_t block_size = 256;
 
         enum block_selector {
             max = 0,
