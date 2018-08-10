@@ -1,6 +1,10 @@
 #pragma once
 
 #include <cmath>
+#include <limits>
+
+#define EXCEPTIONS 2
+#define INF std::numeric_limits<uint32_t>::max()
 
 namespace ds2i {
 

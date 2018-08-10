@@ -6,7 +6,7 @@
 #include <immintrin.h> // AVX2
 
 #include "dint_configuration.hpp"
-#include "dictionary.hpp"
+
 #include "codecs.hpp"
 #include "util.hpp"
 #include "hash_utils.hpp"

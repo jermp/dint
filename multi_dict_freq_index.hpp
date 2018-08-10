@@ -4,7 +4,7 @@
 #include <succinct/bit_vector.hpp>
 
 #include "util.hpp"
-#include "dictionary.hpp"
+
 #include "dictionary_builders.hpp"
 #include "compact_elias_fano.hpp"
 #include "multi_dict_posting_list.hpp"

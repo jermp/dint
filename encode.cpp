@@ -11,7 +11,6 @@
 #include <succinct/mapper.hpp>
 
 #include "dint_configuration.hpp"
-#include "dictionary.hpp"
 #include "codecs.hpp"
 #include "util.hpp"
 #include "hash_utils.hpp"

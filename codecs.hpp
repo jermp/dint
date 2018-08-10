@@ -12,7 +12,7 @@
 
 #include "succinct/util.hpp"
 #include "util.hpp"
-#include "dictionary.hpp"
+#include "dictionary_types.hpp"
 #include "global_parameters.hpp"
 #include "partitioned_sequence.hpp"
 #include "positive_sequence.hpp"

@@ -13,7 +13,7 @@
 #include "binary_collection.hpp"
 #include "codecs.hpp"
 #include "util.hpp"
-#include "dictionary.hpp"
+
 
 using namespace ds2i;
 

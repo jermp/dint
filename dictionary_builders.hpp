@@ -9,7 +9,7 @@
 #include "dint_configuration.hpp"
 #include "statistics_collectors.hpp"
 #include "binary_blocks_collection.hpp"
-#include "dictionary.hpp"
+
 #include "heap.hpp"
 #include "hash_utils.hpp"
 #include "util.hpp"
@@ -59,7 +59,6 @@ namespace ds2i {
 
             dict_builder.init();
             uint64_t n = large_dictionary_type::num_entries;
-            std::cout << "stats.blocks.size() " << stats.blocks.size() << std::endl;
             if (stats.blocks.size() < n) {
                 n = stats.blocks.size();
             }
@@ -77,7 +76,7 @@ namespace ds2i {
                                     block.data.size());
             }
 
-            logger() << "DONE" << std::endl;
+            dict_builder.build();
         }
 
         static void build(std::vector<typename large_dictionary_type::builder>& large_dict_builders,
@@ -88,7 +87,7 @@ namespace ds2i {
 
             for (int s = 0; s != constants::num_selectors; ++s)
             {
-                // small dict
+                // small dicts
                 {
                     small_dict_builders[s].init();
                     uint64_t n = small_dictionary_type::num_entries;
@@ -109,9 +108,10 @@ namespace ds2i {
                         small_dict_builders[s].append(block.data.data(),
                                                       block.data.size());
                     }
+                    small_dict_builders[s].build();
                 }
 
-                // large dict
+                // large dicts
                 {
                     large_dict_builders[s].init();
                     uint64_t n = large_dictionary_type::num_entries;
@@ -139,12 +139,10 @@ namespace ds2i {
                         large_dict_builders[s].append(block.data.data(),
                                                       block.data.size());
                     }
+                    large_dict_builders[s].build();
                     // out.close();
                 }
             }
-
-            logger() << "DONE" << std::endl;
-            // std::abort();
         }
     };
 
@@ -191,7 +189,7 @@ namespace ds2i {
                                block.data.size());
             }
 
-            logger() << "DONE" << std::endl;
+            builder.build();
         }
     };
 }

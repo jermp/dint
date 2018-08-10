@@ -13,8 +13,8 @@
 #include "block_codecs.hpp"
 #include "mixed_block.hpp"
 
-#include "dictionary.hpp"
 #include "dint_configuration.hpp"
+#include "dictionary_types.hpp"
 #include "dictionary_builders.hpp"
 #include "block_statistics.hpp"
 #include "dict_freq_index.hpp"

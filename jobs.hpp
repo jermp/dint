@@ -1,7 +1,6 @@
 #pragma once
 
 #include "semiasync_queue.hpp"
-#include "dictionary.hpp"
 
 namespace ds2i {
 

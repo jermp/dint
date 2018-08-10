@@ -11,7 +11,7 @@
 #include "qmx_codec.hpp"
 #include "succinct/util.hpp"
 #include "util.hpp"
-#include "dictionary.hpp"
+
 #include "dint_configuration.hpp"
 #include "statistics_collectors.hpp"
 
