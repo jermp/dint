@@ -166,15 +166,12 @@ namespace ds2i {
                         for (auto& cur: t) {
                             auto& entry = cur.entry;
                             auto found_itr = std::search(m_table.begin(), m_table.end(),
-                                                         entry.begin(),entry.end());
-                            if(found_itr == m_table.end()) {
-                                std::cout << "ERROR!!!!" << std::endl;
-                            } else {
-                                uint32_t entry_size = entry.size();
-                                uint32_t offset = std::distance(m_table.begin(), found_itr);
-                                uint32_t size_and_offset = ((entry_size - 1) << 24) | offset;
-                                m_offsets.push_back(size_and_offset);
-                            }
+                                                         entry.begin(), entry.end());
+                            assert(found_itr != m_table.end());
+                            uint32_t entry_size = entry.size();
+                            uint32_t offset = std::distance(m_table.begin(), found_itr);
+                            uint32_t size_and_offset = ((entry_size - 1) << 24) | offset;
+                            m_offsets.push_back(size_and_offset);
                             ++progress;
                         }
                     }
@@ -204,7 +201,7 @@ namespace ds2i {
                                - m_start_offsets[dictionary_id]
                                - reserved;
 
-                    for (; i != n; ++i) {
+                    for (; i < n; ++i) {
                         uint64_t hash = hash_bytes64(get(dictionary_id, i), size(dictionary_id, i));
                         m_maps[dictionary_id][hash] = i;
                         if (i < 256) {
@@ -265,6 +262,7 @@ namespace ds2i {
                 assert(dictionary_id < num_dictionaries);
                 assert(i < num_entries);
                 uint32_t dictionary_offset = m_start_offsets[dictionary_id];
+                assert(dictionary_offset + i < m_offsets.size());
                 return (m_offsets[dictionary_offset + i] >> 24) + 1;
             }
 

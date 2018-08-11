@@ -70,7 +70,7 @@ namespace ds2i {
                                         >;
 
     using DSF_single = decreasing_static_frequencies<
-                                                single_dictionary_overlapped_type,
+                                                single_dictionary_packed_type,
                                                 // single_dictionary_rectangular_type
                                                 // single_dictionary_packed_type
                                                 // single_dictionary_overlapped_type

@@ -134,8 +134,6 @@ namespace ds2i {
                 }
             }
 
-            // NOTE: return the index of the pattern if found in the table,
-            // otherwise return the invalid_index value
             uint32_t lookup(uint32_t const* begin, uint32_t entry_size) const
             {
                 uint64_t hash = hash_bytes64(begin, entry_size);
