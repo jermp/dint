@@ -78,7 +78,7 @@ namespace ds2i {
                                             >;
 
     using DSF_multi = decreasing_static_frequencies<
-                                                multi_dictionary_packed_type,
+                                                multi_dictionary_overlapped_type,
                                                 // multi_dictionary_packed_type
                                                 // multi_dictionary_overlapped_type
                                                 adjusted_block_multi_stats_type
