@@ -227,8 +227,8 @@ namespace ds2i {
                 return;
             }
 
-            thread_local codec_type optpfor_codec;
-            thread_local std::vector<uint8_t> buf(2 * 4 * n);
+            /*thread_local*/ codec_type optpfor_codec;
+            /*thread_local*/ std::vector<uint8_t> buf(2 * 4 * n);
             size_t out_len = buf.size();
             optpfor_codec.force_b = b;
             if (n % 128) {
@@ -247,7 +247,7 @@ namespace ds2i {
                 return TightVariableByte::decode(in, out, 1);
             }
 
-            thread_local codec_type optpfor_codec; // pfor decoding is *not* thread-safe
+            /*thread_local*/ codec_type optpfor_codec; // pfor decoding is *not* thread-safe
             size_t out_len = n;
             uint8_t const *ret;
             if (n % 128) {
@@ -301,8 +301,8 @@ namespace ds2i {
                 return;
             }
 
-            thread_local codec_type varint_codec;
-            thread_local std::vector<uint8_t> buf(2 * 4 * n);
+            /*thread_local*/ codec_type varint_codec;
+            /*thread_local*/ std::vector<uint8_t> buf(2 * 4 * n);
             size_t out_len = buf.size();
             const uint32_t *src = in;
             unsigned char *dst = buf.data();
@@ -360,7 +360,7 @@ namespace ds2i {
             }
 
             static const uint64_t overflow = 512;
-            thread_local std::vector<uint8_t> buf( (overflow * 4) + 2 * 4 * n);
+            /*thread_local*/ std::vector<uint8_t> buf( (overflow * 4) + 2 * 4 * n);
             QMX::codec qmx_codec(n);
             size_t compressed_bytes = qmx_codec.encode(buf.data(), in);
             TightVariableByte::encode_single(compressed_bytes, out);
@@ -436,7 +436,7 @@ namespace ds2i {
                            uint32_t /*universe*/, uint32_t n,
                            std::vector<uint8_t>& out)
         {
-            thread_local codec_type simple16_codec;
+            /*thread_local*/ codec_type simple16_codec;
             std::vector<uint8_t> buf(2 * 8 * n);
             size_t out_len = buf.size();
             simple16_codec.encodeArray(in, n, reinterpret_cast<uint32_t*>(buf.data()), out_len);
@@ -449,7 +449,7 @@ namespace ds2i {
                                      uint32_t /*universe*/, size_t n)
         {
             uint8_t const* ret;
-            thread_local codec_type simple16_codec;
+            /*thread_local*/ codec_type simple16_codec;
             ret = reinterpret_cast<uint8_t const*>(simple16_codec.decodeArray(reinterpret_cast<uint32_t const*>(in), 1,
                 out, n));
             return ret;
@@ -504,8 +504,8 @@ namespace ds2i {
                            uint32_t /*universe*/, uint32_t n,
                            std::vector<uint8_t>& out)
         {
-            thread_local VarIntGB<false> varintgb_codec;
-            thread_local std::vector<uint8_t> buf(2 * n * sizeof(uint32_t));
+            /*thread_local*/ VarIntGB<false> varintgb_codec;
+            /*thread_local*/ std::vector<uint8_t> buf(2 * n * sizeof(uint32_t));
             size_t out_len = varintgb_codec.encodeArray(in, n, buf.data());
             out.insert(out.end(), buf.data(), buf.data() + out_len);
         }
@@ -514,7 +514,7 @@ namespace ds2i {
                                      uint32_t* out,
                                      uint32_t /*universe*/, size_t n)
         {
-            thread_local VarIntGB<false> varintgb_codec;
+            /*thread_local*/ VarIntGB<false> varintgb_codec;
             auto read = varintgb_codec.decodeArray(in, n, out);
             return read + in;
         }

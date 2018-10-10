@@ -231,16 +231,24 @@ void decode(std::string const& type,
 //     while (begin != end) {
 //         uint32_t n, universe;
 //         begin = header::read(begin, &n, &universe);
-//         auto start = clock_type::now();
-//         begin = Decoder::decode(dict,
-//                                 begin, decoded.data(), universe, n
-//                                 // , stats
-//                                 );
-//         auto finish = clock_type::now();
-//         std::chrono::duration<double> elapsed = finish - start;
-//         timings.push_back(elapsed.count());
-//         num_decoded_ints += n;
-//         ++num_decoded_lists;
+
+//         if (n > 4096) {
+//             auto start = clock_type::now();
+//             begin = Decoder::decode(dict,
+//                                     begin, decoded.data(), universe, n
+//                                     // , stats
+//                                     );
+//             auto finish = clock_type::now();
+//             std::chrono::duration<double> elapsed = finish - start;
+//             timings.push_back(elapsed.count());
+//             num_decoded_ints += n;
+//             ++num_decoded_lists;
+//         } else {
+//             begin = Decoder::decode(dict,
+//                                     begin, decoded.data(), universe, n
+//                                     // , stats
+//                                     );
+//         }
 //     }
 
 //     file.close();
