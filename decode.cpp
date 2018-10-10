@@ -106,10 +106,9 @@ void print_statistics(std::string type,
     }
 }
 
-template<typename Decoder, typename Dictionary>
+template<typename Decoder>
 void decode(std::string const& type,
-            char const* encoded_data_filename,
-            char const* dictionary_filename)
+            char const* encoded_data_filename)
 {
     boost::iostreams::mapped_file_source file;
     file.open(encoded_data_filename);
@@ -125,23 +124,6 @@ void decode(std::string const& type,
         logger() << "Error calling madvice: " << errno << std::endl;
     }
 
-    Dictionary dict;
-    uint64_t dict_size = 0;
-
-    size_t dictionaries_bytes = 0;
-    if (dictionary_filename) {
-        typename Dictionary::builder builder;
-        std::ifstream dictionary_file(dictionary_filename);
-        dictionaries_bytes += builder.load(dictionary_file);
-        dict_size = builder.size();
-        logger() << "dictionary with "
-                 << dict_size << " entries" << std::endl;
-        builder.print_usage();
-        builder.build(dict);
-    }
-
-    logger() << "Dictionary memory: " << double(dictionaries_bytes) / constants::MiB << " [MiB]" << std::endl;
-
     std::vector<uint32_t> decoded;
     decoded.resize(constants::max_size, 0);
 
@@ -151,27 +133,120 @@ void decode(std::string const& type,
     uint64_t num_decoded_lists = 0;
     std::vector<double> timings;
 
-    dint_statistics stats;
-
     while (begin != end) {
         uint32_t n, universe;
         begin = header::read(begin, &n, &universe);
-        auto start = clock_type::now();
-        begin = Decoder::decode(dict,
-                                begin, decoded.data(), universe, n
-                                // , stats
-                                );
-        auto finish = clock_type::now();
-        std::chrono::duration<double> elapsed = finish - start;
-        timings.push_back(elapsed.count());
-        num_decoded_ints += n;
-        ++num_decoded_lists;
+        
+        // auto start = clock_type::now();
+        // begin = Decoder::decode(begin, decoded.data(), universe, n);
+        // auto finish = clock_type::now();
+        // std::chrono::duration<double> elapsed = finish - start;
+        // timings.push_back(elapsed.count());
+        // num_decoded_ints += n;
+        // ++num_decoded_lists;
+
+        if (n > 4096) {
+            auto start = clock_type::now();
+            begin = Decoder::decode(begin, decoded.data(), universe, n);
+            auto finish = clock_type::now();
+            std::chrono::duration<double> elapsed = finish - start;
+            timings.push_back(elapsed.count());
+            num_decoded_ints += n;
+            ++num_decoded_lists;
+        } else {
+            begin = Decoder::decode(begin, decoded.data(), universe, n);
+        }
     }
 
     file.close();
-    print_statistics(type, encoded_data_filename, stats,
-                     timings, num_decoded_ints, num_decoded_lists);
+
+    double tot_elapsed = std::accumulate(timings.begin(), timings.end(), double(0.0));
+    double ns_x_int = tot_elapsed * 1000000000 / num_decoded_ints;
+    uint64_t ints_x_sec = uint64_t(1 / ns_x_int * 1000000000);
+
+    logger() << "elapsed time " << tot_elapsed << " [sec]" << std::endl;
+    logger() << ns_x_int << " [ns] x int" << std::endl;
+    logger() << ints_x_sec << " ints x [sec]" << std::endl;
+
+    // stats to std output
+    std::cout << "{";
+    std::cout << "\"filename\": \"" << encoded_data_filename << "\", ";
+    std::cout << "\"num_sequences\": \"" << num_decoded_lists << "\", ";
+    std::cout << "\"num_integers\": \"" << num_decoded_ints << "\", ";
+    std::cout << "\"type\": \"" << type << "\", ";
+    std::cout << "\"tot_elapsed_time\": \"" << tot_elapsed << "\", ";
+    std::cout << "\"ns_x_int\": \"" << ns_x_int << "\", ";
+    std::cout << "\"ints_x_sec\": \"" << ints_x_sec << "\"";
+    std::cout << "}" << std::endl;
 }
+
+// for DINT
+// template<typename Decoder, typename Dictionary>
+// void decode(std::string const& type,
+//             char const* encoded_data_filename,
+//             char const* dictionary_filename)
+// {
+//     boost::iostreams::mapped_file_source file;
+//     file.open(encoded_data_filename);
+//     if (!file.is_open()) {
+//         throw std::runtime_error("Error opening index file");
+//     }
+
+//     uint8_t const* begin = (uint8_t const*) file.data();
+//     uint64_t size = file.size() / sizeof(uint8_t);
+//     uint8_t const* end = begin + size;
+//     auto ret = posix_madvise((void*) begin, size, POSIX_MADV_SEQUENTIAL);
+//     if (ret) {
+//         logger() << "Error calling madvice: " << errno << std::endl;
+//     }
+
+//     Dictionary dict;
+//     uint64_t dict_size = 0;
+
+//     size_t dictionaries_bytes = 0;
+//     if (dictionary_filename) {
+//         typename Dictionary::builder builder;
+//         std::ifstream dictionary_file(dictionary_filename);
+//         dictionaries_bytes += builder.load(dictionary_file);
+//         dict_size = builder.size();
+//         logger() << "dictionary with "
+//                  << dict_size << " entries" << std::endl;
+//         builder.print_usage();
+//         builder.build(dict);
+//     }
+
+//     logger() << "Dictionary memory: " << double(dictionaries_bytes) / constants::MiB << " [MiB]" << std::endl;
+
+//     std::vector<uint32_t> decoded;
+//     decoded.resize(constants::max_size, 0);
+
+//     logger() << "decoding..." << std::endl;
+
+//     uint64_t num_decoded_ints = 0;
+//     uint64_t num_decoded_lists = 0;
+//     std::vector<double> timings;
+
+//     dint_statistics stats;
+
+//     while (begin != end) {
+//         uint32_t n, universe;
+//         begin = header::read(begin, &n, &universe);
+//         auto start = clock_type::now();
+//         begin = Decoder::decode(dict,
+//                                 begin, decoded.data(), universe, n
+//                                 // , stats
+//                                 );
+//         auto finish = clock_type::now();
+//         std::chrono::duration<double> elapsed = finish - start;
+//         timings.push_back(elapsed.count());
+//         num_decoded_ints += n;
+//         ++num_decoded_lists;
+//     }
+
+//     file.close();
+//     print_statistics(type, encoded_data_filename, stats,
+//                      timings, num_decoded_ints, num_decoded_lists);
+// }
 
 // template<typename Decoder>
 // void decode_multi(std::string const& type,
@@ -339,51 +414,51 @@ int main(int argc, char** argv) {
     logger() << cmd << std::endl;
 
 
-    if (type == std::string("single_rectangular_greedy_dint")) {
-        decode<greedy_dint, single_dictionary_rectangular_type>(
-            type, encoded_data_filename, dictionary_filename
-        );
-    } else
-    if (type == std::string("single_packed_greedy_dint")) {
-        decode<greedy_dint, single_dictionary_packed_type>(
-            type, encoded_data_filename, dictionary_filename
-        );
-    } else
-    if (type == std::string("single_overlapped_greedy_dint")) {
-        decode<greedy_dint, single_dictionary_overlapped_type>(
-            type, encoded_data_filename, dictionary_filename
-        );
-    } else
+    // if (type == std::string("single_rectangular_greedy_dint")) {
+    //     decode<greedy_dint, single_dictionary_rectangular_type>(
+    //         type, encoded_data_filename, dictionary_filename
+    //     );
+    // } else
+    // if (type == std::string("single_packed_greedy_dint")) {
+    //     decode<greedy_dint, single_dictionary_packed_type>(
+    //         type, encoded_data_filename, dictionary_filename
+    //     );
+    // } else
+    // if (type == std::string("single_overlapped_greedy_dint")) {
+    //     decode<greedy_dint, single_dictionary_overlapped_type>(
+    //         type, encoded_data_filename, dictionary_filename
+    //     );
+    // } else
 
-    if (type == std::string("multi_packed_opt_dint")) {
-        decode<opt_dint, multi_dictionary_packed_type>(
-            type, encoded_data_filename, dictionary_filename
-        );
-    } else
-    if (type == std::string("multi_overlapped_opt_dint")) {
-        decode<opt_dint, multi_dictionary_overlapped_type>(
-            type, encoded_data_filename, dictionary_filename
-        );
-    } else
+    // if (type == std::string("multi_packed_opt_dint")) {
+    //     decode<opt_dint, multi_dictionary_packed_type>(
+    //         type, encoded_data_filename, dictionary_filename
+    //     );
+    // } else
+    // if (type == std::string("multi_overlapped_opt_dint")) {
+    //     decode<opt_dint, multi_dictionary_overlapped_type>(
+    //         type, encoded_data_filename, dictionary_filename
+    //     );
+    // } else
 
     if (type == std::string("pef")) {
         decode_pef(encoded_data_filename, freqs);
     }
     else {
 
-//     if (false) {
-// #define LOOP_BODY(R, DATA, T)                                          \
-//         } else if (type == BOOST_PP_STRINGIZE(T)) {                    \
-//             decode<BOOST_PP_CAT(T, )>                                  \
-//                 (type, encoded_data_filename, dictionary_filename);    \
-//             /**/
+    if (false) {
+#define LOOP_BODY(R, DATA, T)                           \
+        } else if (type == BOOST_PP_STRINGIZE(T)) {     \
+            decode<BOOST_PP_CAT(T, )>                   \
+                (type, encoded_data_filename);          \
+            /**/
 
-//         BOOST_PP_SEQ_FOR_EACH(LOOP_BODY, _, CODECS);
-// #undef LOOP_BODY
-//     } else {
-//         logger() << "ERROR: unknown type '"
-//                  << type << "'" << std::endl;
-//     }
+        BOOST_PP_SEQ_FOR_EACH(LOOP_BODY, _, CODECS);
+#undef LOOP_BODY
+    } else {
+        logger() << "ERROR: unknown type '"
+                 << type << "'" << std::endl;
+    }
 
     }
 
