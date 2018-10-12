@@ -30,8 +30,6 @@ namespace ds2i {
                                   FreqsIterator freqs_begin, uint64_t occurrences)
             {
                 if (!n) throw std::invalid_argument("List must be nonempty");
-
-                // make_shared does not seem to work
                 std::shared_ptr<list_adder<DocsIterator, FreqsIterator>>
                     ptr(new list_adder<DocsIterator, FreqsIterator>
                         (*this, docs_begin,

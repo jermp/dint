@@ -2,9 +2,9 @@
 
 #include <succinct/mappable_vector.hpp>
 #include <succinct/bit_vector.hpp>
-
 #include "compact_elias_fano.hpp"
 #include "block_posting_list.hpp"
+#include "semiasync_queue.hpp"
 
 namespace ds2i {
 
@@ -18,7 +18,8 @@ namespace ds2i {
         class builder {
         public:
             builder(uint64_t num_docs, global_parameters const& params)
-                : m_params(params)
+                : m_queue(1 << 24)
+                , m_params(params)
             {
                 m_num_docs = num_docs;
                 m_endpoints.push_back(0);
@@ -28,10 +29,17 @@ namespace ds2i {
             void add_posting_list(uint64_t n, DocsIterator docs_begin,
                                   FreqsIterator freqs_begin, uint64_t /* occurrences */)
             {
+                // if (!n) throw std::invalid_argument("List must be nonempty");
+                // block_posting_list<BlockCodec, Profile>::write(m_lists, n,
+                //                                                docs_begin, freqs_begin);
+                // m_endpoints.push_back(m_lists.size());
+
                 if (!n) throw std::invalid_argument("List must be nonempty");
-                block_posting_list<BlockCodec, Profile>::write(m_lists, n,
-                                                               docs_begin, freqs_begin);
-                m_endpoints.push_back(m_lists.size());
+                std::shared_ptr<list_adder<DocsIterator, FreqsIterator>>
+                    ptr(new list_adder<DocsIterator, FreqsIterator>
+                        (*this, docs_begin,
+                         freqs_begin, occurrences, n));
+                m_queue.add_job(ptr, 2 * n);
             }
 
             template <typename BlockDataRange>
@@ -54,6 +62,7 @@ namespace ds2i {
 
             void build(block_freq_index& sq)
             {
+                m_queue.complete();
                 sq.m_params = m_params;
                 sq.m_size = m_endpoints.size() - 1;
                 sq.m_num_docs = m_num_docs;
@@ -67,6 +76,42 @@ namespace ds2i {
             }
 
         private:
+
+            template <typename DocsIterator, typename FreqsIterator>
+            struct list_adder : semiasync_queue::job {
+                list_adder(builder& b,
+                           DocsIterator docs_begin,
+                           FreqsIterator freqs_begin,
+                           uint64_t occurrences,
+                           uint64_t n)
+                    : b(b)
+                    , docs_begin(docs_begin)
+                    , freqs_begin(freqs_begin)
+                    , occurrences(occurrences)
+                    , n(n)
+                {}
+
+                virtual void prepare()
+                {
+                    block_posting_list<BlockCodec, Profile>::write(
+                        list, n, docs_begin, freqs_begin
+                    );
+                }
+
+                virtual void commit()
+                {
+                    b.m_endpoints.push_back(list.size());
+                }
+
+                builder& b;
+                DocsIterator docs_begin;
+                FreqsIterator freqs_begin;
+                uint64_t occurrences;
+                uint64_t n;
+                std::vector<uint8_t> list;
+            };
+
+            semiasync_queue m_queue;
             global_parameters m_params;
             size_t m_num_docs;
             std::vector<uint64_t> m_endpoints;
