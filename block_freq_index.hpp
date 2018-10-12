@@ -37,8 +37,7 @@ namespace ds2i {
                 if (!n) throw std::invalid_argument("List must be nonempty");
                 std::shared_ptr<list_adder<DocsIterator, FreqsIterator>>
                     ptr(new list_adder<DocsIterator, FreqsIterator>
-                        (*this, docs_begin,
-                         freqs_begin, occurrences, n));
+                        (*this, docs_begin, freqs_begin, n));
                 m_queue.add_job(ptr, 2 * n);
             }
 
@@ -82,12 +81,10 @@ namespace ds2i {
                 list_adder(builder& b,
                            DocsIterator docs_begin,
                            FreqsIterator freqs_begin,
-                           uint64_t occurrences,
                            uint64_t n)
                     : b(b)
                     , docs_begin(docs_begin)
                     , freqs_begin(freqs_begin)
-                    , occurrences(occurrences)
                     , n(n)
                 {}
 
@@ -106,7 +103,6 @@ namespace ds2i {
                 builder& b;
                 DocsIterator docs_begin;
                 FreqsIterator freqs_begin;
-                uint64_t occurrences;
                 uint64_t n;
                 std::vector<uint8_t> list;
             };
