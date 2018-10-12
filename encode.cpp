@@ -97,14 +97,38 @@ void encode(std::string const& type,
     for (; it != input.end(); ++it) {
         auto const& list = *it;
         uint32_t n = list.size();
-        std::shared_ptr<sequence_adder<iterator_type, Encoder>>
-            ptr(new sequence_adder<iterator_type, Encoder>(
-                list.begin(), n,
-                progress, output, docs,
-                num_processed_lists, num_total_ints
-            )
+
+        // sequential construction for PFOR
+        std::vector<uint32_t> buf;
+        buf.reserve(n);
+        uint64_t universe = 0;
+        uint32_t prev = docs ? -1 : 0;
+        auto begin = list.begin();
+        for (uint64_t i = 0; i != n; ++i, ++begin) {
+            buf.push_back(*begin - prev - 1);
+            if (docs) prev = *begin;
+            universe += buf.back();
+        }
+        assert(buf.size() == n);
+
+        header::write(n, universe, output);
+        Encoder::encode(
+            buf.data(), universe, buf.size(), output
         );
-        jobs_queue.add_job(ptr, n);
+        progress += n + 1;
+        ++num_processed_lists;
+        num_total_ints += n;
+
+
+        // parallel construction
+        // std::shared_ptr<sequence_adder<iterator_type, Encoder>>
+        //     ptr(new sequence_adder<iterator_type, Encoder>(
+        //         list.begin(), n,
+        //         progress, output, docs,
+        //         num_processed_lists, num_total_ints
+        //     )
+        // );
+        // jobs_queue.add_job(ptr, n);
     }
 
     jobs_queue.complete();
@@ -399,10 +423,10 @@ int main(int argc, char** argv) {
     //     );
     // } else
 
-    // if (type == std::string("pef")) {
-    //     encode_pef(collection_name, output_filename);
-    // }
-    // else {
+    if (type == std::string("pef")) {
+        encode_pef(collection_name, output_filename);
+    }
+    else {
 
     if (false) {
 #define LOOP_BODY(R, DATA, T)                                \
@@ -418,7 +442,7 @@ int main(int argc, char** argv) {
                  << type << "'" << std::endl;
     }
 
-    // }
+    }
 
     return 0;
 }

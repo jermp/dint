@@ -5,7 +5,7 @@ output_prefix = sys.argv[2]
 
 codecs = ["interpolative",
           "qmx",
-          "optpfor",
+          # "optpfor",
           "simple16",
           "varintgb",
           "varintg8iu",

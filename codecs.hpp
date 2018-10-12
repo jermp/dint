@@ -167,6 +167,7 @@ namespace ds2i {
         }
     };
 
+    // PFOR is the only one that cannot be built in parallel
     struct optpfor {
 
         struct codec_type : FastPFor::OPTPFor<4, FastPFor::Simple16<false>> {
@@ -227,8 +228,8 @@ namespace ds2i {
                 return;
             }
 
-            /*thread_local*/ codec_type optpfor_codec;
-            /*thread_local*/ std::vector<uint8_t> buf(2 * 4 * n);
+            thread_local codec_type optpfor_codec;
+            thread_local std::vector<uint8_t> buf(2 * 4 * n);
             size_t out_len = buf.size();
             optpfor_codec.force_b = b;
             if (n % 128) {
@@ -247,7 +248,7 @@ namespace ds2i {
                 return TightVariableByte::decode(in, out, 1);
             }
 
-            /*thread_local*/ codec_type optpfor_codec; // pfor decoding is *not* thread-safe
+            thread_local codec_type optpfor_codec; // pfor decoding is *not* thread-safe
             size_t out_len = n;
             uint8_t const *ret;
             if (n % 128) {

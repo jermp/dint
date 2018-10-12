@@ -362,15 +362,18 @@ void decode_pef(char const* encoded_data_filename, bool freqs)
         // std::cout << n << std::endl;
         offset += 32;
 
-        auto start = clock_type::now();
-        pef::decode(
-            bv, decoded.data(), offset, universe, n, freqs
-        );
-        auto finish = clock_type::now();
-        std::chrono::duration<double> elapsed = finish - start;
-        timings.push_back(elapsed.count());
-        num_decoded_ints += n;
-        ++num_decoded_lists;
+        if (n > 4096) {
+            auto start = clock_type::now();
+            pef::decode(
+                bv, decoded.data(), offset, universe, n, freqs
+            );
+            auto finish = clock_type::now();
+            std::chrono::duration<double> elapsed = finish - start;
+            timings.push_back(elapsed.count());
+            num_decoded_ints += n;
+            ++num_decoded_lists;
+        }
+        
         offset = next_offset;
 
         // std::cout << num_decoded_lists << ": offset " << offset << "/" << num_bits << std::endl;
