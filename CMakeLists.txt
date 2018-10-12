@@ -157,10 +157,10 @@ target_link_libraries(decoding_speed_perf_test
 #  ${Boost_LIBRARIES}
 #  )
 
-add_executable(SIMD_test SIMD_test.cpp)
-target_link_libraries(SIMD_test
-  ${Boost_LIBRARIES}
-  )
+#add_executable(SIMD_test SIMD_test.cpp)
+#target_link_libraries(SIMD_test
+#  ${Boost_LIBRARIES}
+#  )
 
 enable_testing()
 add_subdirectory(test)
