@@ -5,7 +5,7 @@ output_prefix_name = sys.argv[2]
 query_logs_basename = sys.argv[3]
 
 strategies = [
-              "opt",
+              # "opt",
               "block_interpolative",
               "block_qmx",
               "block_simple16",
@@ -33,7 +33,7 @@ for type in strategies:
     os.system(cmd)
 
     # perform queries
-    for suffix in [".0.mapped.1k", ".0.mapped.selective", ".1.mapped.1k", ".1.mapped.selective"]:
+    for suffix in ["0.mapped.1k", "0.mapped.selective", "1.mapped.1k", "1.mapped.selective"]:
       cmd = "./queries " + type + " and " + bins_directory + "/" + output + ".bin < " + query_logs_basename + suffix + " >> " + results_directory + "/" + output + ".querytime"
       for i in xrange(0, 4):
           os.system(cmd)
