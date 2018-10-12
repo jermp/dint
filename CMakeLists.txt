@@ -142,10 +142,10 @@ target_link_libraries(decoding_speed_perf_test
   MaskedVByte
   )
 
-add_executable(rbo rbo.cpp)
-target_link_libraries(rbo
-  ${Boost_LIBRARIES}
-  )
+#add_executable(rbo rbo.cpp)
+#target_link_libraries(rbo
+#  ${Boost_LIBRARIES}
+#  )
 
 #add_executable(print_selectors_stats print_selectors_stats.cpp)
 #target_link_libraries(print_selectors_stats
