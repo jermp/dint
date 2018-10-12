@@ -10,7 +10,6 @@
 #include "statistics_collectors.hpp"
 #include "binary_blocks_collection.hpp"
 
-#include "heap.hpp"
 #include "hash_utils.hpp"
 #include "util.hpp"
 #include "model_build_utils.hpp"
