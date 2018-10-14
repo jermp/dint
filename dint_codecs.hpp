@@ -155,7 +155,7 @@ namespace ds2i {
     struct opt_dint_single_dict_block
     {
         static const uint64_t block_size = constants::block_size;
-        static const uint64_t overflow = 0;
+        static const uint64_t overflow = 256;
 
         template<typename Builder>
         static void encode(Builder& builder,

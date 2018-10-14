@@ -109,8 +109,8 @@ namespace ds2i {
                 , m_freqs_dict(freqs_dict)
             {
                 (void) term_id;
-                m_docs_buf.resize(Coder::block_size + Coder::overflow);
-                m_freqs_buf.resize(Coder::block_size + Coder::overflow);
+                m_docs_buf.resize(Coder::block_size + Coder::overflow, 0);
+                m_freqs_buf.resize(Coder::block_size + Coder::overflow, 0);
                 reset();
             }
 
@@ -128,9 +128,6 @@ namespace ds2i {
                     decode_docs_block(m_cur_block + 1);
                 } else {
                     m_cur_docid += m_docs_buf[m_pos_in_block] + 1;
-
-                    // XXX: do not do the prefix sums
-                    // m_cur_docid = m_docs_buf[m_pos_in_block] + 1;
                 }
             }
 
@@ -329,6 +326,11 @@ namespace ds2i {
                     ? block_size : (size() % block_size);
                 uint32_t cur_base = (block ? block_max(block - 1) : uint32_t(-1)) + 1;
                 m_cur_block_max = block_max(block);
+
+                // m_docs_buf.resize(Coder::block_size + Coder::overflow, 0);
+                // memset(m_docs_buf.data(), 0, sizeof(m_docs_buf[0]) * (Coder::block_size + Coder::overflow));
+                std::fill(m_docs_buf.begin(), m_docs_buf.end(), 0);
+
                 m_freqs_block_data =
                     Coder::decode(*m_docs_dict, block_data, m_docs_buf.data(),
                                   m_cur_block_max - cur_base - (m_cur_block_size - 1),
@@ -344,6 +346,7 @@ namespace ds2i {
 
             void DS2I_NOINLINE decode_freqs_block()
             {
+                std::fill(m_freqs_buf.begin(), m_freqs_buf.end(), 0);
                 uint8_t const* next_block = Coder::decode(*m_freqs_dict, m_freqs_block_data, m_freqs_buf.data(),
                                                           uint32_t(-1), m_cur_block_size);
                 succinct::intrinsics::prefetch(next_block);
