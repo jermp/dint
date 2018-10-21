@@ -9,6 +9,7 @@ namespace ds2i {
     struct dint_block
     {
         static const uint64_t block_size = constants::block_size;
+        static const uint64_t overflow = 256;
 
         template<typename Dictionary>
         static uint8_t const* decode(Dictionary const& dict,
@@ -55,7 +56,7 @@ namespace ds2i {
     struct greedy_dint_single_dict_block
     {
         static const uint64_t block_size = constants::block_size;
-        static const uint64_t overflow = 0;
+        static const uint64_t overflow = dint_block::overflow;
 
         template<typename Builder>
         static void encode(Builder& builder,
@@ -155,7 +156,7 @@ namespace ds2i {
     struct opt_dint_single_dict_block
     {
         static const uint64_t block_size = constants::block_size;
-        static const uint64_t overflow = 256;
+        static const uint64_t overflow = dint_block::overflow;
 
         template<typename Builder>
         static void encode(Builder& builder,
@@ -310,7 +311,7 @@ namespace ds2i {
     struct opt_dint_multi_dict_block
     {
         static const uint64_t block_size = constants::block_size;
-        static const uint64_t overflow = 0;
+        static const uint64_t overflow = dint_block::overflow;
 
         template<typename Builder>
         static void encode(Builder& builder,
@@ -468,11 +469,12 @@ namespace ds2i {
 
 
 
-            // Option (2): select the dictionary based on the context
+            // // Option (2): select the dictionary based on the context
             // selector sct;
             // uint32_t selector_code = sct.get(in, n);
             // std::vector<std::vector<uint8_t>> encoded(2);
             // encode(builder, selector_code, in, n, encoded[0], 16);
+            // // also b = 8 is used
             // encode(builder, selector_code, in, n, encoded[1],  8);
             // size_t smallest_size = encoded[0].size();
             // if (encoded[1].size() <= smallest_size) {
@@ -483,6 +485,8 @@ namespace ds2i {
             // out.push_back(selector_code);
             // out.insert(out.end(), encoded[selector_code >= constants::num_selectors].begin(),
             //                       encoded[selector_code >= constants::num_selectors].end());
+
+
 
 
 
