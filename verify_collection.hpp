@@ -11,7 +11,7 @@ namespace ds2i {
         boost::iostreams::mapped_file_source m(filename);
         succinct::mapper::map(coll, m);
 
-        logger() << "Checking the written data, just to be extra safe...";
+        logger() << "Checking the written data, just to be extra safe..." << std::endl;
         size_t s = 0;
         for (auto seq: input) {
             auto e = coll[s];
@@ -48,6 +48,6 @@ namespace ds2i {
 
             s += 1;
         }
-        logger() << "Everything is OK!";
+        logger() << "Everything is OK!" << std::endl;
     }
 }

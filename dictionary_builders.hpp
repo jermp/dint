@@ -64,8 +64,6 @@ namespace ds2i {
                      << std::endl;
 
             dict_builder.init();
-            std::cout << "stats.blocks.size() " << stats.blocks.size() << std::endl;
-
             for (uint64_t s = 0; s != stats.blocks.size(); ++s)
             {
                 uint64_t n = dictionary_type::num_entries;
