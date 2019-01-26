@@ -30,7 +30,8 @@ find_package(Boost COMPONENTS iostreams unit_test_framework filesystem system lo
 include_directories(${Boost_INCLUDE_DIRS})
 link_directories(${Boost_LIBRARY_DIRS})
 
-include_directories(${DS2I_SOURCE_DIR}/include)
+include_directories(${DS2I_SOURCE_DIR}/include/ds2i)
+include_directories(${DS2I_SOURCE_DIR}/include/dint)
 
 add_subdirectory(external)
 
