@@ -74,11 +74,11 @@ void perftest(const char* index_filename,
     using namespace ds2i;
 
     IndexType index;
-    logger() << "Loading index from " << index_filename;
+    logger() << "Loading index from " << index_filename << std::endl;
     boost::iostreams::mapped_file_source m(index_filename);
     succinct::mapper::map(index, m);
 
-    logger() << "Warming up posting lists";
+    logger() << "Warming up posting lists" << std::endl;
     std::unordered_set<term_id_type> warmed_up;
     for (auto const& q: queries) {
         for (auto t: q) {
@@ -115,7 +115,7 @@ void perftest(const char* index_filename,
         } else if (t == "maxscore" && wand_data_filename) {
             op_perftest(index, maxscore_query(wdata, 10), queries, type, t, runs);
         } else {
-            logger() << "Unsupported query type: " << t;
+            logger() << "Unsupported query type: " << t << std::endl;
         }
     }
 }
