@@ -54,7 +54,7 @@ namespace ds2i {
     typedef block_freq_index<maskedvbyte_block> block_maskedvbyte_index;
     typedef block_freq_index<streamvbyte_block> block_streamvbyte_index;
 
-    /**** DINT ****/
+    // DINT indexes
 
     // collector type
     using adjusted_collector_type = adjusted<constants::max_entry_size>;
@@ -64,36 +64,26 @@ namespace ds2i {
     using adjusted_block_multi_stats_type = block_multi_statistics<adjusted_collector_type>;
 
     // dictionary_builders
-    using DSV_single = decreasing_static_volume<
-                                            single_dictionary_rectangular_type,
-                                            adjusted_block_stats_type
-                                        >;
-
-    using DSF_single = decreasing_static_frequencies<
+    using single_rectangular_builder = decreasing_static_frequencies<
                                                 single_dictionary_rectangular_type,
-                                                // single_dictionary_rectangular_type
-                                                // single_dictionary_packed_type
-                                                // single_dictionary_overlapped_type
                                                 adjusted_block_stats_type
                                             >;
 
-    using DSF_multi = decreasing_static_frequencies<
+    using single_packed_builder = decreasing_static_frequencies<
+                                                single_dictionary_packed_type,
+                                                adjusted_block_stats_type
+                                            >;
+
+    using multi_packed_builder = decreasing_static_frequencies<
                                                 multi_dictionary_packed_type,
-                                                // multi_dictionary_packed_type
-                                                // multi_dictionary_overlapped_type
                                                 adjusted_block_multi_stats_type
                                             >;
 
-    // DINT configurations
-
-    using DSV_single_block_greedy_dint_index = dict_freq_index<DSV_single, greedy_dint_single_dict_block>;
-    using DSF_single_block_greedy_dint_index = dict_freq_index<DSF_single, greedy_dint_single_dict_block>;
-    using DSF_single_block_opt_dint_index    = dict_freq_index<DSF_single, opt_dint_single_dict_block>;
-    using DSF_multi_block_opt_dint_index     = dict_freq_index<DSF_multi,  opt_dint_multi_dict_block>;
-
-    /*************/
-
+    // DINT configurations (all use optimal block parsing)
+    using single_rect_dint_index    = dict_freq_index<single_rectangular_builder, opt_dint_single_dict_block>;
+    using single_packed_dint_index  = dict_freq_index<single_packed_builder,      opt_dint_single_dict_block>;
+    using multi_packed_dint_index   = dict_freq_index<multi_packed_builder,       opt_dint_multi_dict_block>;
 }
 
-#define DS2I_INDEX_TYPES (ef)(single)(uniform)(opt)(block_optpfor)(block_varintg8iu)(block_interpolative)(block_qmx)(block_mixed)(block_u32)(block_vbyte)(block_simple16)(block_varintgb)(block_maskedvbyte)(block_streamvbyte)(DSV_single_block_greedy_dint)(DSF_single_block_greedy_dint)(DSF_single_block_opt_dint)(DSF_multi_block_opt_dint)
+#define DS2I_INDEX_TYPES (ef)(single)(uniform)(opt)(block_optpfor)(block_varintg8iu)(block_interpolative)(block_qmx)(block_mixed)(block_u32)(block_vbyte)(block_simple16)(block_varintgb)(block_maskedvbyte)(block_streamvbyte)(single_rect_dint)(single_packed_dint)(multi_packed_dint)
 #define DS2I_BLOCK_INDEX_TYPES (block_optpfor)(block_varintg8iu)(block_interpolative)(block_qmx)(block_mixed)(block_u32)(block_vbyte)(block_simple16)(block_varintgb)(block_maskedvbyte)(block_streamvbyte)

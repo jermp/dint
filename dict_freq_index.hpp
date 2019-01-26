@@ -41,6 +41,7 @@ namespace ds2i {
             {
                 if (!n) throw std::invalid_argument("List must be nonempty");
 
+                // single-thread version
                 // sequence_type::write(m_docs_dict_builder,
                 //                      m_freqs_dict_builder,
                 //                      m_lists, n,
@@ -48,6 +49,7 @@ namespace ds2i {
                 //                      freqs_begin);
                 // m_endpoints.push_back(m_lists.size());
 
+                // multi-thread
                 std::shared_ptr<list_adder<DocsIterator, FreqsIterator>>
                     ptr(new list_adder<DocsIterator, FreqsIterator>(
                         *this, docs_begin, freqs_begin, n

@@ -1,9 +1,6 @@
 [submodule "succinct"]
 	path = succinct
 	url = https://github.com/ot/succinct.git
-[submodule "stxxl"]
-	path = stxxl
-	url = https://github.com/stxxl/stxxl.git
 [submodule "streamvbyte"]
 	path = streamvbyte
 	url = https://github.com/lemire/streamvbyte.git

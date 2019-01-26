@@ -6,7 +6,6 @@
 #include <succinct/mappable_vector.hpp>
 
 #include "dint_configuration.hpp"
-#include "model_build_utils.hpp"
 #include "hash_utils.hpp"
 #include "util.hpp"
 #include "dictionary_building_utils.hpp"
@@ -101,15 +100,6 @@ namespace ds2i {
                 dictionary_file.read(reinterpret_cast<char*>(m_start_offsets.data()), start_offsets_size * sizeof(uint32_t));
                 dictionary_file.read(reinterpret_cast<char*>(m_offsets.data()), offsets_size * sizeof(uint32_t));
                 dictionary_file.read(reinterpret_cast<char*>(m_table.data()), table_size * sizeof(uint32_t));
-
-                // for (uint32_t i = 0; i != max_entry_size; ++i) {
-                //     m_table.push_back(0);
-                // }
-
-                // for (auto x: m_start_offsets) {
-                //     std::cout << x << std::endl;
-                // }
-                // std::cout << m_offsets.size() << std::endl;
 
                 read_bytes += (start_offsets_size + offsets_size + table_size) * sizeof(uint32_t);
                 return read_bytes;

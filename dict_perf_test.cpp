@@ -4,11 +4,12 @@
 #include <chrono>
 
 #include "util.hpp"
-#include "index_types.hpp"
+#include "dictionary_types.hpp"
 #include "dint_configuration.hpp"
 
-
 using namespace ds2i;
+
+typedef single_dictionary_rectangular_type dictionary_type;
 
 int main(int argc, char** argv) {
 
@@ -21,6 +22,7 @@ int main(int argc, char** argv) {
 
     char const* dictionary_filename = argv[1];
 
+
     dictionary_type dict;
     typename dictionary_type::builder builder;
     std::ifstream dictionary_file(dictionary_filename);
@@ -28,7 +30,6 @@ int main(int argc, char** argv) {
     uint64_t dict_size = builder.size();
     logger() << "loaded a dictionary with "
              << dict_size << " entries" << std::endl;
-    builder.print();
     builder.build(dict);
 
     constexpr uint64_t n = 10000000;

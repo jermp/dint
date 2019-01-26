@@ -2,22 +2,30 @@
 
 #include <boost/progress.hpp>
 #include <boost/filesystem.hpp>
-
 #include <unordered_map>
-#include <queue>
 
 #include "dint_configuration.hpp"
 #include "statistics_collectors.hpp"
 #include "binary_blocks_collection.hpp"
-
 #include "hash_utils.hpp"
 #include "util.hpp"
-#include "model_build_utils.hpp"
 
 namespace ds2i {
 
+    static const double codeword_bits = std::log2(constants::num_entries);
+    static const double initial_bpi = 3 * codeword_bits;
+    static const double eps = 0.0001;
+
+    double cost(uint32_t block_size, uint32_t block_frequency) {
+        return block_frequency * (initial_bpi * block_size - codeword_bits);
+    }
+
+    double compute_saving(uint32_t block_size, uint32_t block_frequency, uint64_t total_integers) {
+        return cost(block_size, block_frequency) / total_integers;
+    };
+
     struct cost_filter {
-        cost_filter(double threshold = constants::eps)
+        cost_filter(double threshold = eps)
             : m_threshold(threshold)
         {}
 
@@ -44,7 +52,7 @@ namespace ds2i {
         }
 
         static auto filter() {
-            cost_filter filter(constants::eps / 1000);
+            cost_filter filter(eps / 1000);
             return filter;
         }
 
@@ -72,56 +80,6 @@ namespace ds2i {
             }
 
             dict_builder.build();
-        }
-    };
-
-    template<typename Dictionary, typename Statistics>
-    struct decreasing_static_volume
-    {
-        typedef Dictionary dictionary_type;
-        typedef Statistics statistics_type;
-
-        static std::string type() {
-            return "DSV-" + std::to_string(dictionary_type::num_entries) +
-                      "-" + std::to_string(dictionary_type::max_entry_size);
-        }
-
-        static auto filter() {
-            cost_filter filter(constants::eps / 1000);
-            return filter;
-        }
-
-        static void build(typename dictionary_type::builder& builder,
-                          statistics_type& stats)
-        {
-            logger() << "building " << type() << " dictionary for " << stats.total_integers << std::endl;
-            builder.init();
-
-            for (uint64_t s = 0; s != stats.blocks.size(); ++s)
-            {
-                for (auto& block: stats.blocks[s]) {
-                    block.freq *= block.data.size();
-                }
-
-                freq_length_sorter sorter;
-                std::sort(stats.blocks[s].begin(),
-                          stats.blocks[s].end(),
-                          sorter);
-
-                uint64_t n = dictionary_type::num_entries;
-                if (stats.blocks[s].size() < n) {
-                    n = stats.blocks[s].size();
-                }
-
-                auto it = stats.blocks[s].begin();
-                for (uint64_t i = 0; i < n; ++i, ++it) {
-                    auto const& block = *it;
-                    builder.append(block.data.data(),
-                                   block.data.size(), s);
-                }
-            }
-
-            builder.build();
         }
     };
 }

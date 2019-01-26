@@ -13,23 +13,16 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 endif ()
 
 if (UNIX)
+
    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
-
-   # Extensive warnings
+   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb")
    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-missing-braces")
-   # Silence a warning bug in Boost
-   if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-local-typedefs")
-   endif ()
-   # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wconversion")
 
    if (USE_SANITIZERS)
      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
    endif ()
-
-   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb") # Add debug info anyway
 
 endif()
 
@@ -37,14 +30,6 @@ find_package(Boost COMPONENTS iostreams unit_test_framework filesystem system lo
 include_directories(${Boost_INCLUDE_DIRS})
 link_directories(${Boost_LIBRARY_DIRS})
 
-# stxxl
-#add_definitions(-DSTXXL_VERBOSE_LEVEL=-10) # suppress #messages to stdout
-#add_definitions(-DBOOST_LOG_DYN_LINK)
-#add_subdirectory(stxxl)
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} #${STXXL_CXX_FLAGS}")
-#include_directories(${STXXL_INCLUDE_DIRS})
-
-# add the root directory to include path to make includes absolute
 include_directories(${DS2I_SOURCE_DIR})
 
 add_subdirectory(succinct EXCLUDE_FROM_ALL)
@@ -95,13 +80,6 @@ target_link_libraries(decode
 #    MaskedVByte
 #    )
 
-#add_executable(optimal_hybrid_index optimal_hybrid_index.cpp)
-#target_link_libraries(optimal_hybrid_index
-#  ${Boost_LIBRARIES}
-#  FastPFor_lib
-#  ${STXXL_LIBRARIES}
-#)
-
 add_executable(create_wand_data create_wand_data.cpp)
 target_link_libraries(create_wand_data
   ${Boost_LIBRARIES}
@@ -115,51 +93,10 @@ target_link_libraries(queries
   MaskedVByte
   )
 
-#add_executable(profile_queries profile_queries.cpp)
-#target_link_libraries(profile_queries
-#  ${Boost_LIBRARIES}
-#  FastPFor_lib
-#  )
-
-#add_executable(profile_decoding profile_decoding.cpp)
-#target_link_libraries(profile_decoding
-#  ${Boost_LIBRARIES}
-#  FastPFor_lib
-#  )
-
-#add_executable(create_dint_dict create_dint_dict.cpp)
-#target_link_libraries(create_dint_dict
-#  ${Boost_LIBRARIES}
-#  FastPFor_lib
-#  )
-
-add_executable(decoding_speed_perf_test decoding_speed_perf_test.cpp)
-target_link_libraries(decoding_speed_perf_test
+add_executable(dict_perf_test dict_perf_test.cpp)
+target_link_libraries(dict_perf_test
   ${Boost_LIBRARIES}
-  FastPFor_lib
-  streamvbyte
-  MaskedVByte
   )
-
-#add_executable(rbo rbo.cpp)
-#target_link_libraries(rbo
-#  ${Boost_LIBRARIES}
-#  )
-
-#add_executable(print_selectors_stats print_selectors_stats.cpp)
-#target_link_libraries(print_selectors_stats
-#  ${Boost_LIBRARIES}
-#  )
-
-#add_executable(dict_perf_test dict_perf_test.cpp)
-#target_link_libraries(dict_perf_test
-#  ${Boost_LIBRARIES}
-#  )
-
-#add_executable(SIMD_test SIMD_test.cpp)
-#target_link_libraries(SIMD_test
-#  ${Boost_LIBRARIES}
-#  )
 
 enable_testing()
 add_subdirectory(test)

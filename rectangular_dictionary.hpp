@@ -6,7 +6,6 @@
 #include <succinct/mappable_vector.hpp>
 
 #include "dint_configuration.hpp"
-#include "model_build_utils.hpp"
 #include "hash_utils.hpp"
 #include "util.hpp"
 
