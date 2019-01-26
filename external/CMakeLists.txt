@@ -8,8 +8,8 @@ add_subdirectory(FastPFor EXCLUDE_FROM_ALL)
 
 # Add streamvbyte
 include_directories(streamvbyte/include)
-add_library(streamvbyte STATIC streamvbyte/src/streamvbyte.c
-                               streamvbyte/src/streamvbytedelta.c
+add_library(streamvbyte STATIC streamvbyte/src/streamvbyte_encode.c
+                               streamvbyte/src/streamvbyte_decode.c
 )
 
 # Add maskedvbyte
