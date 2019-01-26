@@ -30,27 +30,16 @@ find_package(Boost COMPONENTS iostreams unit_test_framework filesystem system lo
 include_directories(${Boost_INCLUDE_DIRS})
 link_directories(${Boost_LIBRARY_DIRS})
 
-include_directories(${DS2I_SOURCE_DIR})
+include_directories(${DS2I_SOURCE_DIR}/include)
 
-add_subdirectory(succinct EXCLUDE_FROM_ALL)
-add_subdirectory(FastPFor EXCLUDE_FROM_ALL)
+add_subdirectory(external)
 
-# Add streamvbyte
-include_directories(streamvbyte/include)
-add_library(streamvbyte STATIC streamvbyte/src/streamvbyte.c
-                               streamvbyte/src/streamvbytedelta.c
-)
-
-# Add maskedvbyte
-include_directories(MaskedVByte/include)
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native")
-add_library(MaskedVByte STATIC MaskedVByte/src/varintdecode.c
-                               MaskedVByte/src/varintencode.c
-)
+include_directories(${DS2I_SOURCE_DIR}/external
+        ${DS2I_SOURCE_DIR}/include
+        )
 
 add_subdirectory(src)
 add_subdirectory(vroom_env)
 
 enable_testing()
 add_subdirectory(test)
-

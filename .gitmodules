@@ -1,12 +1,12 @@
-[submodule "succinct"]
-	path = succinct
+[submodule "external/succinct"]
+	path = external/succinct
 	url = https://github.com/ot/succinct.git
-[submodule "streamvbyte"]
-	path = streamvbyte
+[submodule "external/streamvbyte"]
+	path = external/streamvbyte
 	url = https://github.com/lemire/streamvbyte.git
-[submodule "MaskedVByte"]
-	path = MaskedVByte
+[submodule "external/MaskedVByte"]
+	path = external/MaskedVByte
 	url = https://github.com/lemire/MaskedVByte.git
-[submodule "FastPFor"]
-	path = FastPFor
+[submodule "external/FastPFor"]
+	path = external/FastPFor
 	url = https://github.com/ot/FastPFor.git
