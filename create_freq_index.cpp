@@ -125,9 +125,10 @@ void create_collection(std::string input_basename,
 
 int main(int argc, const char** argv) {
 
-    if (argc < 3) {
+    int mandatory = 3;
+    if (argc < mandatory) {
         std::cerr << "Usage: " << argv[0] << ":\n"
-                  << "\t<index type> <collection basename> [<output filename>] [--check]"
+                  << "\t<index_type> <collection_basename> [<output_filename>] [--check]"
                   << std::endl;
         return 1;
     }
@@ -135,12 +136,12 @@ int main(int argc, const char** argv) {
     std::string type = argv[1];
     const char* input_basename = argv[2];
     const char* output_filename = nullptr;
-    if (argc > 3) {
-        output_filename = argv[3];
+    if (argc > mandatory) {
+        output_filename = argv[mandatory];
     }
 
     bool check = false;
-    if (argc > 4 && std::string(argv[4]) == "--check") {
+    if (argc > mandatory + 1 and std::string(argv[mandatory + 1]) == "--check") {
         check = true;
     }
 
