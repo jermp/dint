@@ -14,7 +14,6 @@
 #include "codecs.hpp"
 #include "util.hpp"
 
-
 using namespace ds2i;
 
 template<typename Decoder>
