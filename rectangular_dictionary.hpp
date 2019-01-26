@@ -10,9 +10,6 @@
 #include "hash_utils.hpp"
 #include "util.hpp"
 
-// #include <x86intrin.h>
-// #include <immintrin.h> // AVX2
-
 namespace ds2i {
 
     template<uint32_t t_num_entries,
@@ -122,13 +119,6 @@ namespace ds2i {
                     m_map[hash] = i;
                 }
                 for (; i < size(); ++i) {
-                    // auto ptr = get(i);
-                    // std::cout << i << ": " << std::endl;
-                    // for (uint32_t k = 0; k < size(i); ++k) {
-                    //     std::cout << *ptr << " ";
-                    //     ++ptr;
-                    // }
-                    // std::cout << std::endl;
                     uint64_t hash = hash_bytes64(get(i), size(i));
                     m_map[hash] = i;
                 }
@@ -176,12 +166,6 @@ namespace ds2i {
 
                 for (uint64_t i = 0, k = 0; i < m_table.size(); i += max_entry_size + 1, ++k) {
                     uint32_t size = m_table[i + max_entry_size];
-                    // std::cout << k << ": " << size << " - [";
-                    // for (uint32_t k = 0; k < max_entry_size; ++k) {
-                    //     std::cout << m_table[i + k];
-                    //     if (k != max_entry_size - 1) std::cout << "|";
-                    // }
-                    // std::cout << "]" << std::endl;
                     sizes[ceil_log2(size) + 1] += 1;
                 }
 
@@ -224,68 +208,10 @@ namespace ds2i {
             assert(i < num_entries);
             uint32_t begin = i * (max_entry_size + 1);
             uint32_t const* ptr = &m_table[begin];
-
-            // APPROACH 1: always copy max_entry_size * sizeof(uint32_t) bytes,
-            // regardless the fact that most entries need less bytes
-            // std::cout << "i " << i << "/" << num_entries << std::endl;
             memcpy(out, ptr, max_entry_size * sizeof(uint32_t));
-            // std::cout << "done" << std::endl;
-
-            // NOTE: slower than memcpy
-            // *(out + 0) = *(ptr + 0);
-            // *(out + 1) = *(ptr + 1);
-            // *(out + 2) = *(ptr + 2);
-            // *(out + 3) = *(ptr + 3);
-            // *(out + 4) = *(ptr + 4);
-            // *(out + 5) = *(ptr + 5);
-            // *(out + 6) = *(ptr + 6);
-            // *(out + 7) = *(ptr + 7);
-
-            // NOTE: faster than previous one, but still a bit slower than memcpy
-            // uint64_t* _out = reinterpret_cast<uint64_t*>(out);
-            // uint64_t const* _in = reinterpret_cast<uint64_t const*>(ptr);
-            // *(_out + 0) = *(_in + 0);
-            // *(_out + 1) = *(_in + 1);
-
-            // APPROACH 2: split the copy into 2 parts and copy
-            // the rest only when necessary
-            // NOTE: slower than memcpy
-            // memcpy(out, ptr, 16);
-            // if (size == 8) {
-            //     memcpy(out + 4, ptr + 4, 16);
-            // }
-            // *(reinterpret_cast<uint64_t*>(out)) = *(reinterpret_cast<uint64_t const*>(ptr));
-            // if (size == 4) {
-            //     *(reinterpret_cast<uint64_t*>(out) + 1) = *(reinterpret_cast<uint64_t const*>(ptr) + 1);
-            // }
-
-            // APPROACH 3: SIMD
-            // NOTE: equal to memcpy
-            // _mm_storeu_si128((__m128i*) out, _mm_loadu_si128((__m128i const*) ptr)); // l = 4
-            // _mm256_storeu_si256((__m256i*) out, _mm256_lddqu_si256((__m256i const*) ptr)); // l = 8
-            // _mm512_storeu_si512(out, _mm512_loadu_si512(ptr)); // l = 16
-
-            // __m128i tmp_0 = _mm_loadu_si128((__m128i*) ptr);
-            // _mm_storeu_si128((__m128i*) out, tmp_0);
-            // if (size == 8) {
-            //     __m128i tmp_4 = _mm_loadu_si128((__m128i*) (ptr + 4));
-            //     _mm_storeu_si128((__m128i*)(out + 4), tmp_4);
-            // }
-
-            // uint32_t end = begin + max_entry_size;
             uint32_t size = *(ptr + max_entry_size); // m_table[end];
-
-            // // APPROACH 4: copy exactly the needed bytes
-            // memcpy(out, ptr, size * sizeof(uint32_t));
-
             return size;
         }
-
-        // uint32_t size(uint32_t i) const {
-        //     uint32_t begin = i * (t_max_entry_size + 1);
-        //     uint32_t end = begin + t_max_entry_size;
-        //     return m_table[end];
-        // }
 
         void swap(rectangular_dictionary& other) {
             m_table.swap(other.m_table);
@@ -295,20 +221,6 @@ namespace ds2i {
         void map(Visitor& visit) {
             visit(m_table, "m_table");
         }
-
-        // void print(uint32_t i) {
-        //     uint32_t begin = i * (max_entry_size + 1);
-        //     uint32_t end = begin + max_entry_size;
-        //     uint32_t size = m_table[end];
-        //     uint32_t const* ptr = &m_table[begin];
-        //     std::cout << "[";
-        //     for (uint32_t k = 0; k < size; ++k) {
-        //         std::cout << *ptr;
-        //         ++ptr;
-        //         if (k != size - 1) std::cout << "|";
-        //     }
-        //     std::cout << "]" << std::endl;
-        // }
 
     private:
         succinct::mapper::mappable_vector<uint32_t> m_table;
