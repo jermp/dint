@@ -212,7 +212,6 @@ namespace ds2i {
         stats_line& operator()(T const& obj)
         {
             return obj.dump(*this);
-
         }
 
     private:

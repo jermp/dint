@@ -10,7 +10,7 @@
 #include "queries.hpp"
 #include "util.hpp"
 
-uint64_t runs = 3;
+const size_t runs = 5;
 
 template <typename QueryOperator, typename IndexType>
 void op_perftest(IndexType const& index,
@@ -25,42 +25,15 @@ void op_perftest(IndexType const& index,
     std::vector<double> query_times;
 
     for (size_t run = 0; run <= runs; ++run) {
-        for (auto const& query: queries) {
-
-            // if (query.size() > 1) {
-                auto tick = get_time_usecs();
-
-                uint64_t results = query_op(index, query);
-
-                // auto and_op = and_query<false>();
-                // auto or_op = or_query<false>();
-                // uint64_t q_intersection = and_op(index, query);
-                // uint64_t q_union = or_op(index, query);
-
-                // if (double(q_intersection) / q_union >= 0.1) { // 0.005
-                //     for (auto t: query) {
-                //         std::cout << t << " ";
-                //     }
-                //     std::cout << std::endl;
-                // }
-
-                // // // print query terms and the number of results on the same line
-                // if (results > 4096) {
-                //     for (auto t: query) {
-                //         std::cout << t << " ";
-                //     }
-                //     std::cout << std::endl;
-                //     // std::cout << results << std::endl;
-                // }
-
-
-                do_not_optimize_away(results);
-                double elapsed = double(get_time_usecs() - tick);
-                if (run != 0) { // first run is not timed
-                    query_times.push_back(elapsed);
-                }
+        for (auto const& query: queries)
+        {
+            auto tick = get_time_usecs();
+            uint64_t results = query_op(index, query);
+            do_not_optimize_away(results);
+            double elapsed = double(get_time_usecs() - tick);
+            if (run != 0) { // first run is not timed
+                query_times.push_back(elapsed);
             }
-        // }
     }
 
     if (false) {
@@ -90,7 +63,6 @@ void op_perftest(IndexType const& index,
     }
 }
 
-
 template <typename IndexType>
 void perftest(const char* index_filename,
               const char* wand_data_filename,
@@ -101,11 +73,11 @@ void perftest(const char* index_filename,
     using namespace ds2i;
 
     IndexType index;
-    // logger() << "Loading index from " << index_filename;
+    logger() << "Loading index from " << index_filename;
     boost::iostreams::mapped_file_source m(index_filename);
     succinct::mapper::map(index, m);
 
-    // logger() << "Warming up posting lists";
+    logger() << "Warming up posting lists";
     std::unordered_set<term_id_type> warmed_up;
     for (auto const& q: queries) {
         for (auto t: q) {
@@ -126,10 +98,7 @@ void perftest(const char* index_filename,
     std::vector<std::string> query_types;
     boost::algorithm::split(query_types, query_type, boost::is_any_of(":"));
 
-    // logger() << "Performing " << type << " queries";
     for (auto const& t: query_types) {
-        // logger() << "Query type: " << t;
-
         if (t == "and") {
             op_perftest(index, and_query<false>(), queries, type, t, runs);
         } else if (t == "and_freq") {
@@ -154,12 +123,20 @@ int main(int argc, const char** argv)
 {
     using namespace ds2i;
 
+    int mandatory = 4;
+    if (argc < mandatory) {
+        std::cerr << argv[0] << " <index_type> <query_type> <index_filename> [wand_filename] < query_log"
+                  << std::endl;
+        return 1;
+    }
+
     std::string type = argv[1];
     std::string query_type = argv[2];
     const char* index_filename = argv[3];
     const char* wand_data_filename = nullptr;
-    if (argc > 4) {
-        wand_data_filename = argv[4];
+
+    if (argc > mandatory) {
+        wand_data_filename = argv[mandatory];
     }
 
     std::vector<term_id_vec> queries;
@@ -176,7 +153,8 @@ int main(int argc, const char** argv)
         BOOST_PP_SEQ_FOR_EACH(LOOP_BODY, _, DS2I_INDEX_TYPES);
 #undef LOOP_BODY
     } else {
-        logger() << "ERROR: Unknown type " << type;
+        logger() << "ERROR: Unknown type " << type << std::endl;
     }
 
+    return 0;
 }
