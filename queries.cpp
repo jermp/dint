@@ -34,6 +34,7 @@ void op_perftest(IndexType const& index,
             if (run != 0) { // first run is not timed
                 query_times.push_back(elapsed);
             }
+        }
     }
 
     if (false) {
