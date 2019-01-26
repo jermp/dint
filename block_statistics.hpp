@@ -50,12 +50,12 @@ namespace ds2i {
             logger() << "creating block stats (type = " << type() << ")" << std::endl;
 
             map_type block_map;
-            boost::progress_display progress(input.num_postings());
+            boost::progress_display progress(input.num_postings() - (compute_gaps ? 2 : 0));
             total_integers = 0;
             std::vector<uint32_t> buf;
 
             auto it = input.begin();
-            if (compute_gaps) { // docs
+            if (compute_gaps) {
                 ++it; // skip first singleton sequence, containing # of docs
             }
 
@@ -199,7 +199,6 @@ namespace ds2i {
         block_multi_statistics(binary_collection& input, bool compute_gaps,
                                Filter const& filter)
         {
-            // log info
             logger() << "creating block stats (type = " << type() << ")" << std::endl;
             logger() << "using " << constants::num_selectors << " contexts" << std::endl;
             if (constants::context == constants::block_selector::max) {
@@ -209,12 +208,12 @@ namespace ds2i {
             }
 
             std::vector<map_type> block_maps(constants::num_selectors);
-            boost::progress_display progress(input.num_postings());
+            boost::progress_display progress(input.num_postings() - (compute_gaps ? 2 : 0));
             total_integers = 0;
             std::vector<uint32_t> buf;
 
             auto it = input.begin();
-            if (compute_gaps) { // docs
+            if (compute_gaps) {
                 ++it; // skip first singleton sequence, containing # of docs
             }
 

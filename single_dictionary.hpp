@@ -30,12 +30,11 @@ namespace ds2i {
             static const uint32_t invalid_index = single_dictionary::invalid_index;
             static const uint32_t reserved = single_dictionary::reserved;
 
-            uint64_t codewords = 0;
-            uint64_t small_exceptions = 0;
-            uint64_t large_exceptions = 0;
-
-            uint64_t block_encoded_with_large_dict = 0;
-            uint64_t block_encoded_with_small_dict = 0;
+            // uint64_t codewords = 0;
+            // uint64_t small_exceptions = 0;
+            // uint64_t large_exceptions = 0;
+            // uint64_t block_encoded_with_large_dict = 0;
+            // uint64_t block_encoded_with_small_dict = 0;
 
             builder()
                 : m_size(reserved)

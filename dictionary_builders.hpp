@@ -59,7 +59,9 @@ namespace ds2i {
         static void build(typename dictionary_type::builder& dict_builder,
                           statistics_type& stats)
         {
-            logger() << "building " << type() << " dictionary for " << stats.total_integers << std::endl;
+            logger() << "building " << type() << " dictionary for "
+                     << stats.total_integers << " integers"
+                     << std::endl;
 
             dict_builder.init();
             std::cout << "stats.blocks.size() " << stats.blocks.size() << std::endl;

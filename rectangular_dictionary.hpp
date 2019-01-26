@@ -155,7 +155,8 @@ namespace ds2i {
             }
 
             // print vocabulary entries usage
-            void print_usage() {
+            void print_usage()
+            {
                 std::vector<uint32_t> sizes;
                 sizes.push_back(EXCEPTIONS);
                 for (uint32_t i = 0; i < constants::num_target_sizes; ++i) {
@@ -163,9 +164,13 @@ namespace ds2i {
                 }
                 sizes.push_back(5); // for the runs
 
-                for (uint64_t i = 0, k = 0; i < m_table.size(); i += max_entry_size + 1, ++k) {
+                for (uint64_t i = reserved * (max_entry_size + 1);
+                              i < m_table.size(); i += max_entry_size + 1)
+                {
                     uint32_t size = m_table[i + max_entry_size];
-                    sizes[ceil_log2(size) + 1] += 1;
+                    uint32_t index = ceil_log2(size) + 1;
+                    assert(index < sizes.size());
+                    sizes[index] += 1;
                 }
 
                 std::cout << "rare: " << EXCEPTIONS << " (" << EXCEPTIONS * 100.0 / num_entries << "%)" << std::endl;

@@ -247,21 +247,21 @@ namespace ds2i {
                 uint32_t len = encoding[i + 1].parent - encoding[i].parent;
 
                 if (index > 1) {
-                    ++builder.codewords;
+                    // ++builder.codewords;
                     write_index(index, out, b);
                 } else {
                     assert(len == 1);
                     uint32_t exception = begin[pos];
                     auto ptr = reinterpret_cast<uint8_t const*>(&exception);
                     if (index == 0) {
-                        ++builder.small_exceptions;
+                        // ++builder.small_exceptions;
                         out.insert(out.end(), 0);
                         if (b == 16) {
                             out.insert(out.end(), 0);
                         }
                         out.insert(out.end(), ptr, ptr + 2);
                     } else {
-                        ++builder.large_exceptions;
+                        // ++builder.large_exceptions;
                         out.insert(out.end(), 1);
                         if (b == 16) {
                             out.insert(out.end(), 0);
@@ -403,21 +403,21 @@ namespace ds2i {
                 uint32_t len = encoding[i + 1].parent - encoding[i].parent;
 
                 if (index > 1) {
-                    ++builder.codewords;
+                    // ++builder.codewords;
                     write_index(index, out, b);
                 } else {
                     assert(len == 1);
                     uint32_t exception = begin[pos];
                     auto ptr = reinterpret_cast<uint8_t const*>(&exception);
                     if (index == 0) {
-                        ++builder.small_exceptions;
+                        // ++builder.small_exceptions;
                         out.insert(out.end(), 0);
                         if (b == 16) {
                             out.insert(out.end(), 0);
                         }
                         out.insert(out.end(), ptr, ptr + 2);
                     } else {
-                        ++builder.large_exceptions;
+                        // ++builder.large_exceptions;
                         out.insert(out.end(), 1);
                         if (b == 16) {
                             out.insert(out.end(), 0);
