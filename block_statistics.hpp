@@ -5,7 +5,6 @@
 #include "hash_utils.hpp"
 #include "util.hpp"
 #include "statistics_collectors.hpp"
-// #include "parallel_executor.hpp"
 
 #include <boost/filesystem.hpp>
 #include <boost/progress.hpp>
@@ -19,7 +18,7 @@ namespace ds2i {
 
     template<typename Collector>
     struct block_multi_statistics {
-        static_assert(is_power_of_two(Collector::max_block_size));
+        static_assert(is_power_of_two(Collector::max_block_size), "");
 
         static std::string type() {
             return "block_multi_statistics-" + std::to_string(Collector::max_block_size) +
@@ -203,7 +202,7 @@ namespace ds2i {
 
     template<typename Collector>
     struct block_statistics {
-        static_assert(is_power_of_two(Collector::max_block_size));
+        static_assert(is_power_of_two(Collector::max_block_size), "");
 
         static std::string type() {
             return "block_statistics-" + std::to_string(Collector::max_block_size) +
@@ -242,90 +241,6 @@ namespace ds2i {
             uint64_t n;
         };
 
-        struct collector {
-            collector()
-            {}
-
-            void start() {
-                m_thread = std::thread(&collector::run, this);
-            }
-
-            void join() {
-                if (m_thread.joinable()) {
-                    m_thread.join();
-                }
-            }
-
-            typename std::vector<iter_length>::iterator begin;
-            uint64_t n;
-            bool compute_gaps;
-            map_type block_map;
-
-        private:
-            std::thread m_thread;
-
-            void run()
-            {
-                std::vector<uint32_t> buf;
-                for (uint64_t i = 0; i != n; ++i) {
-                    auto const& il = *begin;
-
-                    auto it = il.begin;
-                    uint64_t size = il.n;
-
-                    buf.reserve(n);
-                    uint32_t prev = compute_gaps ? -1 : 0;
-                    for (uint32_t k = 0; k != size; ++k, ++it) {
-                        buf.push_back(*it - prev - 1);
-                        if (compute_gaps) prev = *it;
-                    }
-                    Collector::collect(buf, block_map);
-                    buf.clear();
-
-                    ++begin;
-                }
-            }
-        };
-
-        struct merger {
-
-            merger(map_type& l, map_type& r)
-                : l(l)
-                , r(r)
-            {}
-
-            void start() {
-                m_thread = std::thread(&merger::run, this);
-            }
-
-            void join() {
-                if (m_thread.joinable()) {
-                    m_thread.join();
-                }
-            }
-
-            map_type& l;
-            map_type& r;
-            map_type result;
-
-        private:
-            std::thread m_thread;
-
-            void run()
-            {
-                result.swap(l);
-                for (auto& pair: r) {
-                    uint64_t hash = pair.first;
-                    auto it = result.find(hash);
-                    if (it == result.end()) {
-                        result[hash] = std::move(pair.second);
-                    } else {
-                        (*it).second.freq += pair.second.freq;
-                    }
-                }
-            }
-        };
-
         template<typename Filter>
         block_statistics(binary_collection& input, bool compute_gaps,
                          Filter const& filter)
@@ -342,16 +257,11 @@ namespace ds2i {
                 ++it; // skip first singleton sequence, containing # of docs
             }
 
-            // std::vector<iter_length> iterators;
-
             for (; it != input.end(); ++it) {
                 auto const& list = *it;
                 size_t n = list.size();
-                if (n > constants::min_size) {
-                    // iterators.emplace_back(list.begin(), n);
-                    // total_integers += n;
-
-                    // NOTE: sequential version
+                if (n > constants::min_size)
+                {
                     total_integers += n;
                     progress += n + 1;
                     buf.reserve(n);
@@ -367,84 +277,6 @@ namespace ds2i {
                     buf.clear();
                 }
             }
-
-            // logger() << "processing " << iterators.size() << " lists..." << std::endl;
-            // uint64_t num_threads = std::thread::hardware_concurrency();
-            // uint64_t grain = total_integers / num_threads;
-
-            // std::vector<collector> collectors;
-            // collectors.reserve(num_threads);
-
-            // auto begin = iterators.begin();
-            // uint64_t sum = 0;
-            // for (uint64_t i = 0; i != num_threads; ++i)
-            // {
-            //     uint64_t work = grain;
-            //     if (i == num_threads - 1) {
-            //         work = total_integers - sum;
-            //     }
-
-            //     collector c;
-            //     c.begin = begin;
-
-            //     uint64_t integers = 0;
-            //     while (integers < work) {
-            //         integers += (*begin).n;
-            //         ++begin;
-            //     }
-
-            //     sum += integers;
-            //     c.n = begin - c.begin;
-            //     std::cout << "thread-" << i << " processing " << c.n
-            //               << " lists (" << integers << " integers)"
-            //               << std::endl;
-            //     c.compute_gaps = compute_gaps;
-
-            //     collectors.push_back(std::move(c));
-            //     collectors.back().start();
-            // }
-
-            // // std::cout << "sum = " << sum << "/" << total_integers << std::endl;
-
-            // for (uint64_t i = 0; i != num_threads; ++i) {
-            //     collectors[i].join();
-            // }
-
-            // logger() << "merging..." << std::endl;
-
-            // std::vector<map_type> maps;
-            // for (auto& c: collectors) {
-            //     maps.push_back(std::move(c.block_map));
-            // }
-
-            // std::vector<merger> mergers;
-            // while (maps.size() != 1)
-            // {
-            //     uint64_t num_mergers = maps.size() / 2;
-            //     mergers.reserve(num_mergers);
-            //     for (uint64_t i = 0; i != maps.size(); i += 2) {
-            //         mergers.emplace_back(maps[i], maps[i + 1]);
-            //     }
-
-            //     for (auto& m: mergers) {
-            //         m.start();
-            //     }
-
-            //     for (uint64_t i = 0; i != num_mergers; ++i) {
-            //         mergers[i].join();
-            //         // logger() << "merging-" << i << ": DONE" << std::endl;
-            //     }
-
-            //     maps.clear();
-            //     for (uint64_t i = 0; i != num_mergers; ++i) {
-            //         maps.push_back(std::move(mergers[i].result));
-            //     }
-            //     mergers.clear();
-            // }
-
-            // // std::vector<worker>().swap(workers);
-
-            // block_map.swap(maps.front());
 
             logger() << "selecting entries..." << std::endl;
             uint64_t num_singletons = 0;

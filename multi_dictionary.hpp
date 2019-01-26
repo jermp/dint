@@ -16,9 +16,9 @@ namespace ds2i {
     template<uint32_t t_num_entries,
              uint32_t t_max_entry_size,
              typename CompactingPolicy>
-    struct multi_dictionary {
-
-        static_assert(is_power_of_two(t_max_entry_size));
+    struct multi_dictionary
+    {
+        static_assert(is_power_of_two(t_max_entry_size), "");
         static const uint32_t num_dictionaries = constants::num_selectors;
         static const uint32_t num_entries = t_num_entries;
         static const uint32_t max_entry_size = t_max_entry_size;

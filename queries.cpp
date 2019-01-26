@@ -73,11 +73,11 @@ void op_perftest(IndexType const& index,
         double q50 = query_times[query_times.size() / 2];
         double q90 = query_times[90 * query_times.size() / 100];
         double q95 = query_times[95 * query_times.size() / 100];
-        // DS2I_LOG << "---- " << index_type << " " << query_type;
-        // DS2I_LOG << "Mean: " << avg;
-        // DS2I_LOG << "50% quantile: " << q50;
-        // DS2I_LOG << "90% quantile: " << q90;
-        // DS2I_LOG << "95% quantile: " << q95;
+        // logger() << "---- " << index_type << " " << query_type;
+        // logger() << "Mean: " << avg;
+        // logger() << "50% quantile: " << q50;
+        // logger() << "90% quantile: " << q90;
+        // logger() << "95% quantile: " << q95;
 
         stats_line()
             ("type", index_type)
@@ -101,11 +101,11 @@ void perftest(const char* index_filename,
     using namespace ds2i;
 
     IndexType index;
-    // DS2I_LOG << "Loading index from " << index_filename;
+    // logger() << "Loading index from " << index_filename;
     boost::iostreams::mapped_file_source m(index_filename);
     succinct::mapper::map(index, m);
 
-    // DS2I_LOG << "Warming up posting lists";
+    // logger() << "Warming up posting lists";
     std::unordered_set<term_id_type> warmed_up;
     for (auto const& q: queries) {
         for (auto t: q) {
@@ -126,9 +126,9 @@ void perftest(const char* index_filename,
     std::vector<std::string> query_types;
     boost::algorithm::split(query_types, query_type, boost::is_any_of(":"));
 
-    // DS2I_LOG << "Performing " << type << " queries";
+    // logger() << "Performing " << type << " queries";
     for (auto const& t: query_types) {
-        // DS2I_LOG << "Query type: " << t;
+        // logger() << "Query type: " << t;
 
         if (t == "and") {
             op_perftest(index, and_query<false>(), queries, type, t, runs);
@@ -145,7 +145,7 @@ void perftest(const char* index_filename,
         } else if (t == "maxscore" && wand_data_filename) {
             op_perftest(index, maxscore_query(wdata, 10), queries, type, t, runs);
         } else {
-            DS2I_LOG << "Unsupported query type: " << t;
+            logger() << "Unsupported query type: " << t;
         }
     }
 }
@@ -176,7 +176,7 @@ int main(int argc, const char** argv)
         BOOST_PP_SEQ_FOR_EACH(LOOP_BODY, _, DS2I_INDEX_TYPES);
 #undef LOOP_BODY
     } else {
-        DS2I_LOG << "ERROR: Unknown type " << type;
+        logger() << "ERROR: Unknown type " << type;
     }
 
 }

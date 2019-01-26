@@ -16,7 +16,7 @@ namespace ds2i {
              uint32_t t_max_entry_size>
     struct rectangular_dictionary
     {
-        static_assert(is_power_of_two(t_max_entry_size));
+        static_assert(is_power_of_two(t_max_entry_size), "");
         static const uint32_t num_entries = t_num_entries;
         static const uint32_t max_entry_size = t_max_entry_size;
         static const uint32_t invalid_index = uint32_t(-1);

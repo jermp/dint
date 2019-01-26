@@ -20,12 +20,14 @@ namespace ds2i {
             m_data = (uint32_t const*) m_file.data();
             m_data_size = m_file.size() / sizeof(m_data[0]);
             auto ret = posix_madvise((void*)m_data, m_data_size, POSIX_MADV_SEQUENTIAL);
-            if (ret) DS2I_LOG << "Error calling madvice: " << errno;
+            if (ret) {
+                std::cerr << "Error calling madvice: " << errno;
+            }
 
             // parse header
             m_num_blocks = *m_data;
             if (!m_num_blocks) {
-                throw std::runtime_error("Num. blocks must not be 0");
+                throw std::runtime_error("Number of blocks must not be 0");
             }
         }
 

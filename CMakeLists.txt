@@ -1,21 +1,21 @@
 cmake_minimum_required(VERSION 2.8)
 project(DS2I)
 
-configure_file(
-  ${DS2I_SOURCE_DIR}/ds2i_config.hpp.in
-  ${DS2I_SOURCE_DIR}/ds2i_config.hpp
-  ESCAPE_QUOTES)
-
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release")
 endif()
+MESSAGE( STATUS "CMAKE_BUILD_TYPE: " ${CMAKE_BUILD_TYPE} )
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+endif ()
 
 if (UNIX)
-   # C++11
    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
-
-   # For hardware popcount and other special instructions
    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 
    # Extensive warnings
    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-missing-braces")
@@ -33,17 +33,16 @@ if (UNIX)
 
 endif()
 
-# set(Boost_USE_STATIC_LIBS ON)
 find_package(Boost COMPONENTS iostreams unit_test_framework filesystem system log log_setup date_time chrono REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 link_directories(${Boost_LIBRARY_DIRS})
 
 # stxxl
-add_definitions(-DSTXXL_VERBOSE_LEVEL=-10) # suppress messages to stdout
-add_definitions(-DBOOST_LOG_DYN_LINK)
-add_subdirectory(stxxl)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${STXXL_CXX_FLAGS}")
-include_directories(${STXXL_INCLUDE_DIRS})
+#add_definitions(-DSTXXL_VERBOSE_LEVEL=-10) # suppress #messages to stdout
+#add_definitions(-DBOOST_LOG_DYN_LINK)
+#add_subdirectory(stxxl)
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} #${STXXL_CXX_FLAGS}")
+#include_directories(${STXXL_INCLUDE_DIRS})
 
 # add the root directory to include path to make includes absolute
 include_directories(${DS2I_SOURCE_DIR})
@@ -67,7 +66,7 @@ add_library(MaskedVByte STATIC MaskedVByte/src/varintdecode.c
 add_executable(create_freq_index create_freq_index.cpp)
 target_link_libraries(create_freq_index
   ${Boost_LIBRARIES}
-  FastPFor_lib
+    FastPFor_lib
     streamvbyte
     MaskedVByte
   )
