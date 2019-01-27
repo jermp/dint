@@ -150,8 +150,8 @@ void decode_dint(std::string const& type,
     }
 
     file.close();
-    print_statistics(type, encoded_data_filename, stats,
-                     timings, num_decoded_ints, num_decoded_lists);
+    print_statistics(type, encoded_data_filename,
+                     timings, num_decoded_ints, num_decoded_lists /*,stats*/);
 }
 
 void decode_pef(char const* encoded_data_filename, bool freqs)

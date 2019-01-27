@@ -6,10 +6,11 @@ namespace ds2i {
 
     void print_statistics(std::string type,
                           char const* encoded_data_filename,
-                          dint_statistics const& stats,
                           std::vector<double> const& timings,
                           uint64_t num_decoded_ints,
-                          uint64_t num_decoded_lists)
+                          uint64_t num_decoded_lists
+                          // , dint_statistics const& stats
+                          )
     {
         static const uint64_t billion = 1000000000;
         double tot_elapsed = std::accumulate(timings.begin(), timings.end(), double(0.0));
@@ -20,7 +21,7 @@ namespace ds2i {
         logger() << ns_x_int << " [ns] x int" << std::endl;
         logger() << ints_x_sec << " ints x [sec]" << std::endl;
 
-        logger() << "avg. # of decoded integers x codeword: " << double(stats.decoded_ints_from_dict) / stats.dict_codewords << std::endl;
+        // logger() << "avg. # of decoded integers x codeword: " << double(stats.decoded_ints_from_dict) / stats.dict_codewords << std::endl;
 
         // stats to std output
         std::cout << "{";
