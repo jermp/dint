@@ -12,6 +12,7 @@
 
 #include "dint_configuration.hpp"
 #include "codecs.hpp"
+#include "dint_codecs.hpp"
 #include "util.hpp"
 #include "hash_utils.hpp"
 #include "binary_collection.hpp"
@@ -60,89 +61,89 @@ void print_statistics(std::string type, char const* collection_name,
     std::cout << "}" << std::endl;
 }
 
-// template<typename Encoder>
-// void encode(std::string const& type,
-//             char const* collection_name,
-//             char const* output_filename)
-// {
-//     binary_collection input(collection_name);
-
-//     auto it = input.begin();
-//     uint64_t num_processed_lists = 0;
-//     uint64_t num_total_ints = 0;
-
-//     uint64_t total_progress = input.num_postings();
-//     bool docs = true;
-//     boost::filesystem::path collection_path(collection_name);
-//     if (collection_path.extension() == ".freqs") {
-//         docs = false;
-//         logger() << "encoding freqs..." << std::endl;
-//     } else if (collection_path.extension() == ".docs") {
-//         // skip first singleton sequence, containing num. of docs
-//         ++it;
-//         total_progress -= 2;
-//         logger() << "encoding docs..." << std::endl;
-//     } else {
-//         throw std::runtime_error("unsupported file format");
-//     }
-
-//     std::vector<uint8_t> output;
-//     uint64_t bytes = 5 * constants::GiB;
-//     output.reserve(bytes);
-
-//     std::vector<uint32_t> buf;
-//     boost::progress_display progress(total_progress);
-//     semiasync_queue jobs_queue(num_jobs);
-
-//     for (; it != input.end(); ++it) {
-//         auto const& list = *it;
-//         uint32_t n = list.size();
-
-//         // sequential construction for PFOR
-//         std::vector<uint32_t> buf;
-//         buf.reserve(n);
-//         uint64_t universe = 0;
-//         uint32_t prev = docs ? -1 : 0;
-//         auto begin = list.begin();
-//         for (uint64_t i = 0; i != n; ++i, ++begin) {
-//             buf.push_back(*begin - prev - 1);
-//             if (docs) prev = *begin;
-//             universe += buf.back();
-//         }
-//         assert(buf.size() == n);
-
-//         header::write(n, universe, output);
-//         Encoder::encode(
-//             buf.data(), universe, buf.size(), output
-//         );
-//         progress += n + 1;
-//         ++num_processed_lists;
-//         num_total_ints += n;
-
-
-//         // parallel construction
-//         // std::shared_ptr<sequence_adder<iterator_type, Encoder>>
-//         //     ptr(new sequence_adder<iterator_type, Encoder>(
-//         //         list.begin(), n,
-//         //         progress, output, docs,
-//         //         num_processed_lists, num_total_ints
-//         //     )
-//         // );
-//         // jobs_queue.add_job(ptr, n);
-//     }
-
-//     jobs_queue.complete();
-//     print_statistics(type, collection_name, output,
-//                      num_total_ints, num_processed_lists);
-//     save_if(output_filename, output);
-// }
-
-// for DINT
-template<typename Encoder, typename Dictionary>
+template<typename Encoder>
 void encode(std::string const& type,
             char const* collection_name,
-            char const* output_filename,
-            char const* dictionary_filename)
+            char const* output_filename)
+{
+    binary_collection input(collection_name);
+
+    auto it = input.begin();
+    uint64_t num_processed_lists = 0;
+    uint64_t num_total_ints = 0;
+
+    uint64_t total_progress = input.num_postings();
+    bool docs = true;
+    boost::filesystem::path collection_path(collection_name);
+    if (collection_path.extension() == ".freqs") {
+        docs = false;
+        logger() << "encoding freqs..." << std::endl;
+    } else if (collection_path.extension() == ".docs") {
+        // skip first singleton sequence, containing num. of docs
+        ++it;
+        total_progress -= 2;
+        logger() << "encoding docs..." << std::endl;
+    } else {
+        throw std::runtime_error("unsupported file format");
+    }
+
+    std::vector<uint8_t> output;
+    uint64_t bytes = 5 * constants::GiB;
+    output.reserve(bytes);
+
+    std::vector<uint32_t> buf;
+    boost::progress_display progress(total_progress);
+    semiasync_queue jobs_queue(num_jobs);
+
+    for (; it != input.end(); ++it) {
+        auto const& list = *it;
+        uint32_t n = list.size();
+
+        // 1. sequential construction
+        std::vector<uint32_t> buf;
+        buf.reserve(n);
+        uint64_t universe = 0;
+        uint32_t prev = docs ? -1 : 0;
+        auto begin = list.begin();
+        for (uint64_t i = 0; i != n; ++i, ++begin) {
+            buf.push_back(*begin - prev - 1);
+            if (docs) prev = *begin;
+            universe += buf.back();
+        }
+        assert(buf.size() == n);
+
+        header::write(n, universe, output);
+        Encoder::encode(
+            buf.data(), universe, buf.size(), output
+        );
+        progress += n + 1;
+        ++num_processed_lists;
+        num_total_ints += n;
+
+
+
+        // 2. parallel construction
+        // std::shared_ptr<sequence_adder<iterator_type, Encoder>>
+        //     ptr(new sequence_adder<iterator_type, Encoder>(
+        //         list.begin(), n,
+        //         progress, output, docs,
+        //         num_processed_lists, num_total_ints
+        //     )
+        // );
+        // jobs_queue.add_job(ptr, n);
+    }
+
+    jobs_queue.complete();
+    print_statistics(type, collection_name, output,
+                     num_total_ints, num_processed_lists);
+    save_if(output_filename, output);
+}
+
+template<typename Encoder, typename Dictionary>
+void encode_dint(std::string const& type,
+                 char const* collection_name,
+                 char const* output_filename,
+                 char const* dictionary_filename)
 {
     binary_collection input(collection_name);
 
@@ -187,8 +188,8 @@ void encode(std::string const& type,
     for (; it != input.end(); ++it) {
         auto const& list = *it;
         uint32_t n = list.size();
-        std::shared_ptr<sequence_adder<iterator_type, Encoder, Builder>>
-            ptr(new sequence_adder<iterator_type, Encoder, Builder>(
+        std::shared_ptr<single_dict_sequence_adder<iterator_type, Encoder, Builder>>
+            ptr(new single_dict_sequence_adder<iterator_type, Encoder, Builder>(
                 list.begin(), n,
                 builder,
                 progress, output, docs,
@@ -204,86 +205,6 @@ void encode(std::string const& type,
     save_if(output_filename, output);
 }
 
-// template<typename Encoder, typename Dictionary>
-// void encode_multi(std::string const& type,
-//                   char const* collection_name,
-//                   char const* output_filename,
-//                   char const* dictionary_filename)
-// {
-//     binary_collection input(collection_name);
-
-//     auto it = input.begin();
-//     uint64_t num_processed_lists = 0;
-//     uint64_t num_total_ints = 0;
-
-//     std::vector<typename large_dictionary_type::builder>
-//         large_dict_builders(constants::num_selectors);
-//     std::vector<typename small_dictionary_type::builder>
-//         small_dict_builders(constants::num_selectors);
-
-//     if (dictionary_filename) {
-//         std::string prefix(dictionary_filename);
-//         for (int s = 0; s != constants::num_selectors; ++s)
-//         {
-//             std::string large_dict_filename = prefix + "."
-//                 + std::to_string(constants::selector_codes[s]) + ".large";
-//             large_dict_builders[s].load_from_file(large_dict_filename);
-//             large_dict_builders[s].prepare_for_encoding();
-
-//             std::string small_dict_filename = prefix + "."
-//                 + std::to_string(constants::selector_codes[s]) + ".small";
-//             small_dict_builders[s].load_from_file(small_dict_filename);
-//             small_dict_builders[s].prepare_for_encoding();
-//         }
-//     }
-
-//     uint64_t total_progress = input.num_postings();
-//     bool docs = true;
-//     boost::filesystem::path collection_path(collection_name);
-//     if (collection_path.extension() == ".freqs") {
-//         docs = false;
-//         logger() << "encoding freqs..." << std::endl;
-//     } else if (collection_path.extension() == ".docs") {
-//         // skip first singleton sequence, containing num. of docs
-//         ++it;
-//         total_progress -= 2;
-//         logger() << "encoding docs..." << std::endl;
-//     } else {
-//         throw std::runtime_error("unsupported file format");
-//     }
-
-//     std::vector<uint8_t> output;
-//     uint64_t bytes = 5 * constants::GiB;
-//     output.reserve(bytes);
-
-//     std::vector<uint32_t> buf;
-//     boost::progress_display progress(total_progress);
-//     semiasync_queue jobs_queue(num_jobs);
-
-//     for (; it != input.end(); ++it) {
-//         auto const& list = *it;
-//         uint32_t n = list.size();
-//         if (n > constants::min_size) {
-//             std::shared_ptr<sequence_adder_multi_dict<iterator_type, Encoder>>
-//                 ptr(new sequence_adder_multi_dict<iterator_type, Encoder>(
-//                     list.begin(), n,
-//                     large_dict_builders,
-//                     small_dict_builders,
-//                     progress, output, docs,
-//                     num_processed_lists, num_total_ints
-//                 )
-//             );
-//             jobs_queue.add_job(ptr, n);
-//         }
-//     }
-
-//     jobs_queue.complete();
-//     print_statistics(type, collection_name, output,
-//                      num_total_ints, num_processed_lists);
-//     save_if(output_filename, output);
-// }
-
-// specialized version for PEF
 void encode_pef(char const* collection_name,
                 char const* output_filename)
 {
@@ -316,6 +237,8 @@ void encode_pef(char const* collection_name,
     {
         auto const& list = *it;
         uint32_t n = list.size();
+
+        // 1. sequential version
         // if (n > constants::min_size) {
         //     pef::encode(list.begin(), list.back(), n, bvb, not docs);
         //     ++num_processed_lists;
@@ -323,6 +246,7 @@ void encode_pef(char const* collection_name,
         //     progress += n + 1;
         // }
 
+        // 2. parallel version
         if (n > constants::min_size) {
             std::shared_ptr<pef_sequence_adder<iterator_type>>
                 ptr(new pef_sequence_adder<iterator_type>(
@@ -396,63 +320,38 @@ int main(int argc, char** argv) {
 
     logger() << cmd << std::endl;
 
-    // if (type == std::string("single_rectangular_greedy_dint")) {
-    //     encode<greedy_dint, single_dictionary_rectangular_type>(
-    //         type, collection_name, output_filename, dictionary_filename
-    //     );
-    // } else
-    // if (type == std::string("single_packed_opt_dint")) {
-    //     encode<opt_dint, single_dictionary_packed_type>(
-    //         type, collection_name, output_filename, dictionary_filename
-    //     );
-    // } else
-    // if (type == std::string("single_packed_greedy_dint")) {
-    //     encode<greedy_dint, single_dictionary_packed_type>(
-    //         type, collection_name, output_filename, dictionary_filename
-    //     );
-    // } else
-    // if (type == std::string("single_overlapped_greedy_dint")) {
-    //     encode<greedy_dint, single_dictionary_overlapped_type>(
-    //         type, collection_name, output_filename, dictionary_filename
-    //     );
-    // } else
-
-    if (type == std::string("single_overlapped_opt_dint")) {
-        encode<opt_dint, single_dictionary_overlapped_type>(
+    if (type == std::string("single_rect_dint")) {
+        encode_dint<single_opt_dint, single_dictionary_rectangular_type>(
             type, collection_name, output_filename, dictionary_filename
         );
     } else
-
-    // if (type == std::string("multi_packed_opt_dint")) {
-    //     encode<opt_dint, multi_dictionary_packed_type>(
-    //         type, collection_name, output_filename, dictionary_filename
-    //     );
-    // } else
-    // if (type == std::string("multi_overlapped_opt_dint")) {
-    //     encode<opt_dint, multi_dictionary_overlapped_type>(
-    //         type, collection_name, output_filename, dictionary_filename
-    //     );
-    // } else
-
+    if (type == std::string("single_packed_dint")) {
+        encode_dint<single_opt_dint, single_dictionary_packed_type>(
+            type, collection_name, output_filename, dictionary_filename
+        );
+    } else
+    if (type == std::string("multi_packed_dint")) {
+        encode_dint<multi_opt_dint, multi_dictionary_packed_type>(
+            type, collection_name, output_filename, dictionary_filename
+        );
+    } else
     if (type == std::string("pef")) {
         encode_pef(collection_name, output_filename);
     }
     else {
+        if (false) {
+    #define LOOP_BODY(R, DATA, T)                                \
+            } else if (type == BOOST_PP_STRINGIZE(T)) {          \
+                encode<BOOST_PP_CAT(T, )>                        \
+                    (type, collection_name, output_filename);    \
+                /**/
 
-//     if (false) {
-// #define LOOP_BODY(R, DATA, T)                                \
-//         } else if (type == BOOST_PP_STRINGIZE(T)) {          \
-//             encode<BOOST_PP_CAT(T, )>                        \
-//                 (type, collection_name, output_filename);    \
-//             /**/
-
-//         BOOST_PP_SEQ_FOR_EACH(LOOP_BODY, _, CODECS);
-// #undef LOOP_BODY
-//     } else {
-//         logger() << "ERROR: unknown type '"
-//                  << type << "'" << std::endl;
-//     }
-
+            BOOST_PP_SEQ_FOR_EACH(LOOP_BODY, _, CODECS);
+    #undef LOOP_BODY
+        } else {
+            logger() << "ERROR: unknown type '"
+                     << type << "'" << std::endl;
+        }
     }
 
     return 0;

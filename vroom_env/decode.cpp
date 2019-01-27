@@ -13,8 +13,8 @@
 #include <succinct/mapper.hpp>
 
 #include "codecs.hpp"
+#include "dint_codecs.hpp"
 #include "util.hpp"
-
 
 using namespace ds2i;
 
