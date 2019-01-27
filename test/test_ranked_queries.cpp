@@ -59,7 +59,6 @@ namespace ds2i { namespace test {
 
 }}
 
-
 BOOST_FIXTURE_TEST_CASE(wand,
                         ds2i::test::index_initialization)
 {

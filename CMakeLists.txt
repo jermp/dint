@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 2.8)
 project(DS2I)
 
+configure_file(
+  ${DS2I_SOURCE_DIR}/ds2i_config.hpp.in
+  ${DS2I_SOURCE_DIR}/ds2i_config.hpp
+  ESCAPE_QUOTES)
+
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release")
 endif()
