@@ -120,11 +120,9 @@ void encode(std::string const& type,
         ++num_processed_lists;
         num_total_ints += n;
 
-
-
         // 2. parallel construction
-        // std::shared_ptr<sequence_adder<iterator_type, Encoder>>
-        //     ptr(new sequence_adder<iterator_type, Encoder>(
+        // std::shared_ptr<enc_sequence_adder<iterator_type, Encoder>>
+        //     ptr(new enc_sequence_adder<iterator_type, Encoder>(
         //         list.begin(), n,
         //         progress, output, docs,
         //         num_processed_lists, num_total_ints
@@ -145,22 +143,23 @@ void encode_dint(std::string const& type,
                  char const* output_filename,
                  char const* dictionary_filename)
 {
-    binary_collection input(collection_name);
+    if (!dictionary_filename) {
+        throw std::runtime_error("dictionary_filename must be specified");
+    }
 
+    binary_collection input(collection_name);
     auto it = input.begin();
     uint64_t num_processed_lists = 0;
     uint64_t num_total_ints = 0;
 
     typedef typename Dictionary::builder Builder;
     Builder builder;
-
-    if (dictionary_filename) {
-        std::ifstream dictionary_file(dictionary_filename);
-        builder.load(dictionary_file);
-        logger() << "preparing for encoding..." << std::endl;
-        builder.prepare_for_encoding();
-        builder.print_usage();
-    }
+    std::ifstream dictionary_file(dictionary_filename);
+    builder.load(dictionary_file);
+    dictionary_file.close();
+    logger() << "preparing for encoding..." << std::endl;
+    builder.prepare_for_encoding();
+    builder.print_usage();
 
     uint64_t total_progress = input.num_postings();
     bool docs = true;
@@ -188,8 +187,8 @@ void encode_dint(std::string const& type,
     for (; it != input.end(); ++it) {
         auto const& list = *it;
         uint32_t n = list.size();
-        std::shared_ptr<single_dict_sequence_adder<iterator_type, Encoder, Builder>>
-            ptr(new single_dict_sequence_adder<iterator_type, Encoder, Builder>(
+        std::shared_ptr<dint_sequence_adder<iterator_type, Encoder, Builder>>
+            ptr(new dint_sequence_adder<iterator_type, Encoder, Builder>(
                 list.begin(), n,
                 builder,
                 progress, output, docs,
