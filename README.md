@@ -87,30 +87,25 @@ performes the boolean AND queries contained in the data file `queries` over the 
 Vroom environment
 -----------------
 The "vroom" environment is designed to test the raw sequential decoding speed
-of the encoders. See the folder `vroom_env` and the following examples.
+of the encoders. See the folder `vroom_env` and the following example.
 
-##### Example 1.
+##### Example.
 After building a `single_packed_dint`, we can encode all the sequences in a collection
-(without any blocking mechanism), using the following command.
+(without any blocking mechanism), using the following command
 
-    $ ./create_freq_index single_rect_dint ../test/test_data/test_collection single_rect_dint.bin
-    $ ./create_freq_index single_packed_dint ../test/test_data/test_collection single_packed_dint.bin
-    $ ./create_freq_index multi_packed_dint ../test/test_data/test_collection multi_packed_dint.bin
+    $ ./encode single_packed_dint ../test/test_data/test_collection.docs --dict dict.test_collection.docs.single_packed.DSF-65536-16 --out test.bin
 
-can be used to build three DINT indexes that use: a single, rectangular dictionary; a single, packed dictionary and multi, packed dictionaries respectively.
+that serializes all the compressed lists to the file `test.bin`. Then we can decode sequentially all the lists in such file by using
 
-##### Example 2.
-The command
-
-    $ ./queries single_packed_dint and single_packed_dint.bin < ../test/test_data/queries
-
-performes the boolean AND queries contained in the data file `queries` over the index serialized to `single_packed_dint.bin`.
-
+	$ ./decode single_packed_dint test.bin --dict dict.test_collection.docs.single_packed.DSF-65536-16
 
 Benchmark
 ---------
 
-A comparison between the space of `single_rect`, `single_packed` and `multi_packed` on the provided `test_collection` is shown below (`bpi` stands for "bits per integer"). Results have been collected on a machine with an Intel i7-7700 processor clocked at 3.6 GHz and running Linux 4.4.0, 64 bits. The code was compiled using the highest optimization setting (see CMakeLists.txt).
+A comparison between the space of `single_rect`, `single_packed` and `multi_packed` on the provided `test_collection` is shown below (`bpi` stands for "bits per integer").
+For this small test collection, we exclude the space for the
+dictionaries.
+Results have been collected on a machine with an Intel i7-7700 processor clocked at 3.6 GHz and running Linux 4.4.0, 64 bits. The code was compiled using the highest optimization setting (see CMakeLists.txt).
 
 |     **Index**     |**docs [bpi]**  |**freqs [bpi]**  |
 |-------------------|---------------:|----------------:|
