@@ -8,6 +8,7 @@ This guide is meant to provide a brief overview of the library and to illustrate
 * [Building the code](#building-the-code)
 * [Input data format](#input-data-format)
 * [Building the indexes](#building-the-indexes)
+* [Vroom environment](#vroom-environment)
 * [Benchmark](#benchmark)
 * [Authors](#authors)
 * [Bibliography](#bibliography)
@@ -82,6 +83,29 @@ The command
     $ ./queries single_packed_dint and single_packed_dint.bin < ../test/test_data/queries
 
 performes the boolean AND queries contained in the data file `queries` over the index serialized to `single_packed_dint.bin`.
+
+Vroom environment
+-----------------
+The "vroom" environment is designed to test the raw sequential decoding speed
+of the encoders. See the folder `vroom_env` and the following examples.
+
+##### Example 1.
+After building a `single_packed_dint`, we can encode all the sequences in a collection
+(without any blocking mechanism), using the following command.
+
+    $ ./create_freq_index single_rect_dint ../test/test_data/test_collection single_rect_dint.bin
+    $ ./create_freq_index single_packed_dint ../test/test_data/test_collection single_packed_dint.bin
+    $ ./create_freq_index multi_packed_dint ../test/test_data/test_collection multi_packed_dint.bin
+
+can be used to build three DINT indexes that use: a single, rectangular dictionary; a single, packed dictionary and multi, packed dictionaries respectively.
+
+##### Example 2.
+The command
+
+    $ ./queries single_packed_dint and single_packed_dint.bin < ../test/test_data/queries
+
+performes the boolean AND queries contained in the data file `queries` over the index serialized to `single_packed_dint.bin`.
+
 
 Benchmark
 ---------
