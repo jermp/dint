@@ -119,7 +119,8 @@ void check_dint(char const* collection_filename,
 
 int main(int argc, char** argv) {
 
-    if (argc < 4) {
+    int mandatory = 4;
+    if (argc < mandatory) {
         std::cerr << "Usage " << argv[0] << ":\n"
                   << "\t<type> <collection_filename> <encoded_data_filename> [--dict <dictionary_filename>]"
                   << std::endl;
@@ -132,7 +133,7 @@ int main(int argc, char** argv) {
     char const* encoded_data_filename = argv[3];
     char const* dictionary_filename = nullptr;
 
-    for (int i = 4; i < argc; ++i) {
+    for (int i = mandatory; i < argc; ++i) {
         if (argv[i] == std::string("--dict")) {
             ++i;
             dictionary_filename = argv[i];
