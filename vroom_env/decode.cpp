@@ -19,20 +19,18 @@
 
 using namespace ds2i;
 
-template<typename Decoder>
-void decode(std::string const& type,
-            char const* encoded_data_filename)
-{
+template <typename Decoder>
+void decode(std::string const& type, char const* encoded_data_filename) {
     boost::iostreams::mapped_file_source file;
     file.open(encoded_data_filename);
     if (!file.is_open()) {
         throw std::runtime_error("Error opening index file");
     }
 
-    uint8_t const* begin = (uint8_t const*) file.data();
+    uint8_t const* begin = (uint8_t const*)file.data();
     uint64_t size = file.size() / sizeof(uint8_t);
     uint8_t const* end = begin + size;
-    auto ret = posix_madvise((void*) begin, size, POSIX_MADV_SEQUENTIAL);
+    auto ret = posix_madvise((void*)begin, size, POSIX_MADV_SEQUENTIAL);
     if (ret) {
         logger() << "Error calling madvice: " << errno << std::endl;
     }
@@ -73,7 +71,8 @@ void decode(std::string const& type,
 
     file.close();
 
-    double tot_elapsed = std::accumulate(timings.begin(), timings.end(), double(0.0));
+    double tot_elapsed =
+        std::accumulate(timings.begin(), timings.end(), double(0.0));
     double ns_x_int = tot_elapsed * 1000000000 / num_decoded_ints;
     uint64_t ints_x_sec = uint64_t(1 / ns_x_int * 1000000000);
 
@@ -93,11 +92,9 @@ void decode(std::string const& type,
     std::cout << "}" << std::endl;
 }
 
-template<typename Decoder, typename Dictionary>
-void decode_dint(std::string const& type,
-                 char const* encoded_data_filename,
-                 char const* dictionary_filename)
-{
+template <typename Decoder, typename Dictionary>
+void decode_dint(std::string const& type, char const* encoded_data_filename,
+                 char const* dictionary_filename) {
     if (!dictionary_filename) {
         throw std::runtime_error("dictionary_filename must be specified");
     }
@@ -108,10 +105,10 @@ void decode_dint(std::string const& type,
         throw std::runtime_error("Error opening index file");
     }
 
-    uint8_t const* begin = (uint8_t const*) file.data();
+    uint8_t const* begin = (uint8_t const*)file.data();
     uint64_t size = file.size() / sizeof(uint8_t);
     uint8_t const* end = begin + size;
-    auto ret = posix_madvise((void*) begin, size, POSIX_MADV_SEQUENTIAL);
+    auto ret = posix_madvise((void*)begin, size, POSIX_MADV_SEQUENTIAL);
     if (ret) {
         logger() << "Error calling madvice: " << errno << std::endl;
     }
@@ -124,7 +121,9 @@ void decode_dint(std::string const& type,
     builder.print_usage();
     builder.build(dict);
     dictionary_file.close();
-    logger() << "Dictionary memory: " << double(dictionaries_bytes) / constants::MiB << " [MiB]" << std::endl;
+    logger() << "Dictionary memory: "
+             << double(dictionaries_bytes) / constants::MiB << " [MiB]"
+             << std::endl;
 
     std::vector<uint32_t> decoded;
     decoded.resize(constants::max_size, 0);
@@ -141,7 +140,8 @@ void decode_dint(std::string const& type,
         uint32_t n, universe;
         begin = header::read(begin, &n, &universe);
         auto start = clock_type::now();
-        begin = Decoder::decode(dict, begin, decoded.data(), universe, n /*,stats*/);
+        begin = Decoder::decode(dict, begin, decoded.data(), universe,
+                                n /*,stats*/);
         auto finish = clock_type::now();
         std::chrono::duration<double> elapsed = finish - start;
         timings.push_back(elapsed.count());
@@ -150,12 +150,11 @@ void decode_dint(std::string const& type,
     }
 
     file.close();
-    print_statistics(type, encoded_data_filename,
-                     timings, num_decoded_ints, num_decoded_lists /*,stats*/);
+    print_statistics(type, encoded_data_filename, timings, num_decoded_ints,
+                     num_decoded_lists /*,stats*/);
 }
 
-void decode_pef(char const* encoded_data_filename, bool freqs)
-{
+void decode_pef(char const* encoded_data_filename, bool freqs) {
     succinct::bit_vector bv;
     boost::iostreams::mapped_file_source m(encoded_data_filename);
     succinct::mapper::map(bv, m);
@@ -171,8 +170,7 @@ void decode_pef(char const* encoded_data_filename, bool freqs)
     uint64_t universe, n;
 
     logger() << "decoding..." << std::endl;
-    while (offset < num_bits)
-    {
+    while (offset < num_bits) {
         uint64_t next_offset = bv.get_bits(offset, 64);
         offset += 64;
         universe = bv.get_bits(offset, 32);
@@ -181,9 +179,7 @@ void decode_pef(char const* encoded_data_filename, bool freqs)
         offset += 32;
 
         auto start = clock_type::now();
-        pef::decode(
-            bv, decoded.data(), offset, universe, n, freqs
-        );
+        pef::decode(bv, decoded.data(), offset, universe, n, freqs);
         auto finish = clock_type::now();
         std::chrono::duration<double> elapsed = finish - start;
         timings.push_back(elapsed.count());
@@ -193,7 +189,8 @@ void decode_pef(char const* encoded_data_filename, bool freqs)
         offset = next_offset;
     }
 
-    double tot_elapsed = std::accumulate(timings.begin(), timings.end(), double(0.0));
+    double tot_elapsed =
+        std::accumulate(timings.begin(), timings.end(), double(0.0));
     double ns_x_int = tot_elapsed * 1000000000 / num_decoded_ints;
     uint64_t ints_x_sec = uint64_t(1 / ns_x_int * 1000000000);
 
@@ -203,10 +200,10 @@ void decode_pef(char const* encoded_data_filename, bool freqs)
 }
 
 int main(int argc, char** argv) {
-
     if (argc < 3) {
         std::cerr << "Usage " << argv[0] << ":\n"
-                  << "\t<type> <encoded_data_filename> [--dict <dictionary_filename>] [--freqs]"
+                  << "\t<type> <encoded_data_filename> [--dict "
+                     "<dictionary_filename>] [--freqs]"
                   << std::endl;
         return 1;
     }
@@ -217,59 +214,48 @@ int main(int argc, char** argv) {
     char const* dictionary_filename = nullptr;
     bool freqs = false;
 
-    std::string cmd(std::string(argv[0]) + " " + type + " " + std::string(encoded_data_filename));
+    std::string cmd(std::string(argv[0]) + " " + type + " " +
+                    std::string(encoded_data_filename));
 
     for (int i = 3; i < argc; ++i) {
         if (argv[i] == std::string("--dict")) {
             ++i;
             dictionary_filename = argv[i];
             cmd += " --dict " + std::string(dictionary_filename);
-        }
-        else
-        if (argv[i] == std::string("--freqs")) {
+        } else if (argv[i] == std::string("--freqs")) {
             freqs = true;
             ++i;
             cmd += " --freqs";
-        }
-        else {
+        } else {
             throw std::runtime_error("unknown parameter");
         }
     }
 
     logger() << cmd << std::endl;
 
-
     if (type == std::string("single_rect_dint")) {
         decode_dint<single_opt_dint, single_dictionary_rectangular_type>(
-            type, encoded_data_filename, dictionary_filename
-        );
-    } else
-    if (type == std::string("single_packed_dint")) {
+            type, encoded_data_filename, dictionary_filename);
+    } else if (type == std::string("single_packed_dint")) {
         decode_dint<single_opt_dint, single_dictionary_packed_type>(
-            type, encoded_data_filename, dictionary_filename
-        );
-    } else
-    if (type == std::string("multi_packed_dint")) {
+            type, encoded_data_filename, dictionary_filename);
+    } else if (type == std::string("multi_packed_dint")) {
         decode_dint<multi_opt_dint, multi_dictionary_packed_type>(
-            type, encoded_data_filename, dictionary_filename
-        );
-    } else
-    if (type == std::string("pef")) {
+            type, encoded_data_filename, dictionary_filename);
+    } else if (type == std::string("pef")) {
         decode_pef(encoded_data_filename, freqs);
-    }
-    else {
+    } else {
         if (false) {
-    #define LOOP_BODY(R, DATA, T)                                \
-            } else if (type == BOOST_PP_STRINGIZE(T)) {          \
-                decode<BOOST_PP_CAT(T, )>                        \
-                    (type, encoded_data_filename);               \
-                /**/
+#define LOOP_BODY(R, DATA, T)                                   \
+    }                                                           \
+    else if (type == BOOST_PP_STRINGIZE(T)) {                   \
+        decode<BOOST_PP_CAT(T, )>(type, encoded_data_filename); \
+        /**/
 
             BOOST_PP_SEQ_FOR_EACH(LOOP_BODY, _, CODECS);
-    #undef LOOP_BODY
+#undef LOOP_BODY
         } else {
-            logger() << "ERROR: unknown type '"
-                     << type << "'" << std::endl;
+            logger() << "ERROR: unknown type '" << type << "'" << std::endl;
         }
     }
 

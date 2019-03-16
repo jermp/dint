@@ -17,11 +17,10 @@
 
 using namespace ds2i;
 
-template<typename Decoder, typename Dictionary>
+template <typename Decoder, typename Dictionary>
 void check_dint(char const* collection_filename,
                 char const* encoded_data_filename,
-                char const* dictionary_filename)
-{
+                char const* dictionary_filename) {
     if (!dictionary_filename) {
         throw std::runtime_error("dictionary_filename must be specified");
     }
@@ -32,9 +31,9 @@ void check_dint(char const* collection_filename,
         throw std::runtime_error("Error opening index file");
     }
 
-    uint8_t const* begin = (uint8_t const*) file.data();
+    uint8_t const* begin = (uint8_t const*)file.data();
     uint64_t size = file.size() / sizeof(uint8_t);
-    auto ret = posix_madvise((void*) begin, size, POSIX_MADV_SEQUENTIAL);
+    auto ret = posix_madvise((void*)begin, size, POSIX_MADV_SEQUENTIAL);
     if (ret) {
         logger() << "Error calling madvice: " << errno << std::endl;
     }
@@ -50,7 +49,9 @@ void check_dint(char const* collection_filename,
     builder.print_usage();
     builder.build(dict);
     dictionary_file.close();
-    logger() << "Dictionary memory: " << double(dictionaries_bytes) / constants::MiB << " [MiB]" << std::endl;
+    logger() << "Dictionary memory: "
+             << double(dictionaries_bytes) / constants::MiB << " [MiB]"
+             << std::endl;
 
     std::vector<uint32_t> decoded;
     decoded.resize(constants::max_size, 0);
@@ -61,7 +62,7 @@ void check_dint(char const* collection_filename,
         docs = false;
         logger() << "checking freqs..." << std::endl;
     } else if (collection_path.extension() == ".docs") {
-        ++it; // skip first singleton sequence, containing num. of docs
+        ++it;  // skip first singleton sequence, containing num. of docs
         logger() << "checking docs..." << std::endl;
     } else {
         throw std::runtime_error("unsupported file format");
@@ -72,18 +73,16 @@ void check_dint(char const* collection_filename,
 
     dint_statistics stats;
 
-    for (; it != input.end(); ++it)
-    {
+    for (; it != input.end(); ++it) {
         auto const& list = *it;
         uint32_t size = list.size();
-        if (size > constants::min_size)
-        {
+        if (size > constants::min_size) {
             uint32_t n, universe;
             begin = header::read(begin, &n, &universe);
 
             if (n != size) {
-                std::cerr << "sequence has wrong length: got "
-                          << n << " but expected " << sequence << std::endl;
+                std::cerr << "sequence has wrong length: got " << n
+                          << " but expected " << sequence << std::endl;
             }
 
             begin = Decoder::decode(dict, begin, decoded.data(), universe, n);
@@ -97,9 +96,10 @@ void check_dint(char const* collection_filename,
                     prev = *b;
                 }
                 if (decoded[j] != expected) {
-                    std::cerr << "Sequence " << sequence << ": error at position "
-                              << j << "/" << n << " (got " << decoded[j]
-                              << " but expected " << expected << ")" << std::endl;
+                    std::cerr << "Sequence " << sequence
+                              << ": error at position " << j << "/" << n
+                              << " (got " << decoded[j] << " but expected "
+                              << expected << ")" << std::endl;
                 }
                 decoded[j] = 0;
             }
@@ -112,17 +112,18 @@ void check_dint(char const* collection_filename,
         ++sequence;
     }
 
-    logger() << "checked " << total_decoded_ints << " integers: OK!" << std::endl;
+    logger() << "checked " << total_decoded_ints << " integers: OK!"
+             << std::endl;
 
     file.close();
 }
 
 int main(int argc, char** argv) {
-
     int mandatory = 4;
     if (argc < mandatory) {
         std::cerr << "Usage " << argv[0] << ":\n"
-                  << "\t<type> <collection_filename> <encoded_data_filename> [--dict <dictionary_filename>]"
+                  << "\t<type> <collection_filename> <encoded_data_filename> "
+                     "[--dict <dictionary_filename>]"
                   << std::endl;
         return 1;
     }
@@ -144,18 +145,13 @@ int main(int argc, char** argv) {
 
     if (type == std::string("single_rect_dint")) {
         check_dint<single_opt_dint, single_dictionary_rectangular_type>(
-            collection_filename, encoded_data_filename, dictionary_filename
-        );
-    } else
-    if (type == std::string("single_packed_dint")) {
+            collection_filename, encoded_data_filename, dictionary_filename);
+    } else if (type == std::string("single_packed_dint")) {
         check_dint<single_opt_dint, single_dictionary_packed_type>(
-            collection_filename, encoded_data_filename, dictionary_filename
-        );
-    } else
-    if (type == std::string("multi_packed_dint")) {
+            collection_filename, encoded_data_filename, dictionary_filename);
+    } else if (type == std::string("multi_packed_dint")) {
         check_dint<multi_opt_dint, multi_dictionary_packed_type>(
-            collection_filename, encoded_data_filename, dictionary_filename
-        );
+            collection_filename, encoded_data_filename, dictionary_filename);
     }
 
     return 0;

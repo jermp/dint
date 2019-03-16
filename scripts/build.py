@@ -8,17 +8,17 @@ strategies = [
               # "opt",
               "block_interpolative",
               "block_qmx",
-              "block_simple16",
+              # "block_simple16",
               "block_optpfor",
-              "block_vbyte",
-              "block_varintgb",
-              "block_varintg8iu",
-              "block_streamvbyte",
-              "block_maskedvbyte"
+              # "block_vbyte",
+              # "block_varintgb",
+              # "block_varintg8iu",
+              # "block_streamvbyte",
+              # "block_maskedvbyte"
               ]
 
 for type in strategies:
     # build index
     output = output_prefix_name + "." + type
-    cmd = "./create_freq_index " + type + " " + collection_basename + " " + bins_directory + "/" + output + ".bin"
+    cmd = "./create_freq_index " + type + " " + collection_basename + " " + bins_directory + "/" + output + ".bin > " + output + ".results"
     os.system(cmd)

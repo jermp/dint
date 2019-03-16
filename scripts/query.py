@@ -6,12 +6,12 @@ query_log = sys.argv[3]
 output = sys.argv[4]
 
 strategies = [
-              # "opt",
+              "opt",
               "block_interpolative",
               "block_qmx",
-              "block_simple16",
+              # "block_simple16",
               "block_optpfor",
-              "block_vbyte",
+              # "block_vbyte",
               "block_varintgb",
               "block_varintg8iu",
               "block_streamvbyte",

@@ -22,68 +22,70 @@
 
 namespace ds2i {
 
-    typedef freq_index<
-                compact_elias_fano,
-                positive_sequence<strict_elias_fano>
-            > ef_index;
+typedef freq_index<compact_elias_fano, positive_sequence<strict_elias_fano>>
+    ef_index;
 
-    typedef freq_index<
-                indexed_sequence,
-                positive_sequence<>
-            > single_index;
+typedef freq_index<indexed_sequence, positive_sequence<>> single_index;
 
-    typedef freq_index<
-                uniform_partitioned_sequence<>,
-                positive_sequence<uniform_partitioned_sequence<strict_sequence>>
-            > uniform_index;
+typedef freq_index<
+    uniform_partitioned_sequence<>,
+    positive_sequence<uniform_partitioned_sequence<strict_sequence>>>
+    uniform_index;
 
-    typedef freq_index<
-                partitioned_sequence<>,
-                positive_sequence<partitioned_sequence<strict_sequence>>
-            > opt_index;
+typedef freq_index<partitioned_sequence<>,
+                   positive_sequence<partitioned_sequence<strict_sequence>>>
+    opt_index;
 
-    typedef block_freq_index<optpfor_block> block_optpfor_index;
-    typedef block_freq_index<varint_G8IU_block> block_varintg8iu_index;
-    typedef block_freq_index<interpolative_block> block_interpolative_index;
-    typedef block_freq_index<qmx_block> block_qmx_index;
-    typedef block_freq_index<mixed_block> block_mixed_index;
-    typedef block_freq_index<u32_block> block_u32_index;
-    typedef block_freq_index<vbyte_block> block_vbyte_index;
-    typedef block_freq_index<simple16_block> block_simple16_index;
-    typedef block_freq_index<varintgb_block> block_varintgb_index;
-    typedef block_freq_index<maskedvbyte_block> block_maskedvbyte_index;
-    typedef block_freq_index<streamvbyte_block> block_streamvbyte_index;
+typedef block_freq_index<optpfor_block> block_optpfor_index;
+typedef block_freq_index<varint_G8IU_block> block_varintg8iu_index;
+typedef block_freq_index<interpolative_block> block_interpolative_index;
+typedef block_freq_index<qmx_block> block_qmx_index;
+typedef block_freq_index<mixed_block> block_mixed_index;
+typedef block_freq_index<u32_block> block_u32_index;
+typedef block_freq_index<vbyte_block> block_vbyte_index;
+typedef block_freq_index<simple16_block> block_simple16_index;
+typedef block_freq_index<varintgb_block> block_varintgb_index;
+typedef block_freq_index<maskedvbyte_block> block_maskedvbyte_index;
+typedef block_freq_index<streamvbyte_block> block_streamvbyte_index;
 
-    // DINT indexes
+// DINT indexes
 
-    // collector type
-    using adjusted_collector_type = adjusted<constants::max_entry_size>;
+// collector type
+using adjusted_collector_type = adjusted<constants::max_entry_size>;
 
-    // statistic types
-    using adjusted_block_stats_type = block_statistics<adjusted_collector_type>;
-    using adjusted_block_multi_stats_type = block_multi_statistics<adjusted_collector_type>;
+// statistic types
+using adjusted_block_stats_type = block_statistics<adjusted_collector_type>;
+using adjusted_block_multi_stats_type =
+    block_multi_statistics<adjusted_collector_type>;
 
-    // dictionary_builders
-    using single_rectangular_builder = decreasing_static_frequencies<
-                                                single_dictionary_rectangular_type,
-                                                adjusted_block_stats_type
-                                            >;
+// dictionary_builders
+using single_rectangular_builder =
+    decreasing_static_frequencies<single_dictionary_rectangular_type,
+                                  adjusted_block_stats_type>;
 
-    using single_packed_builder = decreasing_static_frequencies<
-                                                single_dictionary_packed_type,
-                                                adjusted_block_stats_type
-                                            >;
+using single_packed_builder =
+    decreasing_static_frequencies<single_dictionary_packed_type,
+                                  adjusted_block_stats_type>;
 
-    using multi_packed_builder = decreasing_static_frequencies<
-                                                multi_dictionary_packed_type,
-                                                adjusted_block_multi_stats_type
-                                            >;
+using multi_packed_builder =
+    decreasing_static_frequencies<multi_dictionary_packed_type,
+                                  adjusted_block_multi_stats_type>;
 
-    // DINT configurations (all use optimal block parsing)
-    using single_rect_dint_index    = dict_freq_index<single_rectangular_builder, opt_dint_single_dict_block>;
-    using single_packed_dint_index  = dict_freq_index<single_packed_builder,      opt_dint_single_dict_block>;
-    using multi_packed_dint_index   = dict_freq_index<multi_packed_builder,       opt_dint_multi_dict_block>;
-}
+// DINT configurations (all use optimal block parsing)
+using single_rect_dint_index =
+    dict_freq_index<single_rectangular_builder, opt_dint_single_dict_block>;
+using single_packed_dint_index =
+    dict_freq_index<single_packed_builder, opt_dint_single_dict_block>;
+using multi_packed_dint_index =
+    dict_freq_index<multi_packed_builder, opt_dint_multi_dict_block>;
+}  // namespace ds2i
 
-#define DS2I_INDEX_TYPES (ef)(single)(uniform)(opt)(block_optpfor)(block_varintg8iu)(block_interpolative)(block_qmx)(block_mixed)(block_u32)(block_vbyte)(block_simple16)(block_varintgb)(block_maskedvbyte)(block_streamvbyte)(single_rect_dint)(single_packed_dint)(multi_packed_dint)
-#define DS2I_BLOCK_INDEX_TYPES (block_optpfor)(block_varintg8iu)(block_interpolative)(block_qmx)(block_mixed)(block_u32)(block_vbyte)(block_simple16)(block_varintgb)(block_maskedvbyte)(block_streamvbyte)
+#define DS2I_INDEX_TYPES                                                       \
+    (ef)(single)(uniform)(opt)(block_optpfor)(block_varintg8iu)(               \
+        block_interpolative)(block_qmx)(block_mixed)(block_u32)(block_vbyte)(  \
+        block_simple16)(block_varintgb)(block_maskedvbyte)(block_streamvbyte)( \
+        single_rect_dint)(single_packed_dint)(multi_packed_dint)
+#define DS2I_BLOCK_INDEX_TYPES                                                \
+    (block_optpfor)(block_varintg8iu)(block_interpolative)(block_qmx)(        \
+        block_mixed)(block_u32)(block_vbyte)(block_simple16)(block_varintgb)( \
+        block_maskedvbyte)(block_streamvbyte)

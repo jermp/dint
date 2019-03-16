@@ -8,13 +8,11 @@
 #include "util.hpp"
 
 int main(int argc, const char** argv) {
-
     using namespace ds2i;
 
     if (argc != 3) {
         std::cerr << "Usage: " << argv[0]
-                  << " <collection basename> <output filename>"
-                  << std::endl;
+                  << " <collection basename> <output filename>" << std::endl;
         return 1;
     }
 

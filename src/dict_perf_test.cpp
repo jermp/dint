@@ -12,24 +12,21 @@ using namespace ds2i;
 typedef single_dictionary_rectangular_type dictionary_type;
 
 int main(int argc, char** argv) {
-
     if (argc < 1) {
         std::cerr << "Usage " << argv[0] << ":\n"
-                  << "\t<dictionary_filename>"
-                  << std::endl;
+                  << "\t<dictionary_filename>" << std::endl;
         return 1;
     }
 
     char const* dictionary_filename = argv[1];
-
 
     dictionary_type dict;
     typename dictionary_type::builder builder;
     std::ifstream dictionary_file(dictionary_filename);
     builder.load(dictionary_file);
     uint64_t dict_size = builder.size();
-    logger() << "loaded a dictionary with "
-             << dict_size << " entries" << std::endl;
+    logger() << "loaded a dictionary with " << dict_size << " entries"
+             << std::endl;
     builder.build(dict);
 
     constexpr uint64_t n = 10000000;
@@ -44,11 +41,12 @@ int main(int argc, char** argv) {
     }
 
     constexpr uint32_t runs = 10;
-    std::vector<uint32_t> out(dictionary_type::max_entry_size, 0); // output buffer
+    std::vector<uint32_t> out(dictionary_type::max_entry_size,
+                              0);  // output buffer
     double elapsed_time = 0;
     for (uint32_t run = 0; run < runs; ++run) {
         auto start = clock_type::now();
-        for (auto index: indexes) {
+        for (auto index : indexes) {
             uint32_t decoded_ints = dict.copy(index, out.data());
             do_not_optimize_away(decoded_ints);
         }
@@ -57,9 +55,12 @@ int main(int argc, char** argv) {
         elapsed_time += elapsed.count();
     }
 
-    logger() << "total elapsed time: " << elapsed_time / 1000000000 << " [secs]" << std::endl;
-    logger() << "avg. time x run: " << elapsed_time / runs / 1000000000 << " [secs]" << std::endl;
-    logger() << "avg. time x copy: " << elapsed_time / runs / n << " [ns]" << std::endl;
+    logger() << "total elapsed time: " << elapsed_time / 1000000000 << " [secs]"
+             << std::endl;
+    logger() << "avg. time x run: " << elapsed_time / runs / 1000000000
+             << " [secs]" << std::endl;
+    logger() << "avg. time x copy: " << elapsed_time / runs / n << " [ns]"
+             << std::endl;
 
     return 0;
 }

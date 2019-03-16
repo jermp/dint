@@ -24,9 +24,7 @@ using namespace ds2i;
 typedef binary_collection::posting_type const* iterator_type;
 const uint32_t num_jobs = 1 << 24;
 
-void save_if(char const* output_filename,
-             std::vector<uint8_t> const& output)
-{
+void save_if(char const* output_filename, std::vector<uint8_t> const& output) {
     if (output_filename) {
         logger() << "writing encoded data..." << std::endl;
         std::ofstream output_file(output_filename);
@@ -39,9 +37,7 @@ void save_if(char const* output_filename,
 
 void print_statistics(std::string type, char const* collection_name,
                       std::vector<uint8_t> const& output,
-                      uint64_t num_total_ints,
-                      uint64_t num_processed_lists)
-{
+                      uint64_t num_total_ints, uint64_t num_processed_lists) {
     double GiB_space = output.size() * 1.0 / constants::GiB;
     double bpi_space = output.size() * sizeof(output[0]) * 8.0 / num_total_ints;
 
@@ -61,11 +57,9 @@ void print_statistics(std::string type, char const* collection_name,
     std::cout << "}" << std::endl;
 }
 
-template<typename Encoder>
-void encode(std::string const& type,
-            char const* collection_name,
-            char const* output_filename)
-{
+template <typename Encoder>
+void encode(std::string const& type, char const* collection_name,
+            char const* output_filename) {
     binary_collection input(collection_name);
 
     auto it = input.begin();
@@ -107,15 +101,14 @@ void encode(std::string const& type,
         auto begin = list.begin();
         for (uint64_t i = 0; i != n; ++i, ++begin) {
             buf.push_back(*begin - prev - 1);
-            if (docs) prev = *begin;
+            if (docs)
+                prev = *begin;
             universe += buf.back();
         }
         assert(buf.size() == n);
 
         header::write(n, universe, output);
-        Encoder::encode(
-            buf.data(), universe, buf.size(), output
-        );
+        Encoder::encode(buf.data(), universe, buf.size(), output);
         progress += n + 1;
         ++num_processed_lists;
         num_total_ints += n;
@@ -132,17 +125,14 @@ void encode(std::string const& type,
     }
 
     jobs_queue.complete();
-    print_statistics(type, collection_name, output,
-                     num_total_ints, num_processed_lists);
+    print_statistics(type, collection_name, output, num_total_ints,
+                     num_processed_lists);
     save_if(output_filename, output);
 }
 
-template<typename Encoder, typename Dictionary>
-void encode_dint(std::string const& type,
-                 char const* collection_name,
-                 char const* output_filename,
-                 char const* dictionary_filename)
-{
+template <typename Encoder, typename Dictionary>
+void encode_dint(std::string const& type, char const* collection_name,
+                 char const* output_filename, char const* dictionary_filename) {
     if (!dictionary_filename) {
         throw std::runtime_error("dictionary_filename must be specified");
     }
@@ -189,24 +179,18 @@ void encode_dint(std::string const& type,
         uint32_t n = list.size();
         std::shared_ptr<dint_sequence_adder<iterator_type, Encoder, Builder>>
             ptr(new dint_sequence_adder<iterator_type, Encoder, Builder>(
-                list.begin(), n,
-                builder,
-                progress, output, docs,
-                num_processed_lists, num_total_ints
-            )
-        );
+                list.begin(), n, builder, progress, output, docs,
+                num_processed_lists, num_total_ints));
         jobs_queue.add_job(ptr, n);
     }
 
     jobs_queue.complete();
-    print_statistics(type, collection_name, output,
-                     num_total_ints, num_processed_lists);
+    print_statistics(type, collection_name, output, num_total_ints,
+                     num_processed_lists);
     save_if(output_filename, output);
 }
 
-void encode_pef(char const* collection_name,
-                char const* output_filename)
-{
+void encode_pef(char const* collection_name, char const* output_filename) {
     binary_collection input(collection_name);
 
     auto it = input.begin();
@@ -232,8 +216,7 @@ void encode_pef(char const* collection_name,
     boost::progress_display progress(total_progress);
     semiasync_queue jobs_queue(num_jobs);
 
-    for (; it != input.end(); ++it)
-    {
+    for (; it != input.end(); ++it) {
         auto const& list = *it;
         uint32_t n = list.size();
 
@@ -247,14 +230,10 @@ void encode_pef(char const* collection_name,
 
         // 2. parallel version
         if (n > constants::min_size) {
-            std::shared_ptr<pef_sequence_adder<iterator_type>>
-                ptr(new pef_sequence_adder<iterator_type>(
-                    list.begin(),
-                    n, list.back() + 1, bvb,
-                    progress, docs,
-                    num_processed_lists, num_total_ints
-                )
-            );
+            std::shared_ptr<pef_sequence_adder<iterator_type>> ptr(
+                new pef_sequence_adder<iterator_type>(
+                    list.begin(), n, list.back() + 1, bvb, progress, docs,
+                    num_processed_lists, num_total_ints));
             jobs_queue.add_job(ptr, n);
         }
     }
@@ -288,10 +267,10 @@ void encode_pef(char const* collection_name,
 }
 
 int main(int argc, char** argv) {
-
     if (argc < 3) {
         std::cerr << "Usage " << argv[0] << ":\n"
-                  << "\t<type> <collection_name> [--dict <dictionary_filename>] [--out <output_filename>]"
+                  << "\t<type> <collection_name> [--dict "
+                     "<dictionary_filename>] [--out <output_filename>]"
                   << std::endl;
         return 1;
     }
@@ -301,7 +280,8 @@ int main(int argc, char** argv) {
     char const* dictionary_filename = nullptr;
     char const* output_filename = nullptr;
 
-    std::string cmd(std::string(argv[0]) + " " + type + " " + std::string(collection_name));
+    std::string cmd(std::string(argv[0]) + " " + type + " " +
+                    std::string(collection_name));
 
     for (int i = 3; i < argc; ++i) {
         if (argv[i] == std::string("--dict")) {
@@ -321,35 +301,27 @@ int main(int argc, char** argv) {
 
     if (type == std::string("single_rect_dint")) {
         encode_dint<single_opt_dint, single_dictionary_rectangular_type>(
-            type, collection_name, output_filename, dictionary_filename
-        );
-    } else
-    if (type == std::string("single_packed_dint")) {
+            type, collection_name, output_filename, dictionary_filename);
+    } else if (type == std::string("single_packed_dint")) {
         encode_dint<single_opt_dint, single_dictionary_packed_type>(
-            type, collection_name, output_filename, dictionary_filename
-        );
-    } else
-    if (type == std::string("multi_packed_dint")) {
+            type, collection_name, output_filename, dictionary_filename);
+    } else if (type == std::string("multi_packed_dint")) {
         encode_dint<multi_opt_dint, multi_dictionary_packed_type>(
-            type, collection_name, output_filename, dictionary_filename
-        );
-    } else
-    if (type == std::string("pef")) {
+            type, collection_name, output_filename, dictionary_filename);
+    } else if (type == std::string("pef")) {
         encode_pef(collection_name, output_filename);
-    }
-    else {
+    } else {
         if (false) {
-    #define LOOP_BODY(R, DATA, T)                                \
-            } else if (type == BOOST_PP_STRINGIZE(T)) {          \
-                encode<BOOST_PP_CAT(T, )>                        \
-                    (type, collection_name, output_filename);    \
-                /**/
+#define LOOP_BODY(R, DATA, T)                                              \
+    }                                                                      \
+    else if (type == BOOST_PP_STRINGIZE(T)) {                              \
+        encode<BOOST_PP_CAT(T, )>(type, collection_name, output_filename); \
+        /**/
 
             BOOST_PP_SEQ_FOR_EACH(LOOP_BODY, _, CODECS);
-    #undef LOOP_BODY
+#undef LOOP_BODY
         } else {
-            logger() << "ERROR: unknown type '"
-                     << type << "'" << std::endl;
+            logger() << "ERROR: unknown type '" << type << "'" << std::endl;
         }
     }
 
