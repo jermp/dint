@@ -10,7 +10,7 @@
 #include "queries.hpp"
 #include "util.hpp"
 
-const size_t runs = 5 + 1;
+const size_t runs = 10 + 1;
 
 template <typename QueryOperator, typename IndexType>
 void op_perftest(IndexType const& index,
@@ -21,18 +21,21 @@ void op_perftest(IndexType const& index,
     using namespace ds2i;
 
     std::vector<double> query_times;
-
+    size_t total = 0;
     for (size_t run = 0; run != runs; ++run) {
         for (auto const& query : queries) {
             auto tick = get_time_usecs();
             uint64_t results = query_op(index, query);
-            do_not_optimize_away(results);
+            // do_not_optimize_away(results);
+            total += results;
             double elapsed = double(get_time_usecs() - tick);
             if (run != 0) {  // first run is not timed
                 query_times.push_back(elapsed);
             }
         }
     }
+
+    std::cout << total << std::endl;
 
     if (false) {
         for (auto t : query_times) {
