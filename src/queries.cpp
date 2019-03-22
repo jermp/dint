@@ -10,7 +10,7 @@
 #include "queries.hpp"
 #include "util.hpp"
 
-const size_t runs = 5;
+const size_t runs = 5 + 1;
 
 template <typename QueryOperator, typename IndexType>
 void op_perftest(IndexType const& index,
@@ -22,7 +22,7 @@ void op_perftest(IndexType const& index,
 
     std::vector<double> query_times;
 
-    for (size_t run = 0; run <= runs; ++run) {
+    for (size_t run = 0; run != runs; ++run) {
         for (auto const& query : queries) {
             auto tick = get_time_usecs();
             uint64_t results = query_op(index, query);
